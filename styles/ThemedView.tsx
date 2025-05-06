@@ -42,6 +42,6 @@ export const ThemedView: React.FC<ThemedViewProps> = ({ style, ...props }) => {
 // 기본 스타일 정의
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', // 흰색
   },
 }); 

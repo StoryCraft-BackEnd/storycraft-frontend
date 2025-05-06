@@ -31,7 +31,7 @@ export const notFoundScreenStyles = StyleSheet.create({
   },
   // 홈 화면 링크 텍스트 스타일
   linkText: {
-    color: '#0096FF',
+    color: '#0096FF', // 선명한 파란색
     fontSize: 16,
   },
 }); 

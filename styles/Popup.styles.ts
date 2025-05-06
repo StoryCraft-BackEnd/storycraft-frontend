@@ -9,19 +9,22 @@ export const createPopupStyles = () => {
   const primaryColor = useThemeColor("primary");
 
   // 테두리 색상을 배경색보다 약간 밝게 설정
-  const borderColorAdjusted = backgroundColor === '#000000' 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.1)';
+    // const result = 조건식
+    // ? 값1  // 조건이 참(true)일 때 사용
+    // : 값2; // 조건이 거짓(false)일 때 사용
+    const borderColorAdjusted = backgroundColor === '#000000' // 검정인지 확인
+    ? 'rgba(255, 255, 255, 0.1)' // 다크모드: 반투명 흰색
+    : 'rgba(0, 0, 0, 0.1)'; // 라이트모드: 반투명 검정색
 
   // 취소 버튼 테두리 색상
   const cancelButtonBorderColor = backgroundColor === '#000000'
-    ? 'rgba(255, 255, 255, 0.2)'
-    : borderColorAdjusted;
+    ? 'rgba(255, 255, 255, 0.2)' // 다크모드: 더 밝은 반투명 흰색
+    : borderColorAdjusted; // 라이트모드: 반투명 검정색
 
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      backgroundColor: 'rgba(0, 0, 0, 0.7)', // 반투명 검정색
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -31,7 +34,7 @@ export const createPopupStyles = () => {
       borderRadius: 12,
       padding: 20,
       elevation: 5,
-      shadowColor: '#000',
+      shadowColor: '#000', // 검정색
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
@@ -66,7 +69,7 @@ export const createPopupStyles = () => {
       backgroundColor: primaryColor,
     },
     cancelButton: {
-      backgroundColor: 'transparent',
+      backgroundColor: 'transparent', // 투명
       borderWidth: 1,
       borderColor: cancelButtonBorderColor,
     },
@@ -76,7 +79,7 @@ export const createPopupStyles = () => {
       textAlign: 'center',
     },
     confirmButtonText: {
-      color: '#FFFFFF',
+      color: '#FFFFFF', // 흰색
     },
     cancelButtonText: {
       color: textColor,
