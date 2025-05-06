@@ -8,8 +8,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Image, Animated } from 'react-native';
-import { ThemedView } from '@/styles/ThemedView';
-import { ThemedText } from '@/styles/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { ThemedText } from '@/components/ui/ThemedText';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { loadingScreenStyles as styles } from '@/styles/LoadingScreen.styles';
 

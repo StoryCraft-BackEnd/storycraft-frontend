@@ -10,8 +10,8 @@
 import React, { useState } from "react";
 import { TouchableOpacity, Alert } from "react-native";
 import { router } from "expo-router";
-import { ThemedText } from "../styles/ThemedText";
-import { ThemedView } from "../styles/ThemedView";
+import { ThemedText } from "@/components/ui/ThemedText";
+import { ThemedView } from "@/components/ui/ThemedView";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { checkServerConnection } from "../shared/api/client";
 import { homeScreenStyles as styles } from "../styles/HomeScreen.styles";

@@ -7,10 +7,10 @@
  */
 import React from 'react';
 import { Link, Stack } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
-
-import { ThemedText } from '../styles/ThemedText';
-import { ThemedView } from '../styles/ThemedView';
+import { TouchableOpacity, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { notFoundScreenStyles as styles } from '../styles/NotFoundScreen.styles';
 
 export default function NotFoundScreen() {

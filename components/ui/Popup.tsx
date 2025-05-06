@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, TouchableOpacity } from 'react-native';
-import { ThemedText } from '@/styles/ThemedText';
+import { ThemedText } from '@/components/ui/ThemedText';
 import { createPopupStyles } from '@/styles/Popup.styles';
 
 // props로 들어오는 데이터의 타입을 명확히 하여 컴파일 타임 에러 방지
@@ -57,23 +57,23 @@ export const Popup: React.FC<PopupProps> = ({
       animationType="fade" // 애니메이션 타입 설정
       onRequestClose={onClose} // 닫기 버튼 클릭 시 실행
     >
-      <View style={styles.overlay}> {/* 배경 뷰 */} 
-        <View style={styles.container}> {/* 팝업 컨테이너 */}
-          <ThemedText style={styles.title}>{title}</ThemedText> {/* 제목 텍스트 */}
-          <ThemedText style={styles.message}>{message}</ThemedText> {/* 메시지 텍스트 */}
-          <View style={styles.buttonContainer}> {/* 버튼 컨테이너 */}
-            <TouchableOpacity // 취소 버튼
+      <View style={styles.overlay}> 
+        <View style={styles.container}> 
+          <ThemedText style={styles.title}>{title}</ThemedText> 
+          <ThemedText style={styles.message}>{message}</ThemedText> 
+          <View style={styles.buttonContainer}> 
+            <TouchableOpacity  
               style={[styles.button, styles.cancelButton]}
-              onPress={handleCancel} // 취소 버튼 클릭 시 실행
+              onPress={handleCancel} 
             >
               <ThemedText style={[styles.buttonText, styles.cancelButtonText]}>
                 {cancelText}
               </ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity // 확인 버튼  
+            <TouchableOpacity 
               style={[styles.button, styles.confirmButton]}
-              onPress={handleConfirm} // 확인 버튼 클릭 시 실행 
-            > 
+              onPress={handleConfirm} 
+            >
               <ThemedText style={[styles.buttonText, styles.confirmButtonText]}>
                 {confirmText}
               </ThemedText>
