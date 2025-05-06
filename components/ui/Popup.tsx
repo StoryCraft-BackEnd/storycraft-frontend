@@ -1,21 +1,27 @@
 import React from 'react';
 import { Modal, View, TouchableOpacity } from 'react-native';
-import { ThemedView } from '@/styles/ThemedView';
 import { ThemedText } from '@/styles/ThemedText';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { popupStyles as styles } from '@/styles/Popup.styles';
+import { createPopupStyles } from '@/styles/Popup.styles';
 
+// props로 들어오는 데이터의 타입을 명확히 하여 컴파일 타임 에러 방지
+// ?는 선택적(optional) 프로퍼티
 interface PopupProps {
-  visible: boolean;
-  onClose: () => void;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  onConfirm?: () => void;
-  onCancel?: () => void;
+  visible: boolean;        // 팝업 표시 여부
+  onClose: () => void;     // 닫기 함수
+  title: string;           // 제목 텍스트
+  message: string;         // 메시지 본문
+  confirmText?: string;    // 확인 버튼 텍스트 (선택적)
+  cancelText?: string;     // 취소 버튼 텍스트 (선택적)
+  onConfirm?: () => void;  // 확인 눌렀을 때 콜백 (선택적)
+  onCancel?: () => void;   // 취소 눌렀을 때 콜백 (선택적)
 }
 
+// export는 이 컴포넌트를 다른 파일에서도 사용할 수 있도록 외부로 내보냄
+// 괄호안에 작성해야 외부에서 아래처럼 사용 가능
+// (props) => {
+//     props.visible;
+//     props.onClose;
+//   }
 export const Popup: React.FC<PopupProps> = ({
   visible,
   onClose,
@@ -26,56 +32,54 @@ export const Popup: React.FC<PopupProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const backgroundColor = useThemeColor("background");
-  const textColor = useThemeColor("text");
-  const primaryColor = useThemeColor("primary");
-  const cardColor = useThemeColor("card");
+  const styles = createPopupStyles();
 
+  // 확인 버튼 클릭 시 실행
   const handleConfirm = () => {
-    onConfirm?.();
-    onClose();
+    if (onConfirm) {
+      onConfirm(); // 전달받은 콜백 실행
+    }
+    onClose(); // 팝업 닫기
   };
 
+  // 취소 버튼 클릭 시 실행
   const handleCancel = () => {
-    onCancel?.();
+    if (onCancel) {
+      onCancel();
+    }
     onClose();
   };
 
   return (
     <Modal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      transparent // 배경 투명하게 설정
+      animationType="fade" // 애니메이션 타입 설정
+      onRequestClose={onClose} // 닫기 버튼 클릭 시 실행
     >
-      <View style={styles.overlay}>
-        <ThemedView style={[styles.container, { backgroundColor: cardColor }]}>
-          <ThemedText style={[styles.title, { color: textColor }]}>
-            {title}
-          </ThemedText>
-          
-          <ThemedText style={[styles.message, { color: textColor }]}>
-            {message}
-          </ThemedText>
-
-          <View style={styles.buttonContainer}>
-            {onCancel && (
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleCancel}
-              >
-                <ThemedText style={styles.buttonText}>{cancelText}</ThemedText>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity
-              style={[styles.button, styles.confirmButton, { backgroundColor: primaryColor }]}
-              onPress={handleConfirm}
+      <View style={styles.overlay}> {/* 배경 뷰 */} 
+        <View style={styles.container}> {/* 팝업 컨테이너 */}
+          <ThemedText style={styles.title}>{title}</ThemedText> {/* 제목 텍스트 */}
+          <ThemedText style={styles.message}>{message}</ThemedText> {/* 메시지 텍스트 */}
+          <View style={styles.buttonContainer}> {/* 버튼 컨테이너 */}
+            <TouchableOpacity // 취소 버튼
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel} // 취소 버튼 클릭 시 실행
             >
-              <ThemedText style={styles.buttonText}>{confirmText}</ThemedText>
+              <ThemedText style={[styles.buttonText, styles.cancelButtonText]}>
+                {cancelText}
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity // 확인 버튼  
+              style={[styles.button, styles.confirmButton]}
+              onPress={handleConfirm} // 확인 버튼 클릭 시 실행 
+            > 
+              <ThemedText style={[styles.buttonText, styles.confirmButtonText]}>
+                {confirmText}
+              </ThemedText>
             </TouchableOpacity>
           </View>
-        </ThemedView>
+        </View>
       </View>
     </Modal>
   );
