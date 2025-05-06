@@ -5,8 +5,6 @@
  * 시스템의 다크/라이트 모드에 따라 자동으로 색상이 변경되며,
  * 기본 Text 컴포넌트의 모든 기능을 지원합니다.
  * 
- * @author StoryCraft Team
- * @version 1.0.0
  */
 import React from 'react';
 import { Text, TextProps, StyleSheet } from 'react-native';

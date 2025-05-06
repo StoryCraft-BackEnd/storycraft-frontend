@@ -4,8 +4,6 @@
  * 존재하지 않는 경로로 접근했을 때 표시되는 화면입니다.
  * 사용자에게 친절한 에러 메시지와 홈 화면으로 돌아갈 수 있는 링크를 제공합니다.
  * 
- * @author StoryCraft Team
- * @version 1.0.0
  */
 import React from 'react';
 import { Link, Stack } from 'expo-router';

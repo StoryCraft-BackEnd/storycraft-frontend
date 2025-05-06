@@ -4,11 +4,21 @@ import { router } from "expo-router";
 import { ThemedView } from "../../styles/ThemedView";
 import { ThemedText } from "../../styles/ThemedText";
 import { loginScreenStyles as styles } from "@/styles/LoginScreen.styles";
+import { useThemeColor } from "../../hooks/useThemeColor";
 
 // 상태관리
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // 테마 색상 가져오기
+  const placeholderColor = useThemeColor("secondary");
+  const dividerColor = useThemeColor("text");
+  const backgroundColor = useThemeColor("background");
+  const textColor = useThemeColor("text");
+  const primaryColor = useThemeColor("primary");
+  const cardColor = useThemeColor("card");
+  const borderColor = useThemeColor("border");
 
   // 로그인 버튼 클릭 시 실행
   const handleLogin = () => {
@@ -21,41 +31,65 @@ export default function LoginScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    // styles.container의 색상을 가져오되, 테마 색상은 backgroundColor 사용
+    <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* 입력 및 로그인 영역 */}
       <View style={styles.formContainer}>
-        <ThemedText style={styles.title}>로그인</ThemedText>
+        <ThemedText style={[styles.title, { color: textColor }]}>로그인</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: cardColor,
+              borderColor,
+              color: textColor,
+            },
+          ]}
           placeholder="이메일"
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
         />
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: cardColor,
+              borderColor,
+              color: textColor,
+            },
+          ]}
           placeholder="비밀번호"
-          placeholderTextColor="#999"
+          placeholderTextColor={placeholderColor}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <ThemedText style={styles.loginButtonText}>로그인</ThemedText>
+        <TouchableOpacity
+          style={[styles.loginButton, { backgroundColor: primaryColor }]}
+          onPress={handleLogin}
+        >
+          <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>
+            로그인
+          </ThemedText>
         </TouchableOpacity>
 
         <View style={styles.linkContainer}>
           <TouchableOpacity onPress={() => Alert.alert("회원가입 버튼 눌림")}>
-            <ThemedText style={styles.linkText}>회원가입</ThemedText>
+            <ThemedText style={[styles.linkText, { color: primaryColor }]}>
+              회원가입
+            </ThemedText>
           </TouchableOpacity>
-          <ThemedText> | </ThemedText>
+          <ThemedText style={{ color: dividerColor }}> | </ThemedText>
           <TouchableOpacity
             onPress={() => Alert.alert("비밀번호 찾기 버튼 눌림")}
           >
-            <ThemedText style={styles.linkText}>비밀번호 찾기</ThemedText>
+            <ThemedText style={[styles.linkText, { color: primaryColor }]}>
+              비밀번호 찾기
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -64,29 +98,33 @@ export default function LoginScreen() {
       <View style={styles.footerContainer}>
         <View style={styles.socialButtonRow}>
           <TouchableOpacity
-            style={styles.socialButton}
+            style={[styles.socialButton, { borderColor: primaryColor }]}
             onPress={() => Alert.alert("페이스북 로그인 눌림")}
           >
             <Image
               source={require("../../assets/images/facebook.png")}
               style={styles.socialIcon}
             />
-            <ThemedText style={styles.socialText}>Facebook</ThemedText>
+            <ThemedText style={[styles.socialText, { color: textColor }]}>
+              Facebook
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.socialButton}
+            style={[styles.socialButton, { borderColor: primaryColor }]}
             onPress={() => Alert.alert("구글 로그인 눌림")}
           >
             <Image
               source={require("../../assets/images/google.png")}
               style={styles.socialIcon}
             />
-            <ThemedText style={styles.socialText}>Google</ThemedText>
+            <ThemedText style={[styles.socialText, { color: textColor }]}>
+              Google
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
-        <ThemedText style={styles.notice}>
+        <ThemedText style={[styles.notice, { color: placeholderColor }]}>
           StoryCraft에 가입함으로써 StoryCraft의 이용 약관 및{"\n"}
           개인정보처리방침에 동의하게 됩니다.
         </ThemedText>

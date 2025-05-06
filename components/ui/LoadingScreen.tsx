@@ -5,19 +5,19 @@
  * ActivityIndicator를 사용하여 로딩 상태를 시각적으로 표현하고,
  * 사용자에게 현재 진행 중인 작업에 대한 메시지를 표시합니다.
  * 
- * @author StoryCraft Team
- * @version 1.0.0
  */
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { ThemedText } from '../../styles/ThemedText';
-import { ThemedView } from '../../styles/ThemedView';
+import React, { useEffect, useState } from 'react';
+import { View, Image, Animated } from 'react-native';
+import { ThemedView } from '@/styles/ThemedView';
+import { ThemedText } from '@/styles/ThemedText';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { loadingScreenStyles as styles } from '@/styles/LoadingScreen.styles';
 
 /**
  * LoadingScreen 컴포넌트의 Props 인터페이스
  * 
  * @interface LoadingScreenProps
- * @property {string} [message] - 로딩 화면에 표시될 메시지 (기본값: '서버에 연결 중입니다...')
+ * @property {string} [message] - 로딩 화면에 표시될 메시지 (기본값: '잠시만 기다려주세요...')
  */
 interface LoadingScreenProps {
   message?: string;
@@ -29,30 +29,36 @@ interface LoadingScreenProps {
  * @param {LoadingScreenProps} props - 컴포넌트 props
  * @returns {JSX.Element} 로딩 화면 컴포넌트
  */
-export const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
-  message = '서버에 연결 중입니다...' 
-}) => {
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = "잠시만 기다려주세요..." }) => {
+  const [loadingText, setLoadingText] = useState("LOADING");
+  const backgroundColor = useThemeColor("background");
+  const textColor = useThemeColor("text");
+
+  useEffect(() => {
+    let dots = 0;
+    const interval = setInterval(() => {
+      dots = (dots + 1) % 4;
+      setLoadingText("LOADING" + ".".repeat(dots));
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <ThemedView style={styles.container}>
-      <ActivityIndicator size="large" color="#0000ff" />
-      <ThemedText style={styles.message}>{message}</ThemedText>
+    <ThemedView style={[styles.container, { backgroundColor }]}>
+      <Image
+        source={require('@/assets/character/sleep.png')}
+        style={styles.characterImage}
+        resizeMode="contain"
+      />
+      
+      <ThemedText style={styles.loadingText}>
+        {loadingText}
+      </ThemedText>
+
+      <ThemedText style={[styles.message, { color: textColor }]}>
+        {message}
+      </ThemedText>
     </ThemedView>
   );
-};
-
-// 스타일 정의
-const styles = StyleSheet.create({
-  // 전체 컨테이너 스타일
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  // 로딩 메시지 스타일
-  message: {
-    marginTop: 20,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-}); 
+}; 

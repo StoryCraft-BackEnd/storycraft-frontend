@@ -4,8 +4,6 @@
  * 이 파일은 404 Not Found 화면의 모든 스타일을 정의합니다.
  * 사용자 경험을 고려한 레이아웃과 시각적 요소를 제공합니다.
  * 
- * @author StoryCraft Team
- * @version 1.0.0
  */
 import { StyleSheet } from 'react-native';
 

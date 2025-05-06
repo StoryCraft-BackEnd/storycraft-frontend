@@ -4,10 +4,8 @@
  * 이 컴포넌트는 앱의 메인 화면을 담당하며, 다음과 같은 기능을 제공합니다:
  * 1. 서버 연결 상태 확인
  * 2. 로딩 화면 표시
- * 3. 404 화면으로의 네비게이션
- *
- * @author StoryCraft Team
- * @version 1.0.0
+ * 3. 404 화면으로의 내비게이션
+ * 4. 로그인 화면으로 내비게이션
  */
 import React, { useState } from "react";
 import { TouchableOpacity, Alert } from "react-native";
@@ -17,12 +15,15 @@ import { ThemedView } from "../styles/ThemedView";
 import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { checkServerConnection } from "../shared/api/client";
 import { homeScreenStyles as styles } from "../styles/HomeScreen.styles";
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function HomeScreen() {
   // 상태 관리
   const [isLoading, setIsLoading] = useState(false); // 로딩 상태
   const [showLoading, setShowLoading] = useState(false); // 로딩 화면 표시 여부
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // 서버 연결 상태
+  const backgroundColor = useThemeColor("background");
+  const textColor = useThemeColor("text");
 
   /**
    * 서버 연결 상태를 확인하고 결과를 표시하는 핸들러
@@ -63,7 +64,7 @@ export default function HomeScreen() {
    */
   const handleNotFoundPress = () => {
     console.log("404 화면으로 이동합니다!");
-    router.push("/+not-found");
+    router.push("/(not-found)" as any);
   };
 
   // 로딩 화면 표시
@@ -82,9 +83,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText style={styles.title}>StoryCraft</ThemedText>
-      <ThemedText style={styles.subtitle}>
+    <ThemedView style={[styles.container, { backgroundColor }]}>
+      <ThemedText style={[styles.title, { color: textColor }]}>StoryCraft</ThemedText>
+      <ThemedText style={[styles.subtitle, { color: textColor }]}>
         당신의 이야기를 만들어보세요
       </ThemedText>
       <TouchableOpacity style={styles.button} onPress={handlePress}>
@@ -103,6 +104,14 @@ export default function HomeScreen() {
         onPress={() => router.push("/login" as any)}
       >
         <ThemedText style={styles.buttonText}>로그인 화면으로 이동</ThemedText>
+      </TouchableOpacity>
+
+      {/* 로딩 화면 테스트 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: "#4CAF50" }]}
+        onPress={() => router.push("/loading" as any)}
+      >
+        <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
       </TouchableOpacity>
     </ThemedView>
   );

@@ -1,36 +1,62 @@
 // app/_layout.tsx
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { ThemeProvider } from '@/shared/contexts/ThemeContext';
+import { useEffect, useState } from 'react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useFonts } from 'expo-font';
+function RootLayout() {
+  const [isLoading, setIsLoading] = useState(true);
+  const backgroundColor = useThemeColor("background");
+  const textColor = useThemeColor("text");
 
-// prevent auto-hide
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
+  // TODO: 추후 서버 연결 코드로 수정
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    // 1초 후에 로딩 화면을 숨김
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
 
-  if (!loaded) return null;
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* index.tsx 하나만 화면으로 사용 */}
-      </Stack>
-      <StatusBar style="auto" />
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: backgroundColor,
+        },
+        headerTintColor: textColor,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <Stack.Screen
+        name="index"
+        options={{
+          title: 'StoryCraft',
+        }}
+      />
+      <Stack.Screen
+        name="login/index"
+        options={{
+          title: '로그인',
+          headerShown: true,
+        }}
+      />
+    </Stack>
+  );
+}
+
+export default function Layout() {
+  return (
+    <ThemeProvider>
+      <RootLayout />
     </ThemeProvider>
   );
 }
