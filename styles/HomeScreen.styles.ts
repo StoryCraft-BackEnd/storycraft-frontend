@@ -4,8 +4,6 @@
  * 이 파일은 메인 홈 화면의 모든 스타일을 정의합니다.
  * 컴포넌트의 스타일을 분리하여 관리함으로써 코드의 가독성과 유지보수성을 향상시킵니다.
  * 
- * @author StoryCraft Team
- * @version 1.0.0
  */
 import { StyleSheet } from 'react-native';
 

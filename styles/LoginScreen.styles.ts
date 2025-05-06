@@ -1,9 +1,5 @@
 /**
  * LoginScreen 컴포넌트의 스타일 정의
- *
- *
- * @author StoryCraft Team
- * @version 1.0.0
  */
 
 import { StyleSheet } from "react-native";
@@ -14,7 +10,6 @@ export const loginScreenStyles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
     padding: 20,
-    backgroundColor: "#0d1b1e", // 어두운 배경
   },
 
   // 상단 입력 폼 및 버튼 묶음
@@ -29,23 +24,18 @@ export const loginScreenStyles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
     fontWeight: "bold",
-    color: "#fff",
   },
 
   // 이메일 및 비밀번호 입력 필드
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
-    backgroundColor: "#fff",
-    color: "#000",
   },
 
   // 로그인 버튼
   loginButton: {
-    backgroundColor: "#4a90e2",
     padding: 15,
     borderRadius: 8,
     marginTop: 10,
@@ -55,7 +45,6 @@ export const loginScreenStyles = StyleSheet.create({
   loginButtonText: {
     textAlign: "center",
     fontWeight: "bold",
-    color: "#fff",
   },
 
   // 회원가입 / 비밀번호 찾기 링크 묶음
@@ -67,7 +56,6 @@ export const loginScreenStyles = StyleSheet.create({
 
   // 링크 텍스트 (회원가입, 비번 찾기)
   linkText: {
-    color: "#4a90e2",
     fontWeight: "500",
   },
 
@@ -87,7 +75,6 @@ export const loginScreenStyles = StyleSheet.create({
   socialButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#4a90e2",
     borderRadius: 10,
     padding: 12,
     marginHorizontal: 5,
@@ -105,14 +92,12 @@ export const loginScreenStyles = StyleSheet.create({
 
   // 소셜 로그인 텍스트
   socialText: {
-    color: "#fff",
     fontWeight: "bold",
   },
 
   // 약관 및 개인정보처리방침 안내 텍스트
   notice: {
     textAlign: "center",
-    color: "#aaa",
     fontSize: 12,
     lineHeight: 18,
   },

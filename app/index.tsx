@@ -5,9 +5,6 @@
  * 1. 서버 연결 상태 확인
  * 2. 로딩 화면 표시
  * 3. 404 화면으로의 네비게이션
- *
- * @author StoryCraft Team
- * @version 1.0.0
  */
 import React, { useState } from "react";
 import { TouchableOpacity, Alert } from "react-native";
@@ -63,7 +60,7 @@ export default function HomeScreen() {
    */
   const handleNotFoundPress = () => {
     console.log("404 화면으로 이동합니다!");
-    router.push("/+not-found");
+    router.push("/(not-found)" as any);
   };
 
   // 로딩 화면 표시
