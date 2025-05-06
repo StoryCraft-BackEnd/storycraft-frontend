@@ -12,6 +12,13 @@ export default function Layout() {
             title: 'StoryCraft',
           }}
         />
+        <Stack.Screen
+          name="login/index"
+          options={{
+            title: '로그인',
+            headerShown: true,
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
