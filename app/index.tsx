@@ -16,12 +16,14 @@ import { LoadingScreen } from "../components/ui/LoadingScreen";
 import { checkServerConnection } from "../shared/api/client";
 import { homeScreenStyles as styles } from "../styles/HomeScreen.styles";
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Popup } from '@/components/ui/Popup';
 
 export default function HomeScreen() {
   // 상태 관리
   const [isLoading, setIsLoading] = useState(false); // 로딩 상태
   const [showLoading, setShowLoading] = useState(false); // 로딩 화면 표시 여부
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // 서버 연결 상태
+  const [showPopup, setShowPopup] = useState(false);
   const backgroundColor = useThemeColor("background");
   const textColor = useThemeColor("text");
 
@@ -113,6 +115,25 @@ export default function HomeScreen() {
       >
         <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
       </TouchableOpacity>
+
+      {/* 팝업 테스트 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: "#9C27B0" }]}
+        onPress={() => setShowPopup(true)}
+      >
+        <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
+      </TouchableOpacity>
+
+      <Popup
+        visible={showPopup}
+        onClose={() => setShowPopup(false)}
+        title="알림"
+        message="이것은 팝업 테스트입니다."
+        confirmText="확인"
+        cancelText="취소"
+        onConfirm={() => console.log('확인 버튼 클릭')}
+        onCancel={() => console.log('취소 버튼 클릭')}
+      />
     </ThemedView>
   );
 }
