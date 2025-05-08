@@ -12,6 +12,7 @@ import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { loadingScreenStyles as styles } from '@/styles/LoadingScreen.styles';
+import sleepCharacter from '@/assets/character/sleep.png';
 
 /**
  * LoadingScreen 컴포넌트의 Props 인터페이스
@@ -57,8 +58,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* 캐릭터 이미지 표시 */}
       <Image
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        source={require('@/assets/character/sleep.png')}
+        source={sleepCharacter}
         style={styles.characterImage}
         resizeMode="contain" // 이미지 크기 조정, contain: 이미지 비율 유지
       />
