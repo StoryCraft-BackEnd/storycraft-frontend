@@ -1,7 +1,7 @@
 /**
  * StoryCraft 메인 화면 컴포넌트
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
@@ -12,9 +12,11 @@ import { homeScreenStyles as styles } from '@/styles/HomeScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
 import { NotFoundScreen } from '@/components/ui/NotFoundScreen';
+import sleepCharacter from '@/assets/character/sleep.png';
 
 export default function HomeScreen() {
   // 상태 관리
+  const [isInitialLoading, setIsInitialLoading] = useState(true); // 초기 로딩 상태
   const [showLoading, setShowLoading] = useState(false); // 로딩 화면 표시 여부
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // 서버 연결 상태
   const [showPopup, setShowPopup] = useState(false);
@@ -23,6 +25,28 @@ export default function HomeScreen() {
   const [showTestScreen, setShowTestScreen] = useState(false); // 테스트 화면 표시 여부
   const backgroundColor = useThemeColor('background'); // 배경색
   const textColor = useThemeColor('text'); // 텍스트 색상
+
+  // 앱 초기화
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // 서버 연결 확인
+        const connected = await checkServerConnection();
+        setIsConnected(connected);
+
+        // 2초 후에 초기 로딩 화면을 닫음
+        setTimeout(() => {
+          setIsInitialLoading(false);
+        }, 2000);
+      } catch (error) {
+        console.error('앱 초기화 중 오류:', error);
+        setIsConnected(false);
+        setIsInitialLoading(false);
+      }
+    };
+
+    initializeApp();
+  }, []);
 
   /**
    * 서버 연결 상태를 확인하고 결과를 표시하는 핸들러
@@ -79,6 +103,11 @@ export default function HomeScreen() {
     }, 2000);
   };
 
+  // 초기 로딩 화면 표시
+  if (isInitialLoading) {
+    return <LoadingScreen message="StoryCraft를 시작합니다..." image={sleepCharacter} />;
+  }
+
   // 로딩 화면 표시
   if (showLoading) {
     return (
@@ -91,6 +120,7 @@ export default function HomeScreen() {
               ? '서버에 연결되었습니다!'
               : '서버 연결에 실패했습니다.')
         }
+        image={sleepCharacter}
       />
     );
   }
