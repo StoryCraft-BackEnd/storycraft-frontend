@@ -26,6 +26,7 @@ export default function HomeScreen() {
   const [showPopup, setShowPopup] = useState(false);
   const [showNotFound, setShowNotFound] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(''); // 로딩 메시지 상태 추가
+  const [showTestScreen, setShowTestScreen] = useState(false); // 테스트 화면 표시 여부
   const backgroundColor = useThemeColor('background');
   const textColor = useThemeColor('text');
 
@@ -104,15 +105,43 @@ export default function HomeScreen() {
     return <NotFoundScreen onBackToHome={() => setShowNotFound(false)} />;
   }
 
+  // 테스트 화면이 아닐 때 (첫 화면)
+  if (!showTestScreen) {
+    return (
+      <ThemedView style={[styles.container, { backgroundColor }]}>
+        <ThemedText style={[styles.title, { color: textColor }]}>StoryCraft</ThemedText>
+        <ThemedText style={[styles.subtitle, { color: textColor }]}>
+          당신의 이야기를 만들어보세요
+        </ThemedText>
+
+        {/* 로그인 버튼 */}
+        <TouchableOpacity style={[styles.button]} onPress={() => router.push('/login')}>
+          <ThemedText style={styles.buttonText}>로그인</ThemedText>
+        </TouchableOpacity>
+
+        {/* 테스트 화면으로 이동 버튼 */}
+        <TouchableOpacity
+          style={[styles.button, { marginTop: 10, backgroundColor: '#4CAF50' }]}
+          onPress={() => setShowTestScreen(true)}
+        >
+          <ThemedText style={styles.buttonText}>테스트 화면으로 이동</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
+
+  // 테스트 화면
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
-      <ThemedText style={[styles.title, { color: textColor }]}>StoryCraft</ThemedText>
+      <ThemedText style={[styles.title, { color: textColor }]}>테스트 화면</ThemedText>
       <ThemedText style={[styles.subtitle, { color: textColor }]}>
-        당신의 이야기를 만들어보세요
+        다양한 기능을 테스트해보세요
       </ThemedText>
+
       <TouchableOpacity style={styles.button} onPress={handlePress}>
-        <ThemedText style={styles.buttonText}>눌러보기</ThemedText>
+        <ThemedText style={styles.buttonText}>서버 연결 테스트</ThemedText>
       </TouchableOpacity>
+
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#FF6B6B' }]}
         onPress={handleNotFoundPress}
@@ -128,20 +157,20 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
       </TouchableOpacity>
 
-      {/* 로그인 화면으로 이동 */}
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: '#4A90E2' }]}
-        onPress={() => router.push('/login')}
-      >
-        <ThemedText style={styles.buttonText}>로그인 화면으로 이동</ThemedText>
-      </TouchableOpacity>
-
       {/* 팝업 테스트 버튼 */}
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#9C27B0' }]}
         onPress={() => setShowPopup(true)}
       >
         <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
+      </TouchableOpacity>
+
+      {/* 홈으로 돌아가기 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#607D8B' }]}
+        onPress={() => setShowTestScreen(false)}
+      >
+        <ThemedText style={styles.buttonText}>홈으로 돌아가기</ThemedText>
       </TouchableOpacity>
 
       <Popup
