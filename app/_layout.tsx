@@ -7,8 +7,8 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
-  const backgroundColor = useThemeColor("background");
-  const textColor = useThemeColor("text");
+  const backgroundColor = useThemeColor('background');
+  const textColor = useThemeColor('text');
 
   // TODO: 추후 서버 연결 코드로 수정
   useEffect(() => {
