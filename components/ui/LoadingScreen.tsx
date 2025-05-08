@@ -21,7 +21,7 @@ import { loadingScreenStyles as styles } from '@/styles/LoadingScreen.styles';
  * @property {ImageSourcePropType} [image] - 로딩 화면에 표시될 이미지
  */
 
-// message라는 prop 하나를 받음
+// message, image 두개의 prop 받음
 interface LoadingScreenProps {
   message?: string;
   image?: ImageSourcePropType;
