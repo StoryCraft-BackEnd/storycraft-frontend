@@ -23,4 +23,4 @@ export const loadingScreenStyles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-}); 
+});

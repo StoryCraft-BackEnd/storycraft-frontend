@@ -1,9 +1,9 @@
 /**
  * NotFoundScreen 컴포넌트의 스타일 정의
- * 
+ *
  * 이 파일은 404 Not Found 화면의 모든 스타일을 정의합니다.
  * 사용자 경험을 고려한 레이아웃과 시각적 요소를 제공합니다.
- * 
+ *
  */
 import { StyleSheet } from 'react-native';
 
@@ -34,4 +34,4 @@ export const notFoundScreenStyles = StyleSheet.create({
     color: '#0096FF', // 선명한 파란색
     fontSize: 16,
   },
-}); 
+});

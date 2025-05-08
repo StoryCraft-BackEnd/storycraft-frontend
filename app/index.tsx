@@ -1,11 +1,5 @@
 /**
- * StoryCraft 메인 홈 화면 컴포넌트
- *
- * 이 컴포넌트는 앱의 메인 화면을 담당하며, 다음과 같은 기능을 제공합니다:
- * 1. 서버 연결 상태 확인
- * 2. 로딩 화면 표시
- * 3. 404 화면으로의 내비게이션
- * 4. 로그인 화면으로 내비게이션
+ * StoryCraft 메인 화면 컴포넌트
  */
 import React, { useState } from 'react';
 import { TouchableOpacity, Alert } from 'react-native';
@@ -27,8 +21,8 @@ export default function HomeScreen() {
   const [showNotFound, setShowNotFound] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(''); // 로딩 메시지 상태 추가
   const [showTestScreen, setShowTestScreen] = useState(false); // 테스트 화면 표시 여부
-  const backgroundColor = useThemeColor('background');
-  const textColor = useThemeColor('text');
+  const backgroundColor = useThemeColor('background'); // 배경색
+  const textColor = useThemeColor('text'); // 텍스트 색상
 
   /**
    * 서버 연결 상태를 확인하고 결과를 표시하는 핸들러

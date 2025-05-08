@@ -1,9 +1,9 @@
 /**
  * HomeScreen 컴포넌트의 스타일 정의
- * 
+ *
  * 이 파일은 메인 홈 화면의 모든 스타일을 정의합니다.
  * 컴포넌트의 스타일을 분리하여 관리함으로써 코드의 가독성과 유지보수성을 향상시킵니다.
- * 
+ *
  */
 import { StyleSheet } from 'react-native';
 
@@ -15,7 +15,7 @@ export const homeScreenStyles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     backgroundColor: '#F2F4F5', // 밝은 회색
-  },    
+  },
   // 앱 타이틀 스타일
   title: {
     fontSize: 28,
@@ -41,4 +41,4 @@ export const homeScreenStyles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-}); 
+});

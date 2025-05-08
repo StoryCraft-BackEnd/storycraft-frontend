@@ -2,24 +2,26 @@ import { StyleSheet } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export const createPopupStyles = () => {
-  const backgroundColor = useThemeColor("background");
-  const textColor = useThemeColor("text");
-  const cardColor = useThemeColor("card");
-  const borderColor = useThemeColor("border");
-  const primaryColor = useThemeColor("primary");
+  const backgroundColor = useThemeColor('background');
+  const textColor = useThemeColor('text');
+  const cardColor = useThemeColor('card');
+  const borderColor = useThemeColor('border');
+  const primaryColor = useThemeColor('primary');
 
   // 테두리 색상을 배경색보다 약간 밝게 설정
-    // const result = 조건식
-    // ? 값1  // 조건이 참(true)일 때 사용
-    // : 값2; // 조건이 거짓(false)일 때 사용
-    const borderColorAdjusted = backgroundColor === '#000000' // 검정인지 확인
-    ? 'rgba(255, 255, 255, 0.1)' // 다크모드: 반투명 흰색
-    : 'rgba(0, 0, 0, 0.1)'; // 라이트모드: 반투명 검정색
+  // const result = 조건식
+  // ? 값1  // 조건이 참(true)일 때 사용
+  // : 값2; // 조건이 거짓(false)일 때 사용
+  const borderColorAdjusted =
+    backgroundColor === '#000000' // 검정인지 확인
+      ? 'rgba(255, 255, 255, 0.1)' // 다크모드: 반투명 흰색
+      : 'rgba(0, 0, 0, 0.1)'; // 라이트모드: 반투명 검정색
 
   // 취소 버튼 테두리 색상
-  const cancelButtonBorderColor = backgroundColor === '#000000'
-    ? 'rgba(255, 255, 255, 0.2)' // 다크모드: 더 밝은 반투명 흰색
-    : borderColorAdjusted; // 라이트모드: 반투명 검정색
+  const cancelButtonBorderColor =
+    backgroundColor === '#000000'
+      ? 'rgba(255, 255, 255, 0.2)' // 다크모드: 더 밝은 반투명 흰색
+      : borderColorAdjusted; // 라이트모드: 반투명 검정색
 
   return StyleSheet.create({
     overlay: {
