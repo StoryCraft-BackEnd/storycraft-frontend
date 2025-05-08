@@ -7,25 +7,24 @@
  * 3. 404 화면으로의 내비게이션
  * 4. 로그인 화면으로 내비게이션
  */
-import React, { useState } from "react";
-import { TouchableOpacity, Alert } from "react-native";
-import { router } from "expo-router";
-import { ThemedText } from "@/components/ui/ThemedText";
-import { ThemedView } from "@/components/ui/ThemedView";
-import { LoadingScreen } from "../components/ui/LoadingScreen";
-import { checkServerConnection } from "../shared/api/client";
-import { homeScreenStyles as styles } from "../styles/HomeScreen.styles";
+import React, { useState } from 'react';
+import { TouchableOpacity, Alert } from 'react-native';
+import { router } from 'expo-router';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { checkServerConnection } from '../shared/api/client';
+import { homeScreenStyles as styles } from '../styles/HomeScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
 
 export default function HomeScreen() {
   // 상태 관리
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태
   const [showLoading, setShowLoading] = useState(false); // 로딩 화면 표시 여부
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // 서버 연결 상태
   const [showPopup, setShowPopup] = useState(false);
-  const backgroundColor = useThemeColor("background");
-  const textColor = useThemeColor("text");
+  const backgroundColor = useThemeColor('background');
+  const textColor = useThemeColor('text');
 
   /**
    * 서버 연결 상태를 확인하고 결과를 표시하는 핸들러
@@ -36,7 +35,6 @@ export default function HomeScreen() {
    */
   const handlePress = async () => {
     setShowLoading(true);
-    setIsLoading(true);
 
     try {
       const connected = await checkServerConnection();
@@ -45,17 +43,16 @@ export default function HomeScreen() {
       // 3초 후에 로딩 화면을 닫고 알림을 표시
       setTimeout(() => {
         setShowLoading(false);
-        setIsLoading(false);
         Alert.alert(
-          "서버 연결 상태",
-          connected ? "서버에 연결되었습니다!" : "서버 연결에 실패했습니다."
+          '서버 연결 상태',
+          connected ? '서버에 연결되었습니다!' : '서버 연결에 실패했습니다.'
         );
       }, 3000);
     } catch (error) {
+      console.error('서버 연결 확인 중 오류:', error);
       setIsConnected(false);
       setShowLoading(false);
-      setIsLoading(false);
-      Alert.alert("오류", "서버 연결 확인 중 오류가 발생했습니다.");
+      Alert.alert('오류', '서버 연결 확인 중 오류가 발생했습니다.');
     }
   };
 
@@ -65,8 +62,10 @@ export default function HomeScreen() {
    * @function handleNotFoundPress
    */
   const handleNotFoundPress = () => {
-    console.log("404 화면으로 이동합니다!");
-    router.push("/(not-found)" as any);
+    console.log('404 화면으로 이동합니다!');
+    // expo-router의 타입 시스템 제한으로 인해 any 타입 단언이 필요합니다
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/(not-found)' as any);
   };
 
   // 로딩 화면 표시
@@ -75,10 +74,10 @@ export default function HomeScreen() {
       <LoadingScreen
         message={
           isConnected === null
-            ? "서버 연결 확인 중..."
+            ? '서버 연결 확인 중...'
             : isConnected
-            ? "서버에 연결되었습니다!"
-            : "서버 연결에 실패했습니다."
+              ? '서버에 연결되었습니다!'
+              : '서버 연결에 실패했습니다.'
         }
       />
     );
@@ -94,7 +93,7 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>눌러보기</ThemedText>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: "#FF6B6B" }]}
+        style={[styles.button, { marginTop: 10, backgroundColor: '#FF6B6B' }]}
         onPress={handleNotFoundPress}
       >
         <ThemedText style={styles.buttonText}>404 화면으로 이동</ThemedText>
@@ -102,23 +101,23 @@ export default function HomeScreen() {
 
       {/* 로그인 화면으로 이동 */}
       <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: "#4A90E2" }]}
-        onPress={() => router.push("/login" as any)}
+        style={[styles.button, { marginTop: 10, backgroundColor: '#4A90E2' }]}
+        onPress={() => router.push('/login')}
       >
         <ThemedText style={styles.buttonText}>로그인 화면으로 이동</ThemedText>
       </TouchableOpacity>
 
       {/* 로딩 화면 테스트 */}
       <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: "#4CAF50" }]}
-        onPress={() => router.push("/loading" as any)}
+        style={[styles.button, { marginTop: 10, backgroundColor: '#4CAF50' }]}
+        onPress={() => router.push('/loading')}
       >
         <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
       </TouchableOpacity>
 
       {/* 팝업 테스트 버튼 */}
       <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: "#9C27B0" }]}
+        style={[styles.button, { marginTop: 10, backgroundColor: '#9C27B0' }]}
         onPress={() => setShowPopup(true)}
       >
         <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
