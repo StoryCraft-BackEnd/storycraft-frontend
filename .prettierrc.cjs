@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 module.exports = {
   // 세미콜론 사용 여부 (true: 사용, false: 미사용)
   semi: true,
