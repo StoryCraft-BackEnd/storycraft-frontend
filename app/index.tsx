@@ -12,17 +12,20 @@ import { TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { LoadingScreen } from '../components/ui/LoadingScreen';
-import { checkServerConnection } from '../shared/api/client';
-import { homeScreenStyles as styles } from '../styles/HomeScreen.styles';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { checkServerConnection } from '@/shared/api/client';
+import { homeScreenStyles as styles } from '@/styles/HomeScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
+import { NotFoundScreen } from '@/components/ui/NotFoundScreen';
 
 export default function HomeScreen() {
   // 상태 관리
   const [showLoading, setShowLoading] = useState(false); // 로딩 화면 표시 여부
   const [isConnected, setIsConnected] = useState<boolean | null>(null); // 서버 연결 상태
   const [showPopup, setShowPopup] = useState(false);
+  const [showNotFound, setShowNotFound] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(''); // 로딩 메시지 상태 추가
   const backgroundColor = useThemeColor('background');
   const textColor = useThemeColor('text');
 
@@ -63,9 +66,22 @@ export default function HomeScreen() {
    */
   const handleNotFoundPress = () => {
     console.log('404 화면으로 이동합니다!');
-    // expo-router의 타입 시스템 제한으로 인해 any 타입 단언이 필요합니다
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/(not-found)' as any);
+    setShowNotFound(true);
+  };
+
+  /**
+   * 로딩 화면 테스트 핸들러
+   *
+   * @function handleLoadingTest
+   */
+  const handleLoadingTest = () => {
+    setLoadingMessage('로딩 중입니다...');
+    setShowLoading(true);
+
+    // 2초 후에 로딩 화면을 닫음
+    setTimeout(() => {
+      setShowLoading(false);
+    }, 2000);
   };
 
   // 로딩 화면 표시
@@ -73,14 +89,19 @@ export default function HomeScreen() {
     return (
       <LoadingScreen
         message={
-          isConnected === null
+          loadingMessage ||
+          (isConnected === null
             ? '서버 연결 확인 중...'
             : isConnected
               ? '서버에 연결되었습니다!'
-              : '서버 연결에 실패했습니다.'
+              : '서버 연결에 실패했습니다.')
         }
       />
     );
+  }
+
+  if (showNotFound) {
+    return <NotFoundScreen onBackToHome={() => setShowNotFound(false)} />;
   }
 
   return (
@@ -99,20 +120,20 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>404 화면으로 이동</ThemedText>
       </TouchableOpacity>
 
+      {/* 로딩 화면 테스트 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#4CAF50' }]}
+        onPress={handleLoadingTest}
+      >
+        <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
+      </TouchableOpacity>
+
       {/* 로그인 화면으로 이동 */}
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#4A90E2' }]}
         onPress={() => router.push('/login')}
       >
         <ThemedText style={styles.buttonText}>로그인 화면으로 이동</ThemedText>
-      </TouchableOpacity>
-
-      {/* 로딩 화면 테스트 */}
-      <TouchableOpacity
-        style={[styles.button, { marginTop: 10, backgroundColor: '#4CAF50' }]}
-        onPress={() => router.push('/loading')}
-      >
-        <ThemedText style={styles.buttonText}>로딩 화면 테스트</ThemedText>
       </TouchableOpacity>
 
       {/* 팝업 테스트 버튼 */}
