@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { Text, TextProps, StyleSheet } from 'react-native';
-import { useThemeColor } from '../hooks/useThemeColor';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 /**
  * ThemedText 컴포넌트의 Props 인터페이스

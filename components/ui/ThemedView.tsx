@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { View, ViewProps, StyleSheet } from 'react-native';
-import { useThemeColor } from '../hooks/useThemeColor';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 /**
  * ThemedView 컴포넌트의 Props 인터페이스
@@ -42,6 +42,6 @@ export const ThemedView: React.FC<ThemedViewProps> = ({ style, ...props }) => {
 // 기본 스타일 정의
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', // 흰색
   },
 }); 

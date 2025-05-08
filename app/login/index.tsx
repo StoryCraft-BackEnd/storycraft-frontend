@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { TextInput, TouchableOpacity, Alert, View, Image } from "react-native";
 import { router } from "expo-router";
-import { ThemedView } from "../../styles/ThemedView";
-import { ThemedText } from "../../styles/ThemedText";
+import { ThemedView } from "@/components/ui/ThemedView";
+import { ThemedText } from "@/components/ui/ThemedText";
 import { loginScreenStyles as styles } from "@/styles/LoginScreen.styles";
 import { useThemeColor } from "../../hooks/useThemeColor";
 

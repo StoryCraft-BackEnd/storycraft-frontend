@@ -14,7 +14,7 @@ export const homeScreenStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#F2F4F5',
+    backgroundColor: '#F2F4F5', // 밝은 회색
   },    
   // 앱 타이틀 스타일
   title: {
@@ -25,19 +25,19 @@ export const homeScreenStyles = StyleSheet.create({
   // 서브타이틀 스타일
   subtitle: {
     fontSize: 16,
-    color: '#555',
+    color: '#555', // 중간 회색
     marginBottom: 20,
   },
   // 버튼 스타일
   button: {
-    backgroundColor: '#0096FF',
+    backgroundColor: '#0096FF', // 파란색
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 10,
   },
   // 버튼 텍스트 스타일
   buttonText: {
-    color: '#fff',
+    color: '#fff', // 흰색
     fontWeight: '600',
     fontSize: 16,
   },
