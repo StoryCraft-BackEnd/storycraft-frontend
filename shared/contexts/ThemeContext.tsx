@@ -1,6 +1,6 @@
 /**
  * 테마 관리를 위한 Context API
- * 
+ *
  * 이 모듈은 앱 전체에서 사용되는 테마(라이트/다크) 상태를 관리합니다.
  * AsyncStorage를 사용하여 사용자의 테마 선택을 저장하고,
  * 시스템 테마 설정을 감지하여 자동으로 적용합니다.
@@ -15,9 +15,9 @@ type ThemeType = 'light' | 'dark' | 'system';
 
 // ThemeContext에서 제공할 값의 타입 정의
 interface ThemeContextType {
-  theme: ThemeType;                     // 현재 선택된 테마 (light/dark/system)
+  theme: ThemeType; // 현재 선택된 테마 (light/dark/system)
   setTheme: (theme: ThemeType) => void; // 테마 변경 함수
-  isDarkMode: boolean;                  // 실제로 다크 모드인지 여부
+  isDarkMode: boolean; // 실제로 다크 모드인지 여부
 }
 
 // Context 생성 (초기값 undefined → 반드시 ThemeProvider 안에서만 사용 가능)
@@ -75,4 +75,4 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider'); // ThemeProvider 외부에서 사용 시 오류
   }
   return context;
-}; 
+};

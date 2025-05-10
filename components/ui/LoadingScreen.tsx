@@ -1,13 +1,12 @@
 /**
  * 로딩 화면 컴포넌트
  *
- * 앱에서 비동기 작업이 진행 중일 때 표시되는 로딩 화면입니다.
- * ActivityIndicator를 사용하여 로딩 상태를 시각적으로 표현하고,
- * 사용자에게 현재 진행 중인 작업에 대한 메시지를 표시합니다.
+ * 애플리케이션의 로딩 상태를 표시하는 화면입니다.
+ * 메시지와 이미지를 커스터마이징할 수 있습니다.
  *
  */
 import React, { useEffect, useState } from 'react';
-import { Image } from 'react-native';
+import { Image, ImageSourcePropType } from 'react-native';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -19,11 +18,13 @@ import { loadingScreenStyles as styles } from '@/styles/LoadingScreen.styles';
  * @interface LoadingScreenProps
  * 인터페이스의 속성(prop)을 설명할 때 property 사용
  * @property {string} [message] - 로딩 화면에 표시될 메시지 (기본값: '잠시만 기다려주세요...')
+ * @property {ImageSourcePropType} [image] - 로딩 화면에 표시될 이미지
  */
 
-// message라는 prop 하나를 받음
+// message, image 두개의 prop 받음
 interface LoadingScreenProps {
   message?: string;
+  image?: ImageSourcePropType;
 }
 
 /**
@@ -35,19 +36,19 @@ interface LoadingScreenProps {
  */
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = '잠시만 기다려주세요...',
+  image,
 }) => {
-  const [loadingText, setLoadingText] = useState('LOADING'); // 로딩 텍스트 첫 상태 지정("LOADING")
+  const [loadingText, setLoadingText] = useState('LOADING');
   const backgroundColor = useThemeColor('background');
-  const textColor = useThemeColor('text');
 
   // 컴포넌트가 렌더링될 때마다 어떤 동작을 수행하게 하는 훅
   // 로딩 텍스트 애니메이션 효과 적용
   useEffect(() => {
-    let dots = 0;
     const interval = setInterval(() => {
-      // 0.5초 마다 실행
-      dots = (dots + 1) % 4; // 점 개수 증가
-      setLoadingText('LOADING' + '.'.repeat(dots)); // 로딩 텍스트 업데이트
+      setLoadingText((prev) => {
+        if (prev === 'LOADING...') return 'LOADING';
+        return prev + '.';
+      });
     }, 500);
 
     return () => clearInterval(interval); // 컴포넌트가 언마운트될 때 인터벌 정리
@@ -56,16 +57,11 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* 캐릭터 이미지 표시 */}
-      <Image
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        source={require('@/assets/character/sleep.png')}
-        style={styles.characterImage}
-        resizeMode="contain" // 이미지 크기 조정, contain: 이미지 비율 유지
-      />
+      {image && <Image source={image} style={styles.image} />}
       {/* 로딩 텍스트 표시 */}
       <ThemedText style={styles.loadingText}>{loadingText}</ThemedText>
       {/* 메시지 표시 */}
-      <ThemedText style={[styles.message, { color: textColor }]}>{message}</ThemedText>
+      <ThemedText style={styles.message}>{message}</ThemedText>
     </ThemedView>
   );
 };

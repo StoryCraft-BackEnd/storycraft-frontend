@@ -11,6 +11,8 @@ export default tseslint.config(
   // TypeScript ESLint 권장 규칙 적용
   ...tseslint.configs.recommended,
   {
+    // 무시할 파일 설정
+    ignores: ['node_modules/**', '.expo/**', 'build/**', 'dist/**', '*.config.js'],
     // 사용할 플러그인 설정
     plugins: {
       react: reactPlugin, // React 관련 린팅 규칙

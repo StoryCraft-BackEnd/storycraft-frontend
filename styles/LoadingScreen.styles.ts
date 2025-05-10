@@ -1,3 +1,7 @@
+/**
+ * LoadingScreen 컴포넌트의 스타일 정의
+ */
+
 import { StyleSheet } from 'react-native';
 
 export const loadingScreenStyles = StyleSheet.create({
@@ -7,10 +11,11 @@ export const loadingScreenStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  characterImage: {
+  image: {
     width: 200,
     height: 200,
-    marginBottom: 30,
+    marginBottom: 10,
+    resizeMode: 'contain',
   },
   loadingText: {
     fontSize: 24,
@@ -21,6 +26,6 @@ export const loadingScreenStyles = StyleSheet.create({
   message: {
     fontSize: 16,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
-}); 
+});
