@@ -4,8 +4,6 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export const createPopupStyles = () => {
   const backgroundColor = useThemeColor('background');
   const textColor = useThemeColor('text');
-  const cardColor = useThemeColor('card');
-  const borderColor = useThemeColor('border');
   const primaryColor = useThemeColor('primary');
 
   // 테두리 색상을 배경색보다 약간 밝게 설정
