@@ -1,3 +1,7 @@
+// app/(auth)/login.tsx
+// 로그인 화면 컴포넌트
+// 사용자 인증을 처리하고 메인 앱으로 이동하는 화면
+
 import React, { useState } from 'react';
 import { TextInput, TouchableOpacity, Alert, View, Image } from 'react-native';
 import { router } from 'expo-router';
@@ -7,9 +11,10 @@ import { loginScreenStyles as styles } from '@/styles/LoginScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import facebookIcon from '@/assets/images/facebook.png';
 import googleIcon from '@/assets/images/google.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 상태관리
 export default function LoginScreen() {
+  // 입력 필드 상태 관리
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -23,21 +28,30 @@ export default function LoginScreen() {
   const borderColor = useThemeColor('border');
 
   // 로그인 버튼 클릭 시 실행
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // 테스트용 계정 확인
     if (email === 'test@example.com' && password === '1234') {
-      Alert.alert('로그인 성공');
-      router.replace('/');
+      try {
+        // 토큰 저장
+        await AsyncStorage.setItem('token', 'mock-token');
+        // 메인 앱으로 이동
+        router.replace('/(main)');
+      } catch (error) {
+        console.error('로그인 처리 중 오류:', error);
+        Alert.alert('오류', '로그인 처리 중 문제가 발생했습니다.');
+      }
     } else {
       Alert.alert('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 
   return (
-    // styles.container의 색상을 가져오되, 테마 색상은 backgroundColor 사용
     <ThemedView style={[styles.container, { backgroundColor }]}>
       {/* 입력 및 로그인 영역 */}
       <View style={styles.formContainer}>
         <ThemedText style={[styles.title, { color: textColor }]}>로그인</ThemedText>
+
+        {/* 이메일 입력 필드 */}
         <TextInput
           style={[
             styles.input,
@@ -54,6 +68,8 @@ export default function LoginScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
         />
+
+        {/* 비밀번호 입력 필드 */}
         <TextInput
           style={[
             styles.input,
@@ -70,6 +86,7 @@ export default function LoginScreen() {
           secureTextEntry
         />
 
+        {/* 로그인 버튼 */}
         <TouchableOpacity
           style={[styles.loginButton, { backgroundColor: primaryColor }]}
           onPress={handleLogin}
@@ -77,6 +94,7 @@ export default function LoginScreen() {
           <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>로그인</ThemedText>
         </TouchableOpacity>
 
+        {/* 회원가입 및 비밀번호 찾기 링크 */}
         <View style={styles.linkContainer}>
           <TouchableOpacity onPress={() => Alert.alert('회원가입 버튼 눌림')}>
             <ThemedText style={[styles.linkText, { color: primaryColor }]}>회원가입</ThemedText>
@@ -90,9 +108,10 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      {/* 하단 소셜 로그인 + 안내 */}
+      {/* 소셜 로그인 영역 */}
       <View style={styles.footerContainer}>
         <View style={styles.socialButtonRow}>
+          {/* Facebook 로그인 버튼 */}
           <TouchableOpacity
             style={[styles.socialButton, { borderColor: primaryColor }]}
             onPress={() => Alert.alert('페이스북 로그인 눌림')}
@@ -101,6 +120,7 @@ export default function LoginScreen() {
             <ThemedText style={[styles.socialText, { color: textColor }]}>Facebook</ThemedText>
           </TouchableOpacity>
 
+          {/* Google 로그인 버튼 */}
           <TouchableOpacity
             style={[styles.socialButton, { borderColor: primaryColor }]}
             onPress={() => Alert.alert('구글 로그인 눌림')}
@@ -110,6 +130,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 이용약관 안내 텍스트 */}
         <ThemedText style={[styles.notice, { color: placeholderColor }]}>
           StoryCraft에 가입함으로써 StoryCraft의 이용 약관 및{'\n'}
           개인정보처리방침에 동의하게 됩니다.

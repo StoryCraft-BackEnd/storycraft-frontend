@@ -100,7 +100,7 @@ export default function HomeScreen() {
     // 2초 후에 로딩 화면을 닫음
     setTimeout(() => {
       setShowLoading(false);
-    }, 2000);
+    }, 1000);
   };
 
   // 초기 로딩 화면 표시
