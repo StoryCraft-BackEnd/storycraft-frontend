@@ -1,5 +1,5 @@
 ---
-name: 🧩 General Issue
+name: "🧩 General Issue"
 about: 다양한 일반 이슈에 대한 템플릿
 title: "[Issue]: "
 labels: ["needs-triage"]
@@ -36,5 +36,5 @@ assignees: []
 
 ## 🔗 Related
 <!-- 관련 이슈, 커밋, PR 등 -->
-- Issue: #123
+- Issue: #123  
 - PR: #456
