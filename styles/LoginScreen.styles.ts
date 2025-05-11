@@ -8,7 +8,6 @@ export const loginScreenStyles = StyleSheet.create({
   // 전체 화면을 감싸는 컨테이너
   container: {
     flex: 1,
-    justifyContent: 'space-between',
     padding: 20,
   },
 
@@ -61,7 +60,8 @@ export const loginScreenStyles = StyleSheet.create({
 
   // 하단 소셜 로그인 및 안내 전체 컨테이너
   footerContainer: {
-    marginBottom: 30,
+    marginTop: 'auto',
+    paddingTop: 20,
   },
 
   // 소셜 로그인 버튼들을 가로로 나열하는 컨테이너
@@ -82,6 +82,7 @@ export const loginScreenStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
   },
+
   //소셜 아이콘 스타일일
   socialIcon: {
     width: 20,
