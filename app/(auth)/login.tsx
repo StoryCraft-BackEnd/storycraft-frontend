@@ -59,7 +59,7 @@ export default function LoginScreen() {
               {
                 backgroundColor: cardColor,
                 borderColor,
-                color: textColor,
+                color: '#000000',
               },
             ]}
             placeholder="이메일"
@@ -75,7 +75,7 @@ export default function LoginScreen() {
               {
                 backgroundColor: cardColor,
                 borderColor,
-                color: textColor,
+                color: '#000000',
               },
             ]}
             placeholder="비밀번호"
