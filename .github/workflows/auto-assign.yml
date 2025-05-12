@@ -1,21 +1,25 @@
-name: Auto Assign  # 워크플로우 이름 (GitHub Actions 탭에 표시됨)
+name: Auto Assign # 워크플로우 이름 (GitHub Actions 탭에 표시됨)
 
 on:
   issues:
-    types: [opened]         # 이슈가 생성될 때 실행
+    types: [opened] # 이슈가 생성될 때 실행
   pull_request:
-    types: [opened]         # PR이 생성될 때 실행
+    types: [opened] # PR이 생성될 때 실행
 
 jobs:
   run:
-    runs-on: ubuntu-latest  # 실행 환경: 최신 Ubuntu
-    permissions:            # GitHub Token 권한 설정
+    runs-on: ubuntu-latest # 실행 환경: 최신 Ubuntu
+    permissions: # GitHub Token 권한 설정
       issues: write
       pull-requests: write
     steps:
       - name: 'Auto-assign issue'
-        uses: pozil/auto-assign-issue@v1   # 공개된 액션을 사용 (작성자는 pozil)
+        uses: pozil/auto-assign-issue@v1 # 공개된 액션을 사용 (작성자는 pozil)
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}  # GitHub 인증 토큰 (기본 제공)
-          assignees: GitHub아이디                  # 자동 할당할 사용자 GitHub 아이디
-          numOfAssignee: 1                         # 할당할 사람 수 (1명)
+          repo-token: ${{ secrets.GITHUB_TOKEN }} # GitHub 인증 토큰 (기본 제공)
+          assignees: GitHub아이디 # 자동 할당할 사용자 GitHub 아이디
+          numOfAssignee: 1 # 할당할 사람 수 (1명)
+
+# 이메일 알림 비활성화
+notifications:
+  email: false
