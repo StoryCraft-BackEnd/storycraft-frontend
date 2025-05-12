@@ -2,9 +2,10 @@
  * StoryCraft 메인 화면 컴포넌트
  * 로그인 후 사용자가 보게 되는 메인 화면입니다.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TouchableOpacity, Alert, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -14,6 +15,16 @@ export default function MainScreen() {
   const backgroundColor = useThemeColor('background');
   const textColor = useThemeColor('text');
   const cardColor = useThemeColor('card');
+
+  useEffect(() => {
+    // 화면을 가로 모드로 고정
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+    // 컴포넌트가 언마운트될 때 화면 방향 잠금 해제
+    return () => {
+      ScreenOrientation.unlockAsync();
+    };
+  }, []);
 
   // StoryCraft Dev로 돌아가는 함수 추후 삭제!!
   const handleBackToDev = async () => {
