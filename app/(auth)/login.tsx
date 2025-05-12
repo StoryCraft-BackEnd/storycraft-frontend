@@ -19,6 +19,7 @@ import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   //입력 필드 상태 관리
@@ -35,10 +36,16 @@ export default function LoginScreen() {
   const borderColor = useThemeColor('border');
 
   // 로그인 버튼 클릭 시 실행
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (email === 'test@example.com' && password === '1234') {
-      Alert.alert('로그인 성공');
-      router.replace('/');
+      try {
+        //토큰 저장
+        await AsyncStorage.setItem('token', 'mock-token');
+        router.replace('/(main)'); // 메인 앱으로 이동
+      } catch (error) {
+        console.error('로그인 처리 중 오류:', error);
+        Alert.alert('오류', '로그인 처리 중 문제가 발생했습니다.');
+      }
     } else {
       Alert.alert('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
     }
@@ -47,7 +54,7 @@ export default function LoginScreen() {
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} //ios 키보드 대응
         style={{ flex: 1 }}
       >
         {/* 입력 및 로그인 영역 */}
