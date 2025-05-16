@@ -1,11 +1,12 @@
+/* eslint-disable no-undef */
 // mock-server/server.js
-const express = require('express');
-const cors = require('cors');
+import express, { json } from 'express';
+import cors from 'cors';
 const app = express();
 
 // CORS 설정
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 // 테스트 계정 정보
 const TEST_USER = {
