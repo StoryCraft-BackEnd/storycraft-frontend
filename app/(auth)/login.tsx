@@ -20,6 +20,7 @@ import { useThemeColor } from '../../hooks/useThemeColor';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login } from '@/features/auth/api';
 
 export default function LoginScreen() {
   //입력 필드 상태 관리
@@ -37,17 +38,28 @@ export default function LoginScreen() {
 
   // 로그인 버튼 클릭 시 실행
   const handleLogin = async () => {
-    if (email === 'test@example.com' && password === '1234') {
-      try {
-        //토큰 저장
-        await AsyncStorage.setItem('token', 'mock-token');
-        router.replace('/(main)'); // 메인 앱으로 이동
-      } catch (error) {
-        console.error('로그인 처리 중 오류:', error);
-        Alert.alert('오류', '로그인 처리 중 문제가 발생했습니다.');
+    try {
+      console.log('로그인 시작:', { email, password });
+      const res = await login({ email, password });
+      console.log('로그인 결과:', res);
+
+      if (res.status === 200 && res.data?.access_token) {
+        await AsyncStorage.setItem('token', res.data.access_token);
+        await AsyncStorage.setItem('refreshToken', res.data.refresh_token);
+        console.log('토큰 저장 완료');
+
+        router.replace('/(main)');
+      } else {
+        console.log('로그인 실패:', res);
+        Alert.alert('로그인 실패', res.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
       }
-    } else {
-      Alert.alert('로그인 실패', '이메일 또는 비밀번호가 올바르지 않습니다.');
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      if (error instanceof Error) {
+        Alert.alert('로그인 실패', error.message);
+      } else {
+        Alert.alert('오류', '예상치 못한 문제가 발생했습니다.');
+      }
     }
   };
 
@@ -100,7 +112,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <View style={styles.linkContainer}>
-            <TouchableOpacity onPress={() => Alert.alert('회원가입 버튼 눌림')}>
+            <TouchableOpacity onPress={() => router.push('./signup')}>
               <ThemedText style={[styles.linkText, { color: primaryColor }]}>회원가입</ThemedText>
             </TouchableOpacity>
             <ThemedText style={{ color: dividerColor }}> | </ThemedText>
