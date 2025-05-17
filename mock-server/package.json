@@ -1,6 +1,7 @@
 {
-  "name": "storycraft-mock-server",
+  "name": "mock-server",
   "version": "1.0.0",
+  "type": "module",
   "description": "StoryCraft API Mock Server",
   "main": "server.js",
   "scripts": {

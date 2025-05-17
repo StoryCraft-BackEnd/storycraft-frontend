@@ -20,7 +20,7 @@ import { useThemeColor } from '../../hooks/useThemeColor';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { login } from '@/features/auth/api';
+import { login } from '@/features/auth/authApi';
 
 export default function LoginScreen() {
   //입력 필드 상태 관리
@@ -73,14 +73,7 @@ export default function LoginScreen() {
         <View style={styles.formContainer}>
           <ThemedText style={[styles.title, { color: textColor }]}>로그인</ThemedText>
           <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: cardColor,
-                borderColor,
-                color: '#000000',
-              },
-            ]}
+            style={[styles.input, { borderColor, color: textColor }]}
             placeholder="이메일"
             placeholderTextColor={placeholderColor}
             value={email}
@@ -89,14 +82,7 @@ export default function LoginScreen() {
             keyboardType="email-address"
           />
           <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: cardColor,
-                borderColor,
-                color: '#000000',
-              },
-            ]}
+            style={[styles.input, { borderColor, color: textColor }]}
             placeholder="비밀번호"
             placeholderTextColor={placeholderColor}
             value={password}
@@ -116,9 +102,9 @@ export default function LoginScreen() {
               <ThemedText style={[styles.linkText, { color: primaryColor }]}>회원가입</ThemedText>
             </TouchableOpacity>
             <ThemedText style={{ color: dividerColor }}> | </ThemedText>
-            <TouchableOpacity onPress={() => Alert.alert('비밀번호 찾기 버튼 눌림')}>
+            <TouchableOpacity onPress={() => router.push('./find-account')}>
               <ThemedText style={[styles.linkText, { color: primaryColor }]}>
-                비밀번호 찾기
+                아이디/비밀번호 찾기
               </ThemedText>
             </TouchableOpacity>
           </View>

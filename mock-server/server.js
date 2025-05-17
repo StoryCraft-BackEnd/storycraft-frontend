@@ -1,50 +1,30 @@
 /* eslint-disable no-undef */
 // mock-server/server.js
-import express, { json } from 'express';
+/**
+ * 메인 서버 파일
+ * Express 서버를 설정하고 실행합니다.
+ * 미들웨어 설정과 라우트 연결을 담당합니다.
+ */
+import express from 'express';
 import cors from 'cors';
+import routes from './routes/index.js';
+import { TEST_USER } from './models/user.js';
+
 const app = express();
 
-// CORS 설정
+// CORS 설정 - 프론트엔드에서의 API 요청을 허용
 app.use(cors());
-app.use(json());
+// JSON 요청 본문 파싱
+app.use(express.json());
 
-// 테스트 계정 정보
-const TEST_USER = {
-  id: 1,
-  email: 'test@example.com',
-  password: '1234',
-  name: '테스트 사용자',
-};
-
-// 로그인 API
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-
-  // 입력값 검증
-  if (!email || !password) {
-    return res.status(400).json({
-      message: '이메일과 비밀번호를 모두 입력해주세요.',
-    });
-  }
-
-  // 테스트 계정 확인
-  if (email === TEST_USER.email && password === TEST_USER.password) {
-    return res.json({
-      access_token: 'test-access-token-1234',
-      refresh_token: 'test-refresh-token-5678',
-      user: {
-        id: TEST_USER.id,
-        email: TEST_USER.email,
-        name: TEST_USER.name,
-      },
-    });
-  }
-
-  // 로그인 실패
-  return res.status(401).json({
-    message: '이메일 또는 비밀번호가 올바르지 않습니다.',
-  });
+// 모든 요청을 콘솔에 출력하는 로깅 미들웨어
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.url}`);
+  next();
 });
+
+// API 라우트 설정 - /api 경로로 시작하는 모든 요청을 routes로 전달
+app.use('/api', routes);
 
 // 서버 시작
 const PORT = 3000;
