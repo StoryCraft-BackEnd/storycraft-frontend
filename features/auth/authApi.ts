@@ -65,6 +65,11 @@ export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
   }
 };
 
+/**
+ * 이메일 중복확인 API 호출 함수
+ * @param data 이메일 중복확인 요청 데이터
+ * @returns 이메일 중복확인 응답 데이터
+ */
 export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckResponse> => {
   const response = await axios.post<EmailCheckResponse>(
     `${API_CONFIG.BASE_URL}/auth/email/verification/exists`,
@@ -73,6 +78,11 @@ export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckRes
   return response.data;
 };
 
+/**
+ * 닉네임 중복확인 API 호출 함수
+ * @param data 닉네임 중복확인 요청 데이터
+ * @returns 닉네임 중복확인 응답 데이터
+ */
 export const checkNickname = async (data: NicknameCheckRequest): Promise<NicknameCheckResponse> => {
   const response = await axios.post<NicknameCheckResponse>(
     `${API_CONFIG.BASE_URL}/auth/nickname/exists`,
@@ -81,6 +91,11 @@ export const checkNickname = async (data: NicknameCheckRequest): Promise<Nicknam
   return response.data;
 };
 
+/**
+ * 이메일 인증 코드 전송 API 호출 함수
+ * @param data 이메일 인증 코드 전송 요청 데이터
+ * @returns 이메일 인증 코드 전송 응답 데이터
+ */
 export const sendEmailVerificationCode = async (
   data: EmailVerificationSendRequest
 ): Promise<EmailVerificationSendResponse> => {
@@ -93,6 +108,11 @@ export const sendEmailVerificationCode = async (
   return response.data;
 };
 
+/**
+ * 이메일 인증번호 확인 API 호출 함수
+ * @param data 이메일 인증번호 확인 요청 데이터
+ * @returns 이메일 인증번호 확인 응답 데이터
+ */
 export const verifyEmailCode = async (
   data: EmailVerificationCheckRequest
 ): Promise<EmailVerificationCheckResponse> => {
