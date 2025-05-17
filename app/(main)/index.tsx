@@ -2,224 +2,139 @@
  * StoryCraft 메인 화면 컴포넌트
  * 로그인 후 사용자가 보게 되는 메인 화면입니다.
  */
-import React, { useEffect } from 'react';
-import { TouchableOpacity, Alert, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ImageBackground, TouchableOpacity, View, Image, Text, ScrollView } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // 토큰 삭제 위해 사용 추후 삭제!!
+import { setStatusBarHidden } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import { router } from 'expo-router';
+import morningBg from '@/assets/images/background/아침배경.png';
+import sunsetBg from '@/assets/images/background/일몰배경.png';
+import nightBg from '@/assets/images/background/밤배경.png';
+import sleepcharacter from '@/assets/images/character/sleep.png';
+import story1 from '@/assets/images/illustrations/storycraft_cover_1.png';
+import story2 from '@/assets/images/illustrations/storycraft_cover_2.png';
+import story3 from '@/assets/images/illustrations/storycraft_cover_3.png';
+import story4 from '@/assets/images/illustrations/storycraft_cover_4.png';
+import story5 from '@/assets/images/illustrations/storycraft_cover_5.png';
+import story6 from '@/assets/images/illustrations/storycraft_cover_6.png';
+import story7 from '@/assets/images/illustrations/storycraft_cover_7.png';
+import story8 from '@/assets/images/illustrations/storycraft_cover_8.png';
+import { MainScreenStyles } from '@/styles/MainScreen';
+
+// 임시 동화 데이터
+const stories = [
+  { id: 1, title: '동화 1', image: story1 },
+  { id: 2, title: '동화 2', image: story2 },
+  { id: 3, title: '동화 3', image: story3 },
+  { id: 4, title: '동화 4', image: story4 },
+  { id: 5, title: '동화 5', image: story5 },
+  { id: 6, title: '동화 6', image: story6 },
+  { id: 7, title: '동화 7', image: story7 },
+  { id: 8, title: '동화 8', image: story8 },
+];
 
 export default function MainScreen() {
-  const backgroundColor = useThemeColor('background');
-  const textColor = useThemeColor('text');
-  const cardColor = useThemeColor('card');
+  const [backgroundImage, setBackgroundImage] = useState(morningBg);
 
   useEffect(() => {
     // 화면을 가로 모드로 고정
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
 
-    // 컴포넌트가 언마운트될 때 화면 방향 잠금 해제
+    // 시스템 UI 숨기기
+    setStatusBarHidden(true);
+    NavigationBar.setVisibilityAsync('hidden');
+
+    // 시간대별 배경 이미지 설정
+    const updateBackgroundImage = () => {
+      const now = new Date();
+      const hour = now.getHours();
+
+      if (hour >= 5 && hour < 17) {
+        setBackgroundImage(morningBg);
+      } else if (hour >= 17 && hour < 19) {
+        setBackgroundImage(sunsetBg);
+      } else {
+        setBackgroundImage(nightBg);
+      }
+    };
+
+    // 초기 배경 설정
+    updateBackgroundImage();
+
+    // 1분마다 배경 업데이트
+    const interval = setInterval(updateBackgroundImage, 60000);
+
+    // 컴포넌트가 언마운트될 때 정리
     return () => {
       ScreenOrientation.unlockAsync();
+      setStatusBarHidden(false);
+      NavigationBar.setVisibilityAsync('visible');
+      clearInterval(interval);
     };
   }, []);
 
-  // StoryCraft Dev로 돌아가는 함수 추후 삭제!!
-  const handleBackToDev = async () => {
-    try {
-      // 토큰 삭제
-      await AsyncStorage.removeItem('token');
-      // (auth) 스택으로 이동
-      router.replace('/(auth)');
-    } catch (error) {
-      console.error('로그아웃 처리 중 오류:', error);
-    }
-  };
-
   return (
-    <ThemedView style={{ flex: 1, backgroundColor }}>
-      <ScrollView style={{ flex: 1, padding: 16 }}>
-        {/* 사용자 정보 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 8,
+    <ImageBackground
+      source={backgroundImage}
+      style={MainScreenStyles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ThemedView style={MainScreenStyles.container}>
+        <View style={MainScreenStyles.storyContainer}>
+          <TouchableOpacity
+            style={MainScreenStyles.viewAllButton}
+            onPress={() => {
+              router.push('/(main)/storylist');
             }}
           >
-            환영합니다!
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: 16,
-              color: textColor,
-              opacity: 0.8,
-            }}
+            <Text style={MainScreenStyles.viewAllText}>전체 목록 보기 {'>>'}</Text>
+          </TouchableOpacity>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={MainScreenStyles.storyScrollView}
+            pagingEnabled={true}
+            snapToInterval={170}
+            decelerationRate="fast"
           >
-            오늘도 좋은 이야기를 만들어보세요
-          </ThemedText>
+            {stories.map((story) => (
+              <View key={story.id} style={MainScreenStyles.storyItem}>
+                <Image source={story.image} style={MainScreenStyles.storyImage} />
+                <Text style={MainScreenStyles.storyTitle}>{story.title}</Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* 빠른 시작 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            빠른 시작
-          </ThemedText>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('새 이야기 작성')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>새 이야기 작성하기</ThemedText>
+        <View style={MainScreenStyles.buttonContainer}>
+          <TouchableOpacity style={MainScreenStyles.button}>
+            <Image source={sleepcharacter} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>버튼 1</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={() => Alert.alert('이야기 탐색')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>이야기 탐색하기</ThemedText>
-          </TouchableOpacity>
-        </View>
 
-        {/* 최근 활동 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            최근 활동
-          </ThemedText>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('최근 작성한 이야기')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>최근 작성한 이야기</ThemedText>
+          <TouchableOpacity style={MainScreenStyles.button}>
+            <Image source={sleepcharacter} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>버튼 2</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={() => Alert.alert('저장된 이야기')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>저장된 이야기</ThemedText>
-          </TouchableOpacity>
-        </View>
 
-        {/* 설정 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            설정
-          </ThemedText>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('프로필 설정')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>프로필 설정</ThemedText>
+          <TouchableOpacity style={MainScreenStyles.button}>
+            <Image source={sleepcharacter} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>버튼 3</Text>
           </TouchableOpacity>
-          {/* StoryCraft Dev로 돌아가는 버튼 추후 삭제!!*/}
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#FF6B6B',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={handleBackToDev}
-          >
-            <ThemedText style={{ fontSize: 16, color: 'white', textAlign: 'center' }}>
-              StoryCraft Dev로 돌아가기
-            </ThemedText>
+
+          <TouchableOpacity style={MainScreenStyles.button}>
+            <Image source={sleepcharacter} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>버튼 4</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={MainScreenStyles.button}>
+            <Image source={sleepcharacter} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>버튼 5</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </ThemedView>
+      </ThemedView>
+    </ImageBackground>
   );
 }

@@ -4,7 +4,7 @@
     "slug": "StoryCraft",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/character/sleep.png",
+    "icon": "./assets/images/character/sleep.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,21 +13,21 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/character/sleep.png",
+        "foregroundImage": "./assets/images/character/sleep.png",
         "backgroundColor": "#ffffff"
       }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/character/sleep.png"
+      "favicon": "./assets/images/character/sleep.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/character/sleep.png",
+          "image": "./assets/images/character/sleep.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

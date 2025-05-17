@@ -12,7 +12,7 @@ import { homeScreenStyles as styles } from '@/styles/HomeScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
 import { NotFoundScreen } from '@/components/ui/NotFoundScreen';
-import sleepCharacter from '@/assets/character/sleep.png';
+import sleepcharacter from '@/assets/images/character/sleep.png';
 
 export default function HomeScreen() {
   // 상태 관리
@@ -105,7 +105,7 @@ export default function HomeScreen() {
 
   // 초기 로딩 화면 표시
   if (isInitialLoading) {
-    return <LoadingScreen message="StoryCraft를 시작합니다..." image={sleepCharacter} />;
+    return <LoadingScreen message="StoryCraft를 시작합니다..." image={sleepcharacter} />;
   }
 
   // 로딩 화면 표시
@@ -120,7 +120,7 @@ export default function HomeScreen() {
               ? '서버에 연결되었습니다!'
               : '서버 연결에 실패했습니다.')
         }
-        image={sleepCharacter}
+        image={sleepcharacter}
       />
     );
   }
@@ -187,6 +187,14 @@ export default function HomeScreen() {
         onPress={() => setShowPopup(true)}
       >
         <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
+      </TouchableOpacity>
+
+      {/* 메인 화면으로 이동 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#2196F3' }]}
+        onPress={() => router.replace('/(main)')}
+      >
+        <ThemedText style={styles.buttonText}>메인 화면으로 이동</ThemedText>
       </TouchableOpacity>
 
       {/* 홈으로 돌아가기 버튼 */}
