@@ -48,7 +48,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('refreshToken', res.data.refresh_token);
         console.log('토큰 저장 완료');
 
-        router.replace('/(main)');
+        router.replace('/(profile)');
       } else {
         console.log('로그인 실패:', res);
         Alert.alert('로그인 실패', res.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
