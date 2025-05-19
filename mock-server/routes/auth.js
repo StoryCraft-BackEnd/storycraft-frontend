@@ -10,6 +10,7 @@ import {
   checkNickname,
   sendEmailVerificationCode,
   checkEmailVerificationCode,
+  resetPassword,
 } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -26,10 +27,13 @@ router.post('/email/verification/exists', checkEmail);
 // POST /api/auth/nickname/exists - 닉네임 중복확인
 router.post('/nickname/exists', checkNickname);
 
-// POST /api/auth/email/verification/send - 이메일 인증 코드 전송
-router.post('/email/verification/send', sendEmailVerificationCode);
+// POST /api/auth/request-reset-code - 이메일 인증 코드 전송
+router.post('/request-reset-code', sendEmailVerificationCode);
 
-// POST /api/auth/email/verification/check - 이메일 인증번호 확인
-router.post('/email/verification/check', checkEmailVerificationCode);
+// POST /api/auth/verify-reset-code - 이메일 인증번호 확인
+router.post('/verify-reset-code', checkEmailVerificationCode);
+
+// POST /api/auth/reset-password - 비밀번호 재설정
+router.post('/reset-password', resetPassword);
 
 export default router;

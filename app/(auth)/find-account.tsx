@@ -12,7 +12,7 @@ import {
 import { ThemedView } from '../../components/ui/ThemedView';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { findAccountScreenStyles as styles } from '../../styles/FindAccountScreen.styles';
-import { sendEmailVerificationCode, verifyEmailCode } from '@/features/auth/authApi';
+import { sendEmailVerificationCode, verifyEmailCode, resetPassword } from '@/features/auth/authApi';
 
 export default function FindAccountScreen() {
   // 상태 관리
@@ -21,6 +21,7 @@ export default function FindAccountScreen() {
   const [isVerified, setIsVerified] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   // 테마 색상
   const primaryColor = useThemeColor('primary');
@@ -35,17 +36,16 @@ export default function FindAccountScreen() {
       return;
     }
     try {
-      console.log('Sending code for email:', email);
       const result = await sendEmailVerificationCode({ email });
-      console.log('Received result:', result);
-      if (result.status === 404) {
-        Alert.alert('알림', '가입되지 않은 이메일입니다.');
-        return;
-      }
       Alert.alert('알림', result.message);
     } catch (error) {
-      console.log('Error occurred:', error);
-      if (error.response?.status === 404) {
+      console.error(error);
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response?.status === 404
+      ) {
         Alert.alert('알림', '가입되지 않은 이메일입니다.');
       } else {
         Alert.alert('오류', '인증코드 전송 중 문제가 발생했습니다.');
@@ -61,27 +61,21 @@ export default function FindAccountScreen() {
     }
     try {
       const result = await verifyEmailCode({ email, code });
-      if (result.status === 200 && result.data) {
+      if (result.status === 200 && result.data && result.data.reset_token) {
         setIsVerified(true);
+        setResetToken(result.data.reset_token);
         Alert.alert('알림', '이메일 인증이 완료되었습니다.');
       } else {
         Alert.alert('알림', result.message || '인증번호가 올바르지 않습니다.');
       }
     } catch (error) {
-      // axios 에러 타입 체크
-      if (error && typeof error === 'object' && 'response' in error) {
-        Alert.alert(
-          '오류',
-          error.response?.data?.message || '인증번호 확인 중 문제가 발생했습니다.'
-        );
-      } else {
-        Alert.alert('오류', '인증번호 확인 중 문제가 발생했습니다.');
-      }
+      console.error(error);
+      Alert.alert('오류', '인증번호 확인 중 문제가 발생했습니다.');
     }
   };
 
   // 비밀번호 재설정 핸들러 (실제 API 연동 필요)
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
       Alert.alert('알림', '새 비밀번호와 확인을 모두 입력해주세요.');
       return;
@@ -90,8 +84,21 @@ export default function FindAccountScreen() {
       Alert.alert('알림', '비밀번호가 일치하지 않습니다.');
       return;
     }
-    // TODO: 비밀번호 재설정 API 연동
-    Alert.alert('알림', '비밀번호가 성공적으로 재설정되었습니다.');
+    if (!resetToken) {
+      Alert.alert('오류', '인증 토큰이 없습니다. 인증을 다시 시도해주세요.');
+      return;
+    }
+    try {
+      const result = await resetPassword({ token: resetToken, new_password: newPassword });
+      if (result.status === 200 && result.data) {
+        Alert.alert('알림', '비밀번호가 성공적으로 재설정되었습니다.');
+      } else {
+        Alert.alert('오류', result.message || '비밀번호 재설정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('오류', '비밀번호 재설정 중 문제가 발생했습니다.');
+    }
   };
 
   return (

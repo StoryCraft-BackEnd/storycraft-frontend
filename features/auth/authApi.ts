@@ -19,6 +19,8 @@ import {
   EmailVerificationSendResponse,
   EmailVerificationCheckRequest,
   EmailVerificationCheckResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
 } from './types';
 
 /**
@@ -99,12 +101,10 @@ export const checkNickname = async (data: NicknameCheckRequest): Promise<Nicknam
 export const sendEmailVerificationCode = async (
   data: EmailVerificationSendRequest
 ): Promise<EmailVerificationSendResponse> => {
-  console.log('Sending verification code request:', data);
   const response = await axios.post<EmailVerificationSendResponse>(
-    `${API_CONFIG.BASE_URL}/auth/email/verification/send`,
+    `${API_CONFIG.BASE_URL}/auth/request-reset-code`,
     data
   );
-  console.log('Verification code response:', response.data);
   return response.data;
 };
 
@@ -117,7 +117,20 @@ export const verifyEmailCode = async (
   data: EmailVerificationCheckRequest
 ): Promise<EmailVerificationCheckResponse> => {
   const response = await axios.post<EmailVerificationCheckResponse>(
-    `${API_CONFIG.BASE_URL}/auth/email/verification/check`,
+    `${API_CONFIG.BASE_URL}/auth/verify-reset-code`,
+    data
+  );
+  return response.data;
+};
+
+/**
+ * 비밀번호 재설정 API 호출 함수
+ * @param data 비밀번호 재설정 요청 데이터
+ * @returns 비밀번호 재설정 응답 데이터
+ */
+export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+  const response = await axios.post<ResetPasswordResponse>(
+    `${API_CONFIG.BASE_URL}/auth/reset-password`,
     data
   );
   return response.data;

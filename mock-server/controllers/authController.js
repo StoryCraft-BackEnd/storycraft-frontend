@@ -132,7 +132,7 @@ const sendEmailVerificationCode = (req, res) => {
   // 실제로는 이메일로 인증코드를 전송해야 함
   return res.json({
     status: 200,
-    message: '이메일 인증 코드가 발송되었습니다.',
+    message: '비밀번호 재설정을 위한 인증코드가 이메일로 전송되었습니다.',
     data: true,
   });
 };
@@ -148,13 +148,38 @@ const checkEmailVerificationCode = (req, res) => {
   if (email === 'test@example.com' && code === '123456') {
     return res.json({
       status: 200,
-      message: '이메일 인증이 완료되었습니다.',
-      data: true,
+      message: '인증에 성공했습니다.',
+      data: {
+        reset_token: 'mock-reset-token',
+      },
     });
   }
   return res.status(400).json({
     status: 400,
     message: '인증번호가 올바르지 않습니다.',
+    data: false,
+  });
+};
+
+/**
+ * 비밀번호 재설정 처리
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @returns {Object} 비밀번호 재설정 결과
+ */
+const resetPassword = (req, res) => {
+  const { token, new_password } = req.body;
+  // 실제로는 token 검증 및 비밀번호 변경 로직 필요
+  if (token === 'mock-reset-token' && new_password) {
+    return res.json({
+      status: 200,
+      message: '비밀번호가 성공적으로 재설정되었습니다.',
+      data: true,
+    });
+  }
+  return res.status(400).json({
+    status: 400,
+    message: '비밀번호 재설정에 실패했습니다.',
     data: false,
   });
 };
@@ -166,4 +191,5 @@ export {
   checkNickname,
   sendEmailVerificationCode,
   checkEmailVerificationCode,
+  resetPassword,
 };

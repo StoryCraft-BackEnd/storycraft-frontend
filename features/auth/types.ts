@@ -75,7 +75,7 @@ export interface EmailVerificationSendRequest {
 export interface EmailVerificationSendResponse {
   status: number;
   message: string;
-  data: boolean;
+  data: true;
 }
 
 // 이메일 인증번호 확인 요청/응답 타입
@@ -86,5 +86,18 @@ export interface EmailVerificationCheckRequest {
 export interface EmailVerificationCheckResponse {
   status: number;
   message: string;
-  data: boolean;
+  data: {
+    reset_token: string;
+  };
+}
+
+// 비밀번호 재설정 요청/응답 타입
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+export interface ResetPasswordResponse {
+  status: number;
+  message: string;
+  data: true;
 }
