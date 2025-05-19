@@ -5,10 +5,14 @@
  */
 import express from 'express';
 import authRoutes from './auth.js';
+import storycreate from './storycreate.js';
 
 const router = express.Router();
 
 // 인증 관련 라우트 (/api/auth/*)
 router.use('/auth', authRoutes);
+
+// 동화 생성 라우트
+router.use('/stories', storycreate);
 
 export default router;
