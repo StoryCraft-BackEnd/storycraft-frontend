@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { MainScreenStyles } from '@/styles/MainScreen';
 import { StoryCreateScreenStyles } from '@/styles/StoryCreateScreen.styles';
 import { API_CONFIG } from '@/shared/config/api';
+import type { CreateStoryRequest, CreateStoryResponse } from '@/features/storyCreate/types';
 
 export default function StoryCreateScreen() {
   const [storyPrompt, setStoryPrompt] = useState('');
@@ -28,20 +29,18 @@ export default function StoryCreateScreen() {
 
     setIsLoading(true);
     try {
-      console.log('API 요청 시작');
+      const requestData: CreateStoryRequest = {
+        prompt: storyPrompt,
+        childId: '1', // TODO: 실제 자녀 프로필 ID로 교체 필요
+      };
+
       const response = await fetch(`${API_CONFIG.BASE_URL}/stories/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({
-          prompt: storyPrompt,
-          childId: 1, // TODO: 실제 자녀 프로필 ID로 교체 필요
-        }),
-      }).catch((error) => {
-        console.error('Fetch 에러 상세:', error);
-        throw error;
+        body: JSON.stringify(requestData),
       });
 
       console.log('API 응답 받음:', response.status);
@@ -51,15 +50,21 @@ export default function StoryCreateScreen() {
         throw new Error(errorData.message || '동화 생성에 실패했습니다.');
       }
 
-      const result = await response.json();
+      const result: CreateStoryResponse = await response.json();
 
-      console.log('생성된 동화:', result);
-      Alert.alert('성공', result.message);
-      router.back();
+      if (result.status === 201 && result.data) {
+        console.log('생성된 동화:', result);
+        Alert.alert('성공', result.message);
+        router.back();
+      } else {
+        throw new Error(result.message || '동화 생성에 실패했습니다.');
+      }
     } catch (error) {
       console.error('Error creating story:', error);
-      Alert.alert('오류', error.message || '동화 생성 중 오류가 발생했습니다.');
-      setIsLoading(false); // 에러 발생 시 즉시 로딩 상태 해제
+      Alert.alert(
+        '오류',
+        error instanceof Error ? error.message : '동화 생성 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsLoading(false); // 에러가 발생하더라도 로딩 상태 해제
     }
