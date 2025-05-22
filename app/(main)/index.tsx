@@ -157,7 +157,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>결제/구독</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button6]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button6]}
+            onPress={() => router.push('./mypage')}
+          >
             <Image source={mypage} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>마이페이지</Text>
           </TouchableOpacity>
