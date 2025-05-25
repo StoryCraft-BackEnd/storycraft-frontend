@@ -1,4 +1,4 @@
-import profiles from '../models/Profile.js';
+import { profiles, writeProfiles } from '../models/Profile.js';
 
 // 사용자의 모든 프로필 조회
 const getProfiles = (req, res) => {
@@ -23,22 +23,34 @@ const createProfile = (req, res) => {
     const { name, age, learning_level } = req.body;
 
     // 필수 필드 검증
-    if (!name || !age) {
+    if (!name || !age || !learning_level) {
       return res.status(400).json({
         status: 400,
-        message: '이름과 나이는 필수 입력 항목입니다.',
+        message: '이름, 나이, 학습 레벨은 필수 입력 항목입니다.',
       });
     }
 
+    // 학습 레벨 검증
+    if (!['초급', '중급', '고급'].includes(learning_level)) {
+      return res.status(400).json({
+        status: 400,
+        message: '학습 레벨은 초급, 중급, 고급 중 하나여야 합니다.',
+      });
+    }
+
+    // 새로운 프로필 생성
     const newProfile = {
       child_id: profiles.length + 1,
       name,
       age,
-      learning_level: learning_level || '미정',
-      createdAt: new Date().toISOString(),
+      learning_level,
+      created_at: new Date().toISOString(),
     };
 
+    // 프로필 배열에 추가
     profiles.push(newProfile);
+    // 파일에 저장
+    writeProfiles(profiles);
 
     res.status(201).json({
       status: 201,
@@ -60,7 +72,8 @@ const createProfile = (req, res) => {
 const updateProfile = (req, res) => {
   try {
     const { id } = req.params;
-    const profileIndex = profiles.findIndex((profile) => profile.id === parseInt(id));
+    const { learning_level } = req.body;
+    const profileIndex = profiles.findIndex((profile) => profile.child_id === parseInt(id));
 
     if (profileIndex === -1) {
       return res.status(404).json({
@@ -69,13 +82,24 @@ const updateProfile = (req, res) => {
       });
     }
 
+    // 학습 레벨 검증
+    if (learning_level && !['초급', '중급', '고급'].includes(learning_level)) {
+      return res.status(400).json({
+        status: 400,
+        message: '학습 레벨은 초급, 중급, 고급 중 하나여야 합니다.',
+      });
+    }
+
+    // 프로필 업데이트
     const updatedProfile = {
       ...profiles[profileIndex],
       ...req.body,
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     profiles[profileIndex] = updatedProfile;
+    // 파일에 저장
+    writeProfiles(profiles);
 
     res.status(200).json({
       status: 200,
@@ -104,8 +128,11 @@ const deleteProfile = (req, res) => {
       });
     }
 
+    // 프로필 삭제
     const deletedProfile = profiles[profileIndex];
     profiles.splice(profileIndex, 1);
+    // 파일에 저장
+    writeProfiles(profiles);
 
     res.status(200).json({
       status: 200,
