@@ -37,7 +37,7 @@ export default function HomeScreen() {
         // 2초 후에 초기 로딩 화면을 닫음
         setTimeout(() => {
           setIsInitialLoading(false);
-        }, 2000);
+        }, 100);
       } catch (error) {
         console.error('앱 초기화 중 오류:', error);
         setIsConnected(false);

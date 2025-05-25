@@ -1,45 +1,34 @@
 import { StyleSheet, Dimensions } from 'react-native';
-import { useThemeColor } from '@/hooks/useThemeColor';
+import { lightTheme, darkTheme } from '@/styles/theme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-export const createProfileScreenStyles = () => {
-  // 테마 색상 정의
-  const backgroundColor = useThemeColor('background'); // 배경색
-  const primaryColor = useThemeColor('primary'); // 주요 강조 색상
-
-  // 다크모드/라이트모드에 따른 추가 색상
-  const isDark = backgroundColor === '#0d1b1e'; // 다크모드 배경색 체크
-  const profileCardBg = isDark ? '#2C2C2E' : '#FFFFFF'; // 프로필 카드 배경
-  const profileImageBg = isDark ? '#3A3A3C' : '#F0F0F0'; // 프로필 이미지 배경
-  const profileNameColor = isDark ? '#FFFFFF' : '#333333'; // 프로필 이름 색상
-  const profileAgeColor = isDark ? '#8E8E93' : '#666666'; // 프로필 나이 색상
-  const addProfileBorder = isDark ? '#3A3A3C' : '#CCCCCC'; // 새 프로필 추가 테두리
-  const addProfileText = isDark ? '#8E8E93' : '#666666'; // 새 프로필 추가 텍스트
-  const headerTitleColor = isDark ? '#FFFFFF' : '#000000'; // 헤더 제목 색상
+export const createProfileScreenStyles = (isDark: boolean) => {
+  const theme = isDark ? darkTheme : lightTheme;
 
   return StyleSheet.create({
     // 전체 화면 컨테이너
     container: {
       flex: 1,
-      backgroundColor,
+      backgroundColor: theme.colors.background,
+      paddingTop: 40,
     },
     // 상단 헤더 영역
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: 80,
+      height: 60,
       paddingHorizontal: 20,
-      backgroundColor,
+      backgroundColor: theme.colors.primary,
       borderBottomWidth: 1,
-      borderBottomColor: addProfileBorder,
+      borderBottomColor: theme.colors.border,
     },
     // 헤더 제목 텍스트
     headerTitle: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: headerTitleColor,
+      color: theme.colors.text,
     },
     // 메인 콘텐츠 영역
     content: {
@@ -49,67 +38,85 @@ export const createProfileScreenStyles = () => {
     // 프로필 카드들을 감싸는 리스트 컨테이너
     profileList: {
       flexDirection: 'row',
+      flexWrap: 'nowrap',
       justifyContent: 'center',
       alignItems: 'center',
-      gap: 20,
-      paddingHorizontal: 20,
-      height: height - 100, // 헤더 높이를 제외한 전체 높이
+      gap: 15,
+      paddingHorizontal: 15,
+      paddingVertical: 10,
+      width: '100%',
+      minHeight: '100%',
     },
     // 개별 프로필 카드
     profileCard: {
-      width: width * 0.25, // 화면 너비의 25%
-      height: height * 0.7, // 화면 높이의 70%
-      backgroundColor: profileCardBg,
-      borderRadius: 20,
-      padding: 20,
+      width: Math.min(width * 0.4, 250),
+      height: Math.min(width * 0.56, 350),
+      backgroundColor: theme.colors.card,
+      borderRadius: 15,
+      padding: 8,
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
+      margin: 5,
+      marginBottom: 20,
       // 그림자 효과
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: isDark ? 0.5 : 0.25, // 다크모드에서 더 강한 그림자
+      shadowOpacity: isDark ? 0.5 : 0.25,
       shadowRadius: 3.84,
       elevation: 5,
     },
     // 프로필 이미지
     profileImage: {
-      width: width * 0.2, // 화면 너비의 20%
-      height: width * 0.2, // 정사각형 유지
-      borderRadius: width * 0.1, // 원형 이미지
-      backgroundColor: profileImageBg,
-      marginBottom: 20,
+      width: width * 0.3,
+      height: width * 0.3,
+      borderRadius: width * 0.075,
+      backgroundColor: theme.colors.background,
+      marginBottom: 15,
     },
     // 프로필 이름 텍스트
     profileName: {
-      fontSize: 24,
+      fontSize: 16,
       fontWeight: 'bold',
-      color: profileNameColor,
-      marginBottom: 10,
+      color: theme.colors.profileName,
+      marginBottom: 3,
+      textAlign: 'center',
     },
     // 프로필 나이 텍스트
     profileAge: {
-      fontSize: 18,
-      color: profileAgeColor,
+      fontSize: 14,
+      color: theme.colors.secondary,
+      marginBottom: 2,
+      textAlign: 'center',
+    },
+    // 프로필 레벨 텍스트
+    profileLevel: {
+      fontSize: 13,
+      color: theme.colors.secondary,
+      marginBottom: 3,
+      textAlign: 'center',
     },
     // 새 프로필 추가 카드
     addProfileCard: {
-      width: width * 0.25, // 프로필 카드와 동일한 크기
-      height: height * 0.7, // 프로필 카드와 동일한 크기
+      width: Math.min(width * 0.4, 250),
+      height: Math.min(width * 0.56, 350),
       borderWidth: 2,
-      borderColor: addProfileBorder,
-      borderStyle: 'dashed', // 점선 테두리
-      borderRadius: 20,
+      borderColor: theme.colors.border,
+      borderStyle: 'dashed',
+      borderRadius: 15,
       alignItems: 'center',
       justifyContent: 'center',
+      margin: 5,
+      padding: 8,
+      backgroundColor: theme.colors.card,
     },
     // 새 프로필 추가 텍스트
     addProfileText: {
-      fontSize: 20,
-      color: addProfileText,
-      marginTop: 10,
+      fontSize: 14,
+      color: theme.colors.primary,
+      textAlign: 'center',
     },
     // 로그아웃 버튼
     logoutButton: {
@@ -119,8 +126,47 @@ export const createProfileScreenStyles = () => {
     },
     // 로그아웃 텍스트
     logoutText: {
-      color: primaryColor,
+      color: theme.colors.text,
       fontSize: 16,
+    },
+    // 로딩 텍스트
+    loadingText: {
+      fontSize: 18,
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginTop: 20,
+    },
+    // 에러 텍스트
+    errorText: {
+      fontSize: 18,
+      color: theme.colors.notification,
+      textAlign: 'center',
+      marginTop: 20,
+    },
+    // 프로필 액션 버튼 컨테이너
+    profileActions: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      width: '100%',
+      marginTop: 8,
+      paddingHorizontal: 5,
+    },
+    // 액션 버튼
+    actionButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 4,
+      backgroundColor: theme.colors.notification,
+      minWidth: 40,
+    },
+    // 액션 버튼 텍스트
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+    },
+    // 삭제 버튼
+    deleteButton: {
+      backgroundColor: theme.colors.notification,
     },
   });
 };

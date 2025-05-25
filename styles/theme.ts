@@ -13,6 +13,7 @@ export const lightTheme = {
     border: '#E0E0E0', // 연한 회색 (선/구분선)
     notification: '#FF3B30', // 빨간색 (알림, 경고용)
     secondary: '#aaaaaa', // 중간 회색 (보조 텍스트)
+    profileName: '#000000', // 프로필 이름용 검정색
   },
 };
 
@@ -27,6 +28,7 @@ export const darkTheme = {
     border: '#cccccc', // 밝은 회색 (구분선)
     notification: '#ff453a', // 밝은 빨간색 (iOS 알림 색 계열)
     secondary: '#aaaaaa', // 중간 회색 (보조 텍스트)
+    profileName: '#000000', // 프로필 이름용 검정색
   },
 };
 

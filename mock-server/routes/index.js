@@ -6,6 +6,7 @@
 import express from 'express';
 import authRoutes from './auth.js';
 import storycreate from './storycreate.js';
+import profile from './profile.js';
 
 const router = express.Router();
 
@@ -46,5 +47,8 @@ router.patch('/users', (req, res) => {
     data: true,
   });
 });
+
+// 프로필 관련 라우트
+router.use('/profiles', profile);
 
 export default router;
