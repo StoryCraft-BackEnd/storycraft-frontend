@@ -8,10 +8,7 @@
  * @version 1.0.0
  */
 import axios from 'axios';
-
-// API 서버의 기본 URL 설정
-// 환경 변수에서 가져오거나 기본값으로 localhost 사용
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { API_CONFIG } from '@/shared/config/api';
 
 /**
  * API 클라이언트 인스턴스 생성
@@ -22,7 +19,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
  * - Content-Type: application/json
  */
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_CONFIG.BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

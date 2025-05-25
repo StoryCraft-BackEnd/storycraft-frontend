@@ -1,24 +1,104 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { router } from 'expo-router';
 import { MyPageStyles } from '../../styles/MyPageStyles';
 import defaultProfile from '../../assets/images/profile/default_profile.png';
 import setting from '../../assets/images/icons/setting.png';
+import pencil from '../../assets/images/icons/pencil.png';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { updateNickname } from '../../features/user/userApi';
 
 const MyPageScreen = () => {
   const profileImage = defaultProfile;
-  const nickname = '사용자';
+  const [nickname, setNickname] = useState('사용자');
   const name = '홍길동';
   const insets = useSafeAreaInsets();
+  const [editing, setEditing] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState(nickname);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleEditStart = () => {
+    setNicknameInput(nickname);
+    setEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setEditing(false);
+    setNicknameInput(nickname);
+  };
+
+  const handleEditConfirm = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const success = await updateNickname(nicknameInput);
+      if (success) {
+        setNickname(nicknameInput);
+        setEditing(false);
+      } else {
+        setError('닉네임 수정에 실패했습니다.');
+      }
+    } catch (err: unknown) {
+      let message = '닉네임 수정에 실패했습니다.';
+      if (err instanceof Error) message = err.message;
+      else if (typeof err === 'string') message = err;
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={MyPageStyles.container}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={MyPageStyles.profileSection}>
           <Image source={profileImage} style={MyPageStyles.profileImage} />
-          <Text style={MyPageStyles.nickname}>{nickname}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {editing ? (
+              <>
+                <TextInput
+                  value={nicknameInput}
+                  onChangeText={setNicknameInput}
+                  style={MyPageStyles.nicknameInput}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  onPress={handleEditCancel}
+                  style={{ marginLeft: 8 }}
+                  disabled={loading}
+                >
+                  <Text style={{ color: '#888' }}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleEditConfirm}
+                  style={{ marginLeft: 8 }}
+                  disabled={loading}
+                >
+                  <Text style={{ color: loading ? '#aaa' : '#007AFF' }}>
+                    {loading ? '...' : '확인'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={MyPageStyles.nickname}>{nickname}</Text>
+                <TouchableOpacity onPress={handleEditStart} style={{ marginLeft: 8 }}>
+                  <Image source={pencil} style={{ width: 20, height: 20 }} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
           <Text style={MyPageStyles.name}>{name}</Text>
+          {error && <Text style={{ color: 'red', marginTop: 4 }}>{error}</Text>}
         </View>
         <View style={MyPageStyles.menuSection}>
           <TouchableOpacity

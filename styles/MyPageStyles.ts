@@ -24,6 +24,17 @@ export const MyPageStyles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 5,
   },
+  nicknameInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    borderBottomWidth: 1,
+    borderColor: '#aaa',
+    paddingVertical: 2,
+    minWidth: 80,
+    marginBottom: 5,
+    color: '#222',
+    backgroundColor: '#f9f9f9',
+  },
   name: {
     fontSize: 16,
     color: '#666',
