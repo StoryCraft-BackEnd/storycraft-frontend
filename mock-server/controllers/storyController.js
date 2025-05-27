@@ -3,6 +3,21 @@
  * 동화 생성, 조회 등의 비즈니스 로직을 처리합니다.
  */
 
+import Story from '../models/Story.js';
+import storiesData from '../models/stories.json' assert { type: 'json' };
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const storiesFilePath = path.join(__dirname, '../models/stories.json');
+
+// JSON 파일 업데이트 함수
+const updateStoriesFile = async (stories) => {
+  await fs.writeFile(storiesFilePath, JSON.stringify({ stories }, null, 2), 'utf-8');
+};
+
 // 동화 생성 컨트롤러
 export const createStory = async (req, res) => {
   try {
@@ -15,27 +30,102 @@ export const createStory = async (req, res) => {
       });
     }
 
-    // 실제 구현에서는 여기서 AI 모델을 호출하여 동화를 생성합니다.
-    // 현재는 목업 데이터를 반환합니다.
-    const mockStory = {
+    // 새로운 동화 생성
+    const newStory = {
       storyId: Date.now(),
       title: '꼬마 용사와 동물 친구들의 모험',
-      content: '옛날 옛적에...',
+      summary: 'AI가 생성한 동화입니다.',
+      thumbnailUrl: 'https://cdn/default-story.jpg',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // JSON 파일에 새로운 동화 추가
+    const updatedStories = [...storiesData.stories, newStory];
+    await updateStoriesFile(updatedStories);
 
     // 성공 응답
     res.status(201).json({
       status: 201,
       message: '동화 생성에 성공했습니다.',
-      data: mockStory,
+      data: newStory,
     });
   } catch (error) {
     console.error('동화 생성 중 오류 발생:', error);
     res.status(500).json({
       status: 500,
       message: '동화 생성 중 오류가 발생했습니다.',
+    });
+  }
+};
+
+// 동화 목록 조회 컨트롤러
+export const getStories = async (req, res) => {
+  try {
+    const { childId } = req.query;
+
+    if (!childId) {
+      return res.status(400).json({
+        status: 400,
+        message: '자녀 프로필ID가 필요합니다.',
+      });
+    }
+
+    const stories = storiesData.stories.map((story) => Story.fromJSON(story));
+
+    res.status(200).json({
+      status: 200,
+      message: '동화 목록 조회에 성공했습니다.',
+      data: stories,
+    });
+  } catch (error) {
+    console.error('동화 목록 조회 중 오류 발생:', error);
+    res.status(500).json({
+      status: 500,
+      message: '동화 목록 조회 중 오류가 발생했습니다.',
+    });
+  }
+};
+
+// 동화 삭제 컨트롤러
+export const deleteStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+
+    if (!storyId) {
+      return res.status(400).json({
+        status: 400,
+        message: '삭제할 동화 ID가 필요합니다.',
+      });
+    }
+
+    // 해당 ID의 동화 찾기
+    const storyIndex = storiesData.stories.findIndex(
+      (story) => story.storyId === parseInt(storyId)
+    );
+
+    if (storyIndex === -1) {
+      return res.status(404).json({
+        status: 404,
+        message: '해당 ID의 동화를 찾을 수 없습니다.',
+      });
+    }
+
+    // 동화 삭제
+    const updatedStories = storiesData.stories.filter(
+      (story) => story.storyId !== parseInt(storyId)
+    );
+    await updateStoriesFile(updatedStories);
+
+    res.status(200).json({
+      status: 200,
+      message: '동화가 성공적으로 삭제되었습니다.',
+    });
+  } catch (error) {
+    console.error('동화 삭제 중 오류 발생:', error);
+    res.status(500).json({
+      status: 500,
+      message: '동화 삭제 중 오류가 발생했습니다.',
     });
   }
 };

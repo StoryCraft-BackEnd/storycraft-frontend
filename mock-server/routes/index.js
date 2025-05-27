@@ -5,7 +5,7 @@
  */
 import express from 'express';
 import authRoutes from './auth.js';
-import storycreate from './storycreate.js';
+import storyRoutes from './story.js';
 import profile from './profile.js';
 
 const router = express.Router();
@@ -28,8 +28,8 @@ router.get('/users/me', (req, res) => {
   });
 });
 
-// 동화 생성 라우트
-router.use('/stories', storycreate);
+// 동화 관련 라우트 (/api/stories/*)
+router.use('/stories', storyRoutes);
 
 // 닉네임 수정 라우트 (/api/users)
 router.patch('/users', (req, res) => {

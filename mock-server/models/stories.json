@@ -1,0 +1,20 @@
+{
+  "stories": [
+    {
+      "storyId": 1,
+      "title": "모험을 떠난 고양이",
+      "summary": "고양이가 친구를 찾아 떠나는 이야기",
+      "thumbnailUrl": "https://cdn/story1.jpg",
+      "createdAt": "2025-05-15T14:00:00",
+      "updatedAt": "2025-05-15T15:00:00"
+    },
+    {
+      "storyId": 2,
+      "title": "숲속의 용사",
+      "summary": "숲을 구한 꼬마 용사의 이야기",
+      "thumbnailUrl": "https://cdn/story2.jpg",
+      "createdAt": "2025-05-15T14:00:00",
+      "updatedAt": "2025-05-15T15:00:00"
+    }
+  ]
+}
