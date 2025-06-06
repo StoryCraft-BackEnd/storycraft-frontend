@@ -12,19 +12,62 @@ export const ProfileEditScreenStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
   },
-  infoBox: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  backButton: {
+    position: 'absolute',
+    top: 24,
+    left: 16,
+    zIndex: 10,
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 28,
+    color: '#222',
+  },
+  landscapeWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  profileLeft: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 16,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  profileRight: {
+    flex: 2,
+    padding: 32,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   label: {
     fontWeight: 'bold',
-    marginTop: 12,
     color: '#333',
+    minWidth: 100,
   },
   value: {
     fontSize: 16,
