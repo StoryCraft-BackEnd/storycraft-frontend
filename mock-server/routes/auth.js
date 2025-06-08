@@ -11,6 +11,9 @@ import {
   sendEmailVerificationCode,
   checkEmailVerificationCode,
   resetPassword,
+  refreshAccessToken,
+  logout,
+  withdraw,
 } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -35,5 +38,14 @@ router.post('/verify-reset-code', checkEmailVerificationCode);
 
 // POST /api/auth/reset-password - 비밀번호 재설정
 router.post('/reset-password', resetPassword);
+
+// POST /api/auth/token/refresh - 액세스 토큰 재발급
+router.post('/token/refresh', refreshAccessToken);
+
+// POST /api/auth/logout - 로그아웃
+router.post('/logout', logout);
+
+// DELETE /api/users - 회원 탈퇴
+router.delete('/users', withdraw);
 
 export default router;

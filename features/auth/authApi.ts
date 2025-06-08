@@ -135,3 +135,64 @@ export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPa
   );
   return response.data;
 };
+
+/**
+ * 액세스 토큰 재발급 API 호출 함수
+ * @param refreshToken 리프레시 토큰
+ * @returns 새 액세스 토큰
+ */
+export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
+  try {
+    const response = await axios.post<{ data: { access_token: string } }>(
+      `${API_CONFIG.BASE_URL}/auth/token/refresh`,
+      { refreshToken }
+    );
+    return response.data.data.access_token;
+  } catch {
+    throw new Error('액세스 토큰 재발급에 실패했습니다.');
+  }
+};
+
+/**
+ * 로그아웃 API 호출 함수
+ * @param accessToken 액세스 토큰
+ * @returns 로그아웃 결과
+ */
+export const logout = async (
+  accessToken: string
+): Promise<{ status: number; message: string; data: boolean }> => {
+  try {
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}/auth/logout`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data;
+  } catch {
+    throw new Error('로그아웃에 실패했습니다.');
+  }
+};
+
+/**
+ * 회원 탈퇴 API 호출 함수
+ * @param accessToken 액세스 토큰
+ * @returns 회원 탈퇴 결과
+ */
+export const withdraw = async (
+  accessToken: string
+): Promise<{ status: number; message: string; data: boolean }> => {
+  try {
+    const response = await axios.delete(`${API_CONFIG.BASE_URL}/users`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    return response.data;
+  } catch {
+    throw new Error('회원 탈퇴에 실패했습니다.');
+  }
+};

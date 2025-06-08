@@ -9,6 +9,8 @@
  */
 import axios from 'axios';
 import { API_CONFIG } from '@/shared/config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { refreshAccessToken } from '@/features/auth/authApi';
 
 /**
  * API 클라이언트 인스턴스 생성
@@ -25,6 +27,33 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// apiClient 응답 인터셉터 추가
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
+        const newAccessToken = await refreshAccessToken(refreshToken);
+        await AsyncStorage.setItem('token', newAccessToken);
+        // Authorization 헤더 갱신
+        originalRequest.headers = {
+          ...originalRequest.headers,
+          Authorization: `Bearer ${newAccessToken}`,
+        };
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        // 재발급 실패 시 로그아웃 등 추가 처리 가능
+        return Promise.reject(refreshError);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 /**
  * 서버 연결 상태를 확인하는 함수

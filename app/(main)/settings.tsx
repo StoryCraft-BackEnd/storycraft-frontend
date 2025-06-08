@@ -1,12 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TouchableOpacity,
+  Switch,
+  ScrollView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { SettingsScreenStyles } from '../../styles/SettingsScreen.styles';
 import { router } from 'expo-router';
 import { MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logout, withdraw } from '@/features/auth/authApi';
+import { savePushEnabled, loadPushEnabled } from '@/shared/utils/notificationStorage';
+import * as Notifications from 'expo-notifications';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
+
+  // 앱 시작 시 저장된 값 불러오기
+  useEffect(() => {
+    loadPushEnabled().then(setPushEnabled);
+  }, []);
+
+  // 스위치 변경 시 저장 및 권한 요청
+  const handlePushToggle = async (value: boolean) => {
+    if (value) {
+      let granted = false;
+      if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        granted = status === 'granted';
+      }
+      if (!granted) {
+        Alert.alert('알림', '알림 권한이 허용되지 않았습니다.');
+        setPushEnabled(false);
+        await savePushEnabled(false);
+        return;
+      }
+    }
+    setPushEnabled(value);
+    await savePushEnabled(value);
+  };
+
+  // 로그아웃 핸들러 함수
+  const handleLogout = async () => {
+    try {
+      const accessToken = await AsyncStorage.getItem('token');
+      if (accessToken) {
+        await logout(accessToken);
+      }
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
+      router.replace('/login');
+    } catch {
+      // 실패해도 토큰 삭제 및 이동
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
+      router.replace('/login');
+    }
+  };
 
   return (
     <SafeAreaView style={SettingsScreenStyles.container}>
@@ -32,7 +87,7 @@ const SettingsScreen = () => {
               <Text style={SettingsScreenStyles.value}>test@example.com</Text>
             </View>
           </View>
-          <TouchableOpacity style={SettingsScreenStyles.row}>
+          <TouchableOpacity style={SettingsScreenStyles.row} onPress={handleLogout}>
             <View style={SettingsScreenStyles.iconBox}>
               <MaterialIcons name="logout" size={22} color="#222" />
             </View>
@@ -46,7 +101,7 @@ const SettingsScreen = () => {
             </View>
             <Text style={SettingsScreenStyles.label}>푸시 알림</Text>
             <View style={{ flex: 1 }} />
-            <Switch value={pushEnabled} onValueChange={setPushEnabled} />
+            <Switch value={pushEnabled} onValueChange={handlePushToggle} />
           </View>
           <View style={SettingsScreenStyles.row}>
             <View style={SettingsScreenStyles.iconBox}>
@@ -90,8 +145,20 @@ const SettingsScreen = () => {
           {/* 회원 탈퇴 버튼 */}
           <TouchableOpacity
             style={SettingsScreenStyles.dangerButton}
-            onPress={() => {
-              /* TODO: 회원 탈퇴 로직 */
+            onPress={async () => {
+              try {
+                const accessToken = await AsyncStorage.getItem('token');
+                if (accessToken) {
+                  await withdraw(accessToken);
+                }
+                await AsyncStorage.removeItem('token');
+                await AsyncStorage.removeItem('refreshToken');
+                router.replace('/login');
+              } catch {
+                await AsyncStorage.removeItem('token');
+                await AsyncStorage.removeItem('refreshToken');
+                router.replace('/login');
+              }
             }}
           >
             <Text style={SettingsScreenStyles.dangerButtonText}>회원 탈퇴</Text>

@@ -184,6 +184,51 @@ const resetPassword = (req, res) => {
   });
 };
 
+/**
+ * 액세스 토큰 재발급 처리
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @returns {Object} 새 access_token 반환
+ */
+const refreshAccessToken = (req, res) => {
+  // 실제로는 refreshToken 검증 필요, 여기선 무조건 성공 응답
+  return res.json({
+    status: 200,
+    message: '액세스 토큰이 재발급되었습니다.',
+    data: {
+      access_token: 'mocked_jwt_access_token',
+    },
+  });
+};
+
+/**
+ * 로그아웃 처리
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @returns {Object} 로그아웃 결과
+ */
+const logout = (req, res) => {
+  return res.json({
+    status: 200,
+    message: '로그아웃이 완료되었습니다.',
+    data: true,
+  });
+};
+
+/**
+ * 회원 탈퇴 처리
+ * @param {Object} req - Express 요청 객체
+ * @param {Object} res - Express 응답 객체
+ * @returns {Object} 회원 탈퇴 결과
+ */
+const withdraw = (req, res) => {
+  return res.json({
+    status: 200,
+    message: '회원 탈퇴가 완료되었습니다.',
+    data: true,
+  });
+};
+
 export {
   login,
   signup,
@@ -192,4 +237,7 @@ export {
   sendEmailVerificationCode,
   checkEmailVerificationCode,
   resetPassword,
+  refreshAccessToken,
+  logout,
+  withdraw,
 };
