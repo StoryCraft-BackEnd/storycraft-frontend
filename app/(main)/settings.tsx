@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logout, withdraw } from '@/features/auth/authApi';
 import { savePushEnabled, loadPushEnabled } from '@/shared/utils/notificationStorage';
 import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -30,12 +31,32 @@ const SettingsScreen = () => {
   const handlePushToggle = async (value: boolean) => {
     if (value) {
       let granted = false;
+      let status = 'undetermined';
       if (Platform.OS === 'android' || Platform.OS === 'ios') {
-        const { status } = await Notifications.requestPermissionsAsync();
+        const current = await Notifications.getPermissionsAsync();
+        status = current.status;
+        console.log('현재 권한 상태:', status);
+        if (status === 'undetermined') {
+          const req = await Notifications.requestPermissionsAsync();
+          status = req.status;
+          console.log('요청 후 권한 상태:', status);
+        }
         granted = status === 'granted';
       }
       if (!granted) {
-        Alert.alert('알림', '알림 권한이 허용되지 않았습니다.');
+        Alert.alert('알림 권한 필요', '알림 권한이 허용되지 않았습니다. 설정에서 직접 켜주세요.', [
+          {
+            text: '설정으로 이동',
+            onPress: () => {
+              if (Platform.OS === 'ios') {
+                Linking.openURL('app-settings:');
+              } else {
+                Linking.openSettings();
+              }
+            },
+          },
+          { text: '확인', style: 'cancel' },
+        ]);
         setPushEnabled(false);
         await savePushEnabled(false);
         return;

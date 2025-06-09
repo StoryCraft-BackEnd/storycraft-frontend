@@ -165,7 +165,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>마이페이지</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button7]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button7]}
+            onPress={() => router.push('./settings')}
+          >
             <Image source={setting} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>설정</Text>
           </TouchableOpacity>
