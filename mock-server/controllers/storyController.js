@@ -4,7 +4,6 @@
  */
 
 import Story from '../models/Story.js';
-import storiesData from '../models/stories.json' assert { type: 'json' };
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,6 +11,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const storiesFilePath = path.join(__dirname, '../models/stories.json');
+
+// JSON 파일 읽기 함수
+const readStoriesFile = async () => {
+  try {
+    const data = await fs.readFile(storiesFilePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    // 파일이 없거나 읽기 실패 시 기본 데이터 반환
+    return { stories: [] };
+  }
+};
 
 // JSON 파일 업데이트 함수
 const updateStoriesFile = async (stories) => {
@@ -29,6 +39,9 @@ export const createStory = async (req, res) => {
         message: '동화 생성 키워드와 자녀 프로필ID가 필요합니다.',
       });
     }
+
+    // 현재 동화 목록 읽기
+    const storiesData = await readStoriesFile();
 
     // 새로운 동화 생성
     const newStory = {
@@ -71,6 +84,8 @@ export const getStories = async (req, res) => {
       });
     }
 
+    // 현재 동화 목록 읽기
+    const storiesData = await readStoriesFile();
     const stories = storiesData.stories.map((story) => Story.fromJSON(story));
 
     res.status(200).json({
@@ -98,6 +113,9 @@ export const deleteStory = async (req, res) => {
         message: '삭제할 동화 ID가 필요합니다.',
       });
     }
+
+    // 현재 동화 목록 읽기
+    const storiesData = await readStoriesFile();
 
     // 해당 ID의 동화 찾기
     const storyIndex = storiesData.stories.findIndex(
