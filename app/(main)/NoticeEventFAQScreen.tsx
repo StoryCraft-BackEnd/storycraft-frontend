@@ -1,0 +1,61 @@
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import NoticeList from './NoticeList';
+import EventList from './EventList';
+import FAQList from './FAQList';
+import styles from '@/styles/NoticeEventFAQScreen.styles';
+
+const TABS = [
+  { key: 'notice', label: '공지사항' },
+  { key: 'event', label: '이벤트' },
+  { key: 'faq', label: 'FAQ' },
+];
+
+const NoticeEventFAQScreen = () => {
+  const [activeTab, setActiveTab] = useState('notice');
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'notice':
+        return <NoticeList />;
+      case 'event':
+        return <EventList />;
+      case 'faq':
+        return <FAQList />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>{'←'}</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>공지/이벤트/FAQ</Text>
+      </View>
+      <View style={styles.container}>
+        <View style={styles.tabContainer}>
+          {TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.contentInnerContainer}>
+          {renderTabContent()}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default NoticeEventFAQScreen;

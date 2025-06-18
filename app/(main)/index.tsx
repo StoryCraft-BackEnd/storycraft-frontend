@@ -173,7 +173,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>설정</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button8]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button8]}
+            onPress={() => router.push('./NoticeEventFAQScreen')}
+          >
             <Image source={board} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>공지/이벤트</Text>
           </TouchableOpacity>
