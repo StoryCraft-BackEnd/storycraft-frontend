@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
 import { router } from 'expo-router';
-import { MyPageStyles } from '../../styles/MyPageStyles';
-import defaultProfile from '../../assets/images/profile/default_profile.png';
-import setting from '../../assets/images/icons/setting.png';
-import pencil from '../../assets/images/icons/pencil.png';
-import { updateNickname } from '../../features/user/userApi';
+import { MyPageStyles } from '../../../styles/MyPageStyles';
+import defaultProfile from '../../../assets/images/profile/default_profile.png';
+import setting from '../../../assets/images/icons/setting.png';
+import pencil from '../../../assets/images/icons/pencil.png';
+import { updateNickname } from '../../../features/user/userApi';
 
 const MyPageScreen = () => {
   const profileImage = defaultProfile;
@@ -54,7 +54,7 @@ const MyPageScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={MyPageStyles.settingsButtonOutside}
-        onPress={() => router.push('./settings')}
+        onPress={() => router.push('../settings')}
       >
         <Image source={setting} style={MyPageStyles.settingsIcon} />
       </TouchableOpacity>
@@ -103,7 +103,7 @@ const MyPageScreen = () => {
           <View style={MyPageStyles.menuGrid}>
             <TouchableOpacity
               style={[MyPageStyles.menuButton, MyPageStyles.squareButton]}
-              onPress={() => router.push('./profile-edit')}
+              onPress={() => router.push('/(main)/mypage/profile-edit')}
             >
               <Text style={MyPageStyles.menuButtonText}>내 정보</Text>
             </TouchableOpacity>

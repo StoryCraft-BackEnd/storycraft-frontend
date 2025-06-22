@@ -9,7 +9,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { SettingsScreenStyles } from '../../styles/SettingsScreen.styles';
+import { SettingsScreenStyles } from '../../../styles/SettingsScreen.styles';
 import { router } from 'expo-router';
 import { MaterialIcons, Feather, FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

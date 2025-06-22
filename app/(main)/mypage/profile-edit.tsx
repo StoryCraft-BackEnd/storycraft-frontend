@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, SafeAreaView, Image, TouchableOpacity } from 'react-native';
-import { ProfileEditScreenStyles } from '../../styles/ProfileEditScreen.styles';
-import { getMyInfo, UserInfo } from '../../features/user/userApi';
-import defaultProfile from '../../assets/images/profile/default_profile.png';
+import { ProfileEditScreenStyles } from '../../../styles/ProfileEditScreen.styles';
+import { getMyInfo, UserInfo } from '../../../features/user/userApi';
+import defaultProfile from '../../../assets/images/profile/default_profile.png';
 import { router } from 'expo-router';
 
 const ProfileEditScreen = () => {

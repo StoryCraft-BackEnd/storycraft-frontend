@@ -175,7 +175,7 @@ export default function MainScreen() {
 
           <TouchableOpacity
             style={[MainScreenStyles.button, MainScreenStyles.button8]}
-            onPress={() => router.push('./NoticeEventFAQScreen')}
+            onPress={() => router.push('./notice-event-faq')}
           >
             <Image source={board} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>공지/이벤트</Text>
