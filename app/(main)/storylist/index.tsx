@@ -1,7 +1,16 @@
+/**
+ * @description
+ * StoryCraft 동화 목록 페이지
+ * 사용자가 생성한 모든 동화를 그리드 형태로 표시하는 화면입니다.
+ */
 import React from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { MainScreenStyles } from '@/styles/MainScreen';
+
+// --- 내부 모듈 및 스타일 ---
+import { createStoryListScreenStyles } from '@/styles/StoryListScreen.styles'; // 동화 목록 화면 전용 스타일
+
+// --- 동화 커버 이미지 import ---
 import story1 from '@/assets/images/illustrations/storycraft_cover_1.png';
 import story2 from '@/assets/images/illustrations/storycraft_cover_2.png';
 import story3 from '@/assets/images/illustrations/storycraft_cover_3.png';
@@ -23,33 +32,43 @@ const stories = [
   { id: 8, title: '동화 8', image: story8 },
 ];
 
+/**
+ * 동화 목록 화면의 메인 컴포넌트
+ * 사용자가 생성한 모든 동화를 그리드 형태로 표시합니다.
+ */
 export default function StoryListScreen() {
+  // 반응형 스타일을 생성합니다.
+  const styles = createStoryListScreenStyles();
+
   return (
-    <View style={MainScreenStyles.container}>
-      {/* 헤더 */}
-      <View style={MainScreenStyles.storyListHeader}>
-        <TouchableOpacity onPress={() => router.back()} style={MainScreenStyles.backButton}>
-          <Text style={MainScreenStyles.backButtonText}>{'<<'} 돌아가기</Text>
+    <View style={styles.container}>
+      {/* 헤더 영역 - 뒤로가기 버튼과 제목 */}
+      <View style={styles.storyListHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>{'<<'} 돌아가기</Text>
         </TouchableOpacity>
-        <Text style={MainScreenStyles.storyListTitle}>전체 동화 목록</Text>
+        <Text style={styles.storyListTitle}>전체 동화 목록</Text>
       </View>
 
-      {/* 갤러리 그리드 */}
+      {/* 동화 갤러리 그리드 - 스크롤 가능한 동화 목록 */}
       <ScrollView
-        contentContainerStyle={MainScreenStyles.storyListGrid}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.storyListGrid}
+        showsVerticalScrollIndicator={false} // 세로 스크롤바 숨김
       >
+        {/* 동화 목록을 순회하며 각 동화를 그리드 아이템으로 렌더링 */}
         {stories.map((story) => (
           <TouchableOpacity
-            key={story.id}
-            style={MainScreenStyles.storyGridItem}
+            key={story.id} // React에서 리스트 렌더링 시 필요한 고유 키
+            style={styles.storyGridItem}
             onPress={() => {
               // TODO: 동화 상세 페이지로 이동
               console.log('동화 선택:', story.id);
             }}
           >
-            <Image source={story.image} style={MainScreenStyles.storyGridImage} />
-            <Text style={MainScreenStyles.storyGridTitle}>{story.title}</Text>
+            {/* 동화 커버 이미지 */}
+            <Image source={story.image} style={styles.storyGridImage} />
+            {/* 동화 제목 */}
+            <Text style={styles.storyGridTitle}>{story.title}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>

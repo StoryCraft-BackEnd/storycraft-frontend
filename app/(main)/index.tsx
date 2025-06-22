@@ -108,7 +108,7 @@ export default function MainScreen() {
           style={{
             position: 'absolute',
             top: 20,
-            left: 20,
+            left: 200,
             zIndex: 1000,
             backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
             paddingHorizontal: 15,
