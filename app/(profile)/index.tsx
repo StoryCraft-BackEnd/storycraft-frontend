@@ -15,7 +15,7 @@ import {
 import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { router, Stack, useFocusEffect } from 'expo-router';
-import { MainScreenStyles } from '@/styles/MainScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createProfileScreenStyles } from '@/styles/ProfileScreen.styles';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
@@ -27,12 +27,12 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export default function ProfileScreen() {
   const backgroundColor = useThemeColor('background');
   const isDark = backgroundColor === '#0d1b1e';
-  const [styles, setStyles] = useState(createProfileScreenStyles(isDark));
+  const insets = useSafeAreaInsets();
+  const [styles, setStyles] = useState(createProfileScreenStyles(isDark, insets));
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [isOrientationLocked, setIsOrientationLocked] = useState(false);
 
   // 화면이 포커스될 때마다 프로필 목록을 새로고침
   useFocusEffect(
@@ -45,49 +45,38 @@ export default function ProfileScreen() {
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', () => {
       // 화면 크기가 변경될 때마다 스타일 재계산
-      setStyles(createProfileScreenStyles(isDark));
+      setStyles(createProfileScreenStyles(isDark, insets));
     });
 
     return () => subscription.remove();
-  }, [isDark]);
+  }, [isDark, insets]);
 
   useEffect(() => {
+    // 화면 방향을 가로 모드로 고정
     const lockOrientation = async () => {
       try {
-        // 현재 방향 확인
-        const currentOrientation = await ScreenOrientation.getOrientationAsync();
-
-        // 이미 가로 모드인 경우 바로 잠금
-        if (currentOrientation === ScreenOrientation.Orientation.LANDSCAPE) {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-          setIsOrientationLocked(true);
-          // 방향이 이미 가로 모드일 때도 스타일 재계산
-          setStyles(createProfileScreenStyles(isDark));
-        } else {
-          // 세로 모드인 경우 잠시 대기 후 잠금
-          setTimeout(async () => {
-            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-            setIsOrientationLocked(true);
-            // 방향 전환 후 스타일 재계산
-            setTimeout(() => {
-              setStyles(createProfileScreenStyles(isDark));
-            }, 100);
-          }, 100);
-        }
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        // 화면 방향 변경 후 즉시 스타일 업데이트
+        setStyles(createProfileScreenStyles(isDark, insets));
       } catch (error) {
         console.error('화면 방향 잠금 실패:', error);
+        // 실패해도 스타일 업데이트
+        setStyles(createProfileScreenStyles(isDark, insets));
       }
     };
 
     lockOrientation();
+  }, [isDark, insets]);
 
-    // 컴포넌트가 언마운트될 때 화면 방향 잠금 해제
-    return () => {
-      if (isOrientationLocked) {
-        ScreenOrientation.unlockAsync();
-      }
-    };
-  }, [isDark]);
+  // 화면 크기 변경 감지 - 즉시 스타일 재계산
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', () => {
+      // 화면 크기가 변경될 때마다 즉시 스타일 재계산
+      setStyles(createProfileScreenStyles(isDark, insets));
+    });
+
+    return () => subscription.remove();
+  }, [isDark, insets]);
 
   const loadProfiles = async () => {
     try {
@@ -119,15 +108,13 @@ export default function ProfileScreen() {
 
   const handleProfileSelect = async (profileId: number) => {
     try {
-      // 화면 방향을 가로 모드로 고정
-      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
       // TODO: 선택된 프로필 정보를 전역 상태나 로컬 스토리지에 저장
       console.log('선택된 프로필 ID:', profileId);
-      // 메인 화면으로 이동
+      // 메인 화면으로 이동 (화면 방향은 이미 가로 모드로 고정되어 있음)
       router.replace('/(main)');
     } catch (error) {
-      console.error('화면 방향 변경 실패:', error);
-      // 화면 방향 변경에 실패하더라도 메인 화면으로 이동
+      console.error('프로필 선택 실패:', error);
+      // 오류가 발생해도 메인 화면으로 이동
       router.replace('/(main)');
     }
   };
@@ -164,6 +151,15 @@ export default function ProfileScreen() {
     ]);
   };
 
+  // 프로필 수정 버튼 클릭 시
+  const handleEditProfile = (profile: ChildProfile) => {
+    // 프로필 수정 화면으로 이동하면서 프로필 정보 전달
+    router.push({
+      pathname: '/(profile)/edit',
+      params: { profile: JSON.stringify(profile) },
+    });
+  };
+
   // 로그아웃 버튼 클릭 시
   const handleLogout = async () => {
     try {
@@ -171,6 +167,8 @@ export default function ProfileScreen() {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
       // TODO: 인증 토큰 삭제 등 로그아웃 처리
       console.log('로그아웃');
+
+      // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
       router.replace('/login');
     } catch (error) {
       console.error('화면 방향 변경 실패:', error);
@@ -187,7 +185,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ThemedView style={[MainScreenStyles.container, { paddingTop: 0 }]}>
+    <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
       {/* 헤더 */}
@@ -200,7 +198,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.container, { paddingTop: 0 }]}>
+      <View style={styles.content}>
         {isLoading ? (
           <ThemedText style={styles.loadingText}>프로필을 불러오는 중...</ThemedText>
         ) : error ? (
@@ -228,6 +226,12 @@ export default function ProfileScreen() {
                     <ThemedText style={styles.profileAge}>{profile.age}세</ThemedText>
                     <ThemedText style={styles.profileLevel}>{profile.learning_level}</ThemedText>
                     <View style={styles.profileActions}>
+                      <TouchableOpacity
+                        onPress={() => handleEditProfile(profile)}
+                        style={[styles.actionButton, styles.editButton]}
+                      >
+                        <ThemedText style={styles.actionButtonText}>수정</ThemedText>
+                      </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDeleteProfile(profile.child_id)}
                         style={[styles.actionButton, styles.deleteButton]}

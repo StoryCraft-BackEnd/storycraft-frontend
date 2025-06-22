@@ -1,40 +1,34 @@
 import { StyleSheet } from 'react-native';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { lightTheme, darkTheme } from '@/styles/theme';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import { lightTheme, darkTheme } from '@/styles/theme';
 
 /**
- * 프로필 생성 화면의 스타일을 생성합니다.
+ * ProfileEditForm 스타일 정의
+ * 프로필 수정 폼 화면 전용 스타일
  * react-native-responsive-screen을 사용하여 모든 기기에서 반응형으로 작동
- * 다크모드/라이트모드 테마 기능 유지
+ * 이름, 나이, 학습 레벨만 수정 가능한 간단한 폼
  * 모든 픽셀 값은 화면 크기에 비례하여 자동 조정됨
- * @returns 프로필 생성 화면의 스타일 객체
  */
-export const createProfileCreateScreenStyles = () => {
-  // 테마 색상 정의
-  const backgroundColor = useThemeColor('background'); // 배경색
-
-  // 다크모드/라이트모드에 따른 추가 색상
-  const isDark = backgroundColor === '#0d1b1e'; // 다크모드 배경색 체크
-  const theme = isDark ? darkTheme : lightTheme; // 현재 테마 설정
+export const createProfileEditFormStyles = (isDark: boolean, insets: { top: number }) => {
+  const theme = isDark ? darkTheme : lightTheme;
 
   return StyleSheet.create({
-    // 전체 컨테이너 스타일 - 화면 전체를 차지하며 테마 배경색 적용
+    // 메인 컨테이너 - 전체 화면을 차지하며 테마 배경색 적용
     container: {
       flex: 1,
-      paddingTop: 0,
-      backgroundColor,
+      backgroundColor: theme.colors.background,
+      paddingTop: insets.top, // 상단 안전 영역만큼 패딩 추가
     },
 
-    // 상단 헤더 스타일 - 앱바 형태의 헤더 영역
+    // 헤더 영역 - 상단 네비게이션 바
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: hp('10%'), // 화면 높이의 10%를 헤더 높이로 사용
+      height: hp('8%'), // 화면 높이의 8%를 헤더 높이로 사용
       paddingHorizontal: wp('5%'), // 화면 너비의 5%를 좌우 패딩으로 사용
       backgroundColor: theme.colors.primary,
       borderBottomWidth: 1,
@@ -43,45 +37,48 @@ export const createProfileCreateScreenStyles = () => {
 
     // 헤더 제목 - 화면 중앙에 표시되는 제목
     headerTitle: {
-      fontSize: wp('6%'), // 화면 너비의 6%를 폰트 크기로 사용
+      fontSize: wp('5%'), // 화면 너비의 5%를 폰트 크기로 사용
       fontWeight: 'bold',
       color: theme.colors.text,
     },
 
     // 뒤로가기 버튼 - 헤더 좌측에 위치
     backButton: {
-      fontSize: wp('4%'), // 화면 너비의 4%를 폰트 크기로 사용
+      padding: wp('2%'), // 화면 너비의 2%를 패딩으로 사용
+    },
+
+    // 뒤로가기 버튼 텍스트 - 큰 폰트 크기로 터치하기 쉽게
+    backButtonText: {
+      fontSize: wp('6%'), // 화면 너비의 6%를 폰트 크기로 사용
       color: theme.colors.text,
     },
 
-    // 스크롤 뷰 컨텐츠 컨테이너 스타일 - 메인 콘텐츠 영역
-    contentContainer: {
+    // 메인 콘텐츠 영역 - 스크롤 가능한 영역
+    content: {
+      flex: 1,
       padding: wp('5%'), // 화면 너비의 5%를 패딩으로 사용
-      alignItems: 'center',
     },
 
-    // 입력 폼 컨테이너 스타일 - 카드 형태의 폼 영역
+    // 폼 컨테이너 - 입력 필드들을 감싸는 카드 형태의 영역
     formContainer: {
-      width: '100%',
-      maxWidth: wp('90%'), // 화면 너비의 90%를 최대 너비로 사용 (최대 400px 제한)
       backgroundColor: theme.colors.card,
-      borderRadius: wp('5%'), // 화면 너비의 5%를 모서리 둥글기로 사용
-      padding: wp('5%'), // 화면 너비의 5%를 패딩으로 사용
-      marginTop: hp('2.5%'), // 화면 높이의 2.5%를 상단 여백으로 사용
+      borderRadius: wp('4%'), // 화면 너비의 4%를 모서리 둥글기로 사용
+      padding: wp('6%'), // 화면 너비의 6%를 패딩으로 사용
+      marginTop: hp('2%'), // 화면 높이의 2%를 상단 여백으로 사용
       // 그림자 효과 - 다크모드에서 더 강한 그림자 적용
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: isDark ? 0.5 : 0.25, // 다크모드에서 더 강한 그림자
+      shadowOpacity: isDark ? 0.5 : 0.25,
       shadowRadius: 3.84,
       elevation: 5,
     },
 
-    // 입력 필드 컨테이너 스타일 - 각 입력 항목을 감싸는 컨테이너
+    // 입력 필드 컨테이너 - 각 입력 항목을 감싸는 컨테이너
     inputContainer: {
-      marginBottom: hp('2.5%'), // 화면 높이의 2.5%를 하단 여백으로 사용
+      marginBottom: hp('3%'), // 화면 높이의 3%를 하단 여백으로 사용
     },
 
     // 입력 라벨 - 각 입력 필드 위에 표시되는 설명 텍스트
@@ -89,6 +86,7 @@ export const createProfileCreateScreenStyles = () => {
       fontSize: wp('4%'), // 화면 너비의 4%를 폰트 크기로 사용
       marginBottom: hp('1%'), // 화면 높이의 1%를 하단 여백으로 사용
       color: theme.colors.text,
+      fontWeight: 'bold',
     },
 
     // 입력 필드 - 사용자가 텍스트를 입력하는 영역
@@ -106,7 +104,7 @@ export const createProfileCreateScreenStyles = () => {
     // 학습 레벨 선택 버튼 컨테이너 - 가로로 배치된 버튼들
     levelContainer: {
       flexDirection: 'row',
-      gap: wp('2.5%'), // 화면 너비의 2.5%를 버튼 간격으로 사용
+      gap: wp('2%'), // 화면 너비의 2%를 버튼 간격으로 사용
     },
 
     // 학습 레벨 선택 버튼 - 기본 상태
@@ -130,21 +128,23 @@ export const createProfileCreateScreenStyles = () => {
     // 학습 레벨 버튼 텍스트 - 기본 상태
     levelButtonText: {
       color: theme.colors.text,
+      fontSize: wp('3.5%'), // 화면 너비의 3.5%를 폰트 크기로 사용
     },
 
     // 학습 레벨 버튼 텍스트 - 선택된 상태
     levelButtonTextSelected: {
       color: '#FFFFFF',
+      fontSize: wp('3.5%'), // 화면 너비의 3.5%를 폰트 크기로 사용
     },
 
-    // 제출 버튼 스타일 - 폼 하단의 메인 액션 버튼
+    // 저장 버튼 - 폼 하단의 메인 액션 버튼
     submitButton: {
       height: hp('6%'), // 화면 높이의 6%를 버튼 높이로 사용
       backgroundColor: theme.colors.primary,
       borderRadius: wp('2.5%'), // 화면 너비의 2.5%를 모서리 둥글기로 사용
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: hp('2.5%'), // 화면 높이의 2.5%를 상단 여백으로 사용
+      marginTop: hp('4%'), // 화면 높이의 4%를 상단 여백으로 사용
       // 그림자 효과 - 다크모드에서 더 강한 그림자 적용
       shadowColor: '#000',
       shadowOffset: {
@@ -156,12 +156,12 @@ export const createProfileCreateScreenStyles = () => {
       elevation: 5,
     },
 
-    // 제출 버튼 - 비활성화 상태 (투명도 적용)
+    // 저장 버튼 - 비활성화 상태 (투명도 적용)
     submitButtonDisabled: {
       opacity: 0.7,
     },
 
-    // 제출 버튼 텍스트 - 흰색 굵은 글씨로 강조
+    // 저장 버튼 텍스트 - 흰색 굵은 글씨로 강조
     submitButtonText: {
       color: '#FFFFFF',
       fontSize: wp('4%'), // 화면 너비의 4%를 폰트 크기로 사용

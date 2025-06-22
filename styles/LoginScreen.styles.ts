@@ -104,4 +104,17 @@ export const loginScreenStyles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
+
+  // 헤더 뒤로가기 버튼 스타일
+  headerBackButton: {
+    marginLeft: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+
+  // 헤더 뒤로가기 버튼 텍스트 스타일
+  headerBackText: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
 });

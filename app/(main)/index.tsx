@@ -9,6 +9,8 @@ import { ThemedView } from '@/components/ui/ThemedView';
 import { setStatusBarHidden } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
 import { router } from 'expo-router';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { ThemedText } from '@/components/ui/ThemedText';
 import nightBg from '@/assets/images/background/night-bg.png';
 import boxplus from '@/assets/images/icons/boxplus.png';
 import bookmark from '@/assets/images/icons/bookmark.png';
@@ -32,6 +34,7 @@ import pointImage from '@/assets/images/rewards/point_icon.png';
 import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
 import defaultProfile from '@/assets/images/profile/default_profile.png';
 import { MainScreenStyles } from '@/styles/MainScreen';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 // 임시 동화 데이터
 const stories = [
@@ -47,6 +50,8 @@ const stories = [
 
 export default function MainScreen() {
   const [backgroundImage, setBackgroundImage] = useState(nightBg);
+  const backgroundColor = useThemeColor('background');
+  const isDark = backgroundColor === '#0d1b1e';
 
   useEffect(() => {
     // 화면을 가로 모드로 고정
@@ -85,6 +90,12 @@ export default function MainScreen() {
     };
   }, []);
 
+  // 개발용 뒤로가기 버튼 클릭 핸들러
+  // TODO: 개발 완료 후 삭제 필요 - 프로필 선택 화면으로 이동
+  const handleBackToProfile = () => {
+    router.push('/(profile)');
+  };
+
   return (
     <ImageBackground
       source={backgroundImage}
@@ -92,6 +103,33 @@ export default function MainScreen() {
       resizeMode="cover"
     >
       <ThemedView style={MainScreenStyles.container}>
+        {/* 개발용 뒤로가기 버튼 - 추후 삭제 필요 */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 20,
+            zIndex: 1000,
+            backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
+            paddingHorizontal: 15,
+            paddingVertical: 8,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: isDark ? '#fff' : '#000',
+          }}
+          onPress={handleBackToProfile}
+        >
+          <ThemedText
+            style={{
+              color: isDark ? '#fff' : '#000',
+              fontSize: 16,
+              fontWeight: 'bold',
+            }}
+          >
+            ← 프로필 선택 (개발용)
+          </ThemedText>
+        </TouchableOpacity>
+
         <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
         <View style={MainScreenStyles.userProfileContainer}>
           <Image source={defaultProfile} style={MainScreenStyles.userProfileImage} />
@@ -118,9 +156,10 @@ export default function MainScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={MainScreenStyles.storyScrollView}
-            pagingEnabled={true}
-            snapToInterval={170}
-            decelerationRate="fast"
+            pagingEnabled={false}
+            snapToInterval={wp('22%')}
+            decelerationRate="normal"
+            bounces={true}
           >
             {stories.map((story) => (
               <View key={story.id} style={MainScreenStyles.storyItem}>

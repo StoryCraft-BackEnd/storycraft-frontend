@@ -11,8 +11,9 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  BackHandler,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect, Stack } from 'expo-router';
 import { ThemedView } from '../../components/ui/ThemedView';
 import { ThemedText } from '../../components/ui/ThemedText';
 import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
@@ -36,6 +37,21 @@ export default function LoginScreen() {
   const cardColor = useThemeColor('card');
   const borderColor = useThemeColor('border');
 
+  // 뒤로가기 버튼 처리 - 로그인 화면에서 뒤로가기 시 StoryCraft Dev 화면으로 이동
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // 로그인 화면에서 뒤로가기 버튼을 누르면 StoryCraft Dev 화면으로 이동
+        router.replace('/(auth)');
+        return true; // 이벤트 처리 완료
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => subscription.remove();
+    }, [])
+  );
+
   // 로그인 버튼 클릭 시 실행
   const handleLogin = async () => {
     try {
@@ -48,6 +64,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem('refreshToken', res.data.refresh_token);
         console.log('토큰 저장 완료');
 
+        // 네비게이션 스택을 정리하고 프로필 선택 화면으로 이동
         router.replace('/(profile)');
       } else {
         console.log('로그인 실패:', res);
@@ -65,6 +82,23 @@ export default function LoginScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: '로그인',
+          headerTitleAlign: 'center',
+          headerBackTitle: '뒤로',
+          headerBackVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.replace('/(auth)')}
+              style={styles.headerBackButton}
+            >
+              <ThemedText style={[styles.headerBackText, { color: textColor }]}>← 뒤로</ThemedText>
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} //ios 키보드 대응
         style={{ flex: 1 }}

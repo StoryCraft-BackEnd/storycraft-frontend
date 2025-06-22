@@ -9,7 +9,6 @@ import {
   TouchableOpacity, // 터치 가능한 영역을 만드는 컴포넌트 (버튼 등에 사용)
   View, // UI 요소를 그룹화하는 컨테이너 컴포넌트
   TextInput, // 사용자가 텍스트를 입력할 수 있는 필드
-  Alert, // 사용자에게 경고 메시지를 표시하는 팝업
   ImageBackground, // 배경 이미지를 적용할 수 있는 컨테이너
   ScrollView, // 콘텐츠가 화면을 벗어날 경우 스크롤 가능하게 만드는 컨테이너
 } from 'react-native';
@@ -22,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 기기의
 
 // --- 내부 모듈 및 타입 정의 ---
 import { StoryCreateScreenStyles as styles } from '@/styles/StoryCreateScreen.styles'; // 이 화면 전용 스타일 시트
+import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
 import { API_CONFIG } from '@/shared/config/api'; // API 서버 주소 등 설정 값
 import type { CreateStoryRequest, CreateStoryResponse } from '@/features/storyCreate/types'; // API 요청/응답에 대한 타입 정의
 
@@ -41,6 +41,11 @@ export default function StoryCreateScreen() {
   const [currentKeyword, setCurrentKeyword] = useState('');
   // API 요청이 진행 중인지 여부를 저장하는 상태. 로딩 인디케이터 표시에 사용됩니다.
   const [isLoading, setIsLoading] = useState(false);
+
+  // 팝업 상태 관리
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupTitle, setPopupTitle] = useState('');
+  const [popupMessage, setPopupMessage] = useState('');
 
   // --- 이벤트 핸들러 함수 ---
 
@@ -68,13 +73,24 @@ export default function StoryCreateScreen() {
   };
 
   /**
+   * 팝업을 표시하는 함수
+   * @param title - 팝업 제목
+   * @param message - 팝업 메시지
+   */
+  const showPopup = (title: string, message: string) => {
+    setPopupTitle(title);
+    setPopupMessage(message);
+    setPopupVisible(true);
+  };
+
+  /**
    * 'Create My Story!' 버튼을 눌렀을 때 실행되는 함수.
    * 키워드 목록을 서버에 전송하여 동화 생성을 요청합니다.
    */
   const handleCreateStory = async () => {
     // 키워드가 하나도 없으면 사용자에게 알림을 표시하고 함수를 종료합니다.
     if (keywords.length === 0) {
-      Alert.alert('알림', '키워드를 하나 이상 추가해주세요.');
+      showPopup('알림', '키워드를 하나 이상 추가해주세요.');
       return;
     }
 
@@ -104,8 +120,11 @@ export default function StoryCreateScreen() {
 
       // 서버에서 정의한 성공 상태 코드(201)이고 데이터가 있으면 성공 처리합니다.
       if (result.status === 201 && result.data) {
-        Alert.alert('성공', result.message); // 성공 메시지를 팝업으로 표시합니다.
-        router.push('/(main)'); // 동화 목록이 있는 메인 화면으로 이동합니다.
+        showPopup('성공', result.message);
+        // 성공 팝업 닫힌 후 메인 화면으로 이동
+        setTimeout(() => {
+          router.push('/(main)');
+        }, 1500);
       } else {
         // 그 외의 경우는 실패로 간주하고 에러를 발생시킵니다.
         throw new Error(result.message || '동화 생성에 실패했습니다.');
@@ -113,8 +132,8 @@ export default function StoryCreateScreen() {
     } catch (error) {
       // try 블록에서 발생한 모든 에러를 여기서 처리합니다.
       console.error('Error creating story:', error); // 에러 로그를 콘솔에 출력합니다.
-      Alert.alert(
-        '오류', // 오류 팝업을 표시합니다.
+      showPopup(
+        '오류',
         error instanceof Error ? error.message : '동화 생성 중 오류가 발생했습니다.'
       );
     } finally {
@@ -200,6 +219,12 @@ export default function StoryCreateScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <Popup
+        visible={popupVisible}
+        title={popupTitle}
+        message={popupMessage}
+        onClose={() => setPopupVisible(false)}
+      />
     </ImageBackground>
   );
 }

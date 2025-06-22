@@ -2,8 +2,8 @@
  * StoryCraft 메인 화면 컴포넌트
  */
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { TouchableOpacity, Alert, BackHandler } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';

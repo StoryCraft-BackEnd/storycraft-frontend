@@ -62,12 +62,23 @@ export const Popup: React.FC<PopupProps> = ({
           <ThemedText style={styles.title}>{title}</ThemedText>
           <ThemedText style={styles.message}>{message}</ThemedText>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
-              <ThemedText style={[styles.buttonText, styles.cancelButtonText]}>
-                {cancelText}
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={handleConfirm}>
+            {/* 취소 버튼은 onCancel이 제공될 때만 표시 */}
+            {onCancel && (
+              <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
+                <ThemedText style={[styles.buttonText, styles.cancelButtonText]}>
+                  {cancelText}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.confirmButton,
+                // 취소 버튼이 없으면 확인 버튼이 전체 너비를 차지
+                !onCancel && { flex: 1, marginHorizontal: 0 },
+              ]}
+              onPress={handleConfirm}
+            >
               <ThemedText style={[styles.buttonText, styles.confirmButtonText]}>
                 {confirmText}
               </ThemedText>
