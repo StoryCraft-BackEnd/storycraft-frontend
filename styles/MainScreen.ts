@@ -98,11 +98,11 @@ export const MainScreenStyles = StyleSheet.create({
   },
   button7: {
     bottom: 0,
-    left: '68%',
+    left: '67%',
   },
   button8: {
     bottom: 0,
-    left: '75%',
+    left: '74%',
   },
   // 하단 버튼 내부의 이미지
   buttonImage: {

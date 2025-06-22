@@ -17,10 +17,14 @@ import {
 import { router } from 'expo-router'; // 화면 간 이동(네비게이션)을 관리하는 객체
 import { LinearGradient } from 'expo-linear-gradient'; // 그라데이션 효과를 주는 컴포넌트
 import { Ionicons } from '@expo/vector-icons'; // 아이콘을 사용하기 위해 import 합니다.
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // 기기의 안전 영역을 가져오는 훅
 
 // --- 내부 모듈 및 타입 정의 ---
-import { StoryCreateScreenStyles as styles } from '@/styles/StoryCreateScreen.styles'; // 이 화면 전용 스타일 시트
+import {
+  useStoryCreateScreenStyles,
+  ICON_SIZES,
+  GRADIENT_COLORS,
+  COLORS,
+} from '@/styles/StoryCreateScreen.styles'; // 이 화면 전용 스타일 시트
 import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
 import { API_CONFIG } from '@/shared/config/api'; // API 서버 주소 등 설정 값
 import type { CreateStoryRequest, CreateStoryResponse } from '@/features/storyCreate/types'; // API 요청/응답에 대한 타입 정의
@@ -29,12 +33,9 @@ import type { CreateStoryRequest, CreateStoryResponse } from '@/features/storyCr
 import backgroundImage from '@/assets/images/background/night-bg.png';
 
 // 동화 생성 화면의 메인 컴포넌트
-export default function StoryCreateScreen() {
+const StoryCreateScreen = () => {
   // --- 상태 관리 (State) ---
-
-  // 기기의 안전 영역(상태바, 노치 등)의 크기를 가져옵니다.
-  const insets = useSafeAreaInsets();
-
+  const styles = useStoryCreateScreenStyles();
   // 사용자가 추가한 키워드 목록을 저장하는 상태. 초기값은 빈 배열입니다.
   const [keywords, setKeywords] = useState<string[]>([]);
   // 사용자가 현재 입력창에 입력 중인 키워드를 저장하는 상태. 초기값은 빈 문자열입니다.
@@ -147,68 +148,72 @@ export default function StoryCreateScreen() {
   return (
     // 1. 전체 배경 이미지를 적용하는 컨테이너
     <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={[styles.backButton, { top: insets.top > 0 ? insets.top : 20 }]}
-      >
-        <Ionicons name="arrow-back-circle" size={48} color="rgba(255, 255, 255, 0.7)" />
-      </TouchableOpacity>
-      {/* 2. 배경 위에 어두운 오버레이 효과를 주는 뷰 */}
       <View style={styles.overlay} />
+      {/* 뒤로가기 버튼: 절대 위치로 배치 */}
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={ICON_SIZES.backButton} color={COLORS.headerIcon} />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
       {/* 3. 화면 콘텐츠를 스크롤 가능하게 만드는 래퍼 */}
       <ScrollView contentContainerStyle={styles.container}>
         {/* 4. 메인 UI를 담는 반투명 카드 */}
         <View style={styles.card}>
-          {/* 앱 제목 */}
-          <Text style={styles.title}>✨ Magic Story Creator ✨</Text>
-          {/* 부제 */}
-          <Text style={styles.subtitle}>Enter keywords to create your magical English story!</Text>
+          <View style={styles.contentContainer}>
+            {/* 앱 제목 */}
+            <Text style={styles.title}>✨ Magic Story Creator ✨</Text>
+            {/* 부제 */}
+            <Text style={styles.subtitle}>
+              Enter keywords to create your magical English story!
+            </Text>
 
-          {/* 5. 키워드 입력 필드와 추가 버튼을 담는 컨테이너 */}
-          <View style={styles.inputContainer}>
-            {/* 키워드 입력 필드 */}
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter a keyword (e.g., dragon, castle, princess...)"
-              placeholderTextColor="#999"
-              value={currentKeyword} // 입력창의 값은 currentKeyword 상태와 연결됩니다.
-              onChangeText={setCurrentKeyword} // 텍스트가 변경될 때마다 currentKeyword 상태를 업데이트합니다.
-              onSubmitEditing={handleAddKeyword} // 키보드의 '완료' 버튼을 누르면 키워드를 추가합니다.
-            />
-            {/* 키워드 추가 버튼 */}
-            <TouchableOpacity onPress={handleAddKeyword} style={styles.addButton}>
-              <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
+            {/* 5. 키워드 입력 필드와 추가 버튼을 담는 컨테이너 */}
+            <View style={styles.inputContainer}>
+              {/* 키워드 입력 필드 */}
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter a keyword (e.g., dragon, castle, princess...)"
+                placeholderTextColor={COLORS.placeholder}
+                value={currentKeyword}
+                onChangeText={setCurrentKeyword}
+                onSubmitEditing={handleAddKeyword}
+              />
+              {/* 키워드 추가 버튼 */}
+              <TouchableOpacity onPress={handleAddKeyword} style={styles.addButton}>
+                <Text style={styles.addButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* 6. 추가된 키워드 목록을 보여주는 컨테이너 */}
+          {/* 6. 추가된 키워드 목록을 보여주는 컨테이너 (키워드가 있을 때만 표시) */}
           <View style={styles.keywordContainer}>
-            {/* keywords 배열을 순회하며 각 키워드를 칩 형태로 렌더링합니다. */}
-            {keywords.map((keyword, index) => (
-              <View key={index} style={styles.keywordChip}>
-                <Text style={styles.keywordText}>{keyword}</Text>
-                {/* 키워드 삭제 버튼 */}
-                <TouchableOpacity onPress={() => handleRemoveKeyword(keyword)}>
-                  <Ionicons
-                    name="close-circle"
-                    size={16}
-                    color="#fff"
-                    style={styles.keywordCloseIcon}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
+            {keywords.length > 0 &&
+              keywords.map((keyword, index) => (
+                <View key={index} style={styles.keywordChip}>
+                  <Text style={styles.keywordText}>{keyword}</Text>
+                  <TouchableOpacity onPress={() => handleRemoveKeyword(keyword)}>
+                    <Ionicons
+                      name="close-circle"
+                      size={ICON_SIZES.keywordClose}
+                      color={styles.keywordCloseIcon.color}
+                      style={styles.keywordCloseIcon}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
           </View>
+
+          {/* 신축성 있는 빈 공간(스페이서) */}
+          <View style={styles.spacer} />
 
           {/* 7. 동화 생성 버튼 */}
           <TouchableOpacity onPress={handleCreateStory} disabled={isLoading}>
             {/* 그라데이션 효과를 적용한 버튼 배경 */}
             <LinearGradient
-              colors={['#8A2BE2', '#4B0082']}
+              colors={GRADIENT_COLORS.createButton}
               style={[styles.createButton, isLoading && styles.disabledButton]}
             >
               {/* 반짝이는 별 아이콘 */}
-              <Ionicons name="sparkles" size={22} color="#fff" />
+              <Ionicons name="sparkles" size={ICON_SIZES.createButtonSparkles} color="#fff" />
               {/* 버튼 텍스트 (로딩 상태에 따라 다른 텍스트 표시) */}
               <Text style={styles.createButtonText}>
                 {isLoading ? 'Creating Story...' : 'Create My Story!'}
@@ -227,4 +232,6 @@ export default function StoryCreateScreen() {
       />
     </ImageBackground>
   );
-}
+};
+
+export default StoryCreateScreen;

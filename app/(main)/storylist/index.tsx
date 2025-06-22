@@ -4,32 +4,26 @@
  * 사용자가 생성한 모든 동화를 그리드 형태로 표시하는 화면입니다.
  */
 import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // --- 내부 모듈 및 스타일 ---
-import { createStoryListScreenStyles } from '@/styles/StoryListScreen.styles'; // 동화 목록 화면 전용 스타일
+import { createStoryListScreenStyles } from '@/styles/StoryListScreen.styles';
 
-// --- 동화 커버 이미지 import ---
-import story1 from '@/assets/images/illustrations/storycraft_cover_1.png';
-import story2 from '@/assets/images/illustrations/storycraft_cover_2.png';
-import story3 from '@/assets/images/illustrations/storycraft_cover_3.png';
-import story4 from '@/assets/images/illustrations/storycraft_cover_4.png';
-import story5 from '@/assets/images/illustrations/storycraft_cover_5.png';
-import story6 from '@/assets/images/illustrations/storycraft_cover_6.png';
-import story7 from '@/assets/images/illustrations/storycraft_cover_7.png';
-import story8 from '@/assets/images/illustrations/storycraft_cover_8.png';
+// --- 이미지 및 리소스 ---
+import backgroundImage from '@/assets/images/background/night-bg.png';
 
 // 임시 동화 데이터 (나중에 실제 데이터로 교체)
+// 키워드 정보를 추가합니다.
 const stories = [
-  { id: 1, title: '동화 1', image: story1 },
-  { id: 2, title: '동화 2', image: story2 },
-  { id: 3, title: '동화 3', image: story3 },
-  { id: 4, title: '동화 4', image: story4 },
-  { id: 5, title: '동화 5', image: story5 },
-  { id: 6, title: '동화 6', image: story6 },
-  { id: 7, title: '동화 7', image: story7 },
-  { id: 8, title: '동화 8', image: story8 },
+  { id: 1, title: 'The Magical Forest Adventure', keywords: 'rabbit, forest, magic' },
+  { id: 2, title: 'The Dragon and the Princess', keywords: 'princess, dragon, friendship' },
+  { id: 3, title: 'The Secret of the Old Clock', keywords: 'mystery, time, adventure' },
+  { id: 4, title: 'The Lost Treasure of Pirates', keywords: 'pirate, treasure, island' },
+  { id: 5, title: 'A Journey to the Stars', keywords: 'space, rocket, stars' },
+  { id: 6, title: 'The Whispering Woods', keywords: 'woods, secret, animals' },
 ];
 
 /**
@@ -37,41 +31,54 @@ const stories = [
  * 사용자가 생성한 모든 동화를 그리드 형태로 표시합니다.
  */
 export default function StoryListScreen() {
-  // 반응형 스타일을 생성합니다.
   const styles = createStoryListScreenStyles();
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 영역 - 뒤로가기 버튼과 제목 */}
-      <View style={styles.storyListHeader}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>{'<<'} 돌아가기</Text>
-        </TouchableOpacity>
-        <Text style={styles.storyListTitle}>전체 동화 목록</Text>
+    <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
+      <View style={styles.overlay} />
+
+      {/* 헤더 요소들: 절대 위치로 배치됨 */}
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={28} color="white" />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+
+      <View style={styles.headerTitleContainer}>
+        <MaterialCommunityIcons name="book-open-page-variant" size={30} color="white" />
+        <Text style={styles.headerTitle}>My Story Collection</Text>
+        <Ionicons name="sparkles" size={24} color="#FFD700" />
       </View>
 
-      {/* 동화 갤러리 그리드 - 스크롤 가능한 동화 목록 */}
+      {/* 갤러리 그리드: 스크롤 가능한 콘텐츠 영역 */}
       <ScrollView
+        style={styles.container}
         contentContainerStyle={styles.storyListGrid}
-        showsVerticalScrollIndicator={false} // 세로 스크롤바 숨김
+        showsVerticalScrollIndicator={false}
       >
-        {/* 동화 목록을 순회하며 각 동화를 그리드 아이템으로 렌더링 */}
         {stories.map((story) => (
           <TouchableOpacity
-            key={story.id} // React에서 리스트 렌더링 시 필요한 고유 키
-            style={styles.storyGridItem}
+            key={story.id}
+            style={styles.storyCard}
             onPress={() => {
               // TODO: 동화 상세 페이지로 이동
               console.log('동화 선택:', story.id);
             }}
           >
-            {/* 동화 커버 이미지 */}
-            <Image source={story.image} style={styles.storyGridImage} />
-            {/* 동화 제목 */}
-            <Text style={styles.storyGridTitle}>{story.title}</Text>
+            <Text style={styles.storyTitle}>{story.title}</Text>
+            <Text style={styles.storyKeywords}>Keywords: {story.keywords}</Text>
+
+            <LinearGradient colors={['#EADFFF', '#D1C4E9']} style={styles.illustrationPlaceholder}>
+              <Ionicons name="sparkles-outline" size={40} color="rgba(255, 255, 255, 0.9)" />
+              <Text style={styles.illustrationText}>Story Illustration</Text>
+            </LinearGradient>
+
+            <TouchableOpacity style={styles.readButton}>
+              <Ionicons name="eye-outline" size={20} color="white" />
+              <Text style={styles.readButtonText}>Read Story</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         ))}
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 }
