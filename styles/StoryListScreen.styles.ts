@@ -7,6 +7,41 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
+ * StoryListScreen에서 사용하는 상수 값들
+ * 컬러, 사이즈, 기타 설정값들을 중앙에서 관리
+ */
+export const STORY_LIST_CONSTANTS = {
+  // 아이콘 사이즈
+  ICON_SIZES: {
+    BACK_BUTTON: 28,
+    HEADER_BOOK: 30,
+    HEADER_SPARKLES: 24,
+    ILLUSTRATION_SPARKLES: 40,
+    READ_BUTTON_EYE: 20,
+  },
+
+  // 컬러 값
+  COLORS: {
+    WHITE: 'white',
+    GOLD: '#FFD700',
+    ILLUSTRATION_SPARKLES: 'rgba(255, 255, 255, 0.9)',
+    GRADIENT_START: '#EADFFF',
+    GRADIENT_END: '#D1C4E9',
+  },
+
+  // 스크롤 설정
+  SCROLL: {
+    THROTTLE: 16, // 60fps (자연스러움을 위해)
+    HEADER_HIDE_THRESHOLD: 50, // 헤더 숨김 임계값(50넘어가면 숨김)
+  },
+
+  // 인라인 스타일
+  INLINE_STYLES: {
+    CARD_CONTENT: { flex: 1 },
+  },
+};
+
+/**
  * StoryListScreen 스타일 정의
  * react-native-responsive-screen을 사용하여 모든 기기에서 반응형으로 작동
  * 모든 픽셀 값은 화면 크기에 비례하여 자동 조정됨
@@ -39,6 +74,7 @@ export const createStoryListScreenStyles = () => {
       flex: 1,
       paddingTop: insets.top + hp('12%'),
       paddingHorizontal: wp('30%'),
+      paddingBottom: insets.bottom + hp('30%'),
     },
 
     // 뒤로가기 버튼 - 절대 위치 (좌측 상단)
@@ -70,6 +106,7 @@ export const createStoryListScreenStyles = () => {
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 9,
+      overflow: 'hidden',
     },
 
     // 헤더 제목 텍스트
@@ -85,20 +122,23 @@ export const createStoryListScreenStyles = () => {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
+      paddingBottom: hp('15%'),
     },
 
     // 동화 카드 아이템 - 개별 동화 카드
     storyCard: {
-      width: wp('43%'), // 2열 그리드
+      width: wp('42%'),
       backgroundColor: cardBackgroundColor,
       borderRadius: wp('4%'),
       padding: wp('4%'),
-      marginBottom: hp('3%'),
+      marginBottom: hp('5%'),
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 5,
       elevation: 8,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
     },
 
     // 동화 제목

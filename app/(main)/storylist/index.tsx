@@ -3,14 +3,14 @@
  * StoryCraft 동화 목록 페이지
  * 사용자가 생성한 모든 동화를 그리드 형태로 표시하는 화면입니다.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // --- 내부 모듈 및 스타일 ---
-import { createStoryListScreenStyles } from '@/styles/StoryListScreen.styles';
+import { createStoryListScreenStyles, STORY_LIST_CONSTANTS } from '@/styles/StoryListScreen.styles';
 
 // --- 이미지 및 리소스 ---
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -32,6 +32,15 @@ const stories = [
  */
 export default function StoryListScreen() {
   const styles = createStoryListScreenStyles();
+  const [scrollY, setScrollY] = useState(0);
+
+  const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    setScrollY(currentScrollY);
+  };
+
+  // 스크롤 위치에 따라 헤더 위치 계산
+  const headerTranslateY = Math.min(-scrollY, 0);
 
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
@@ -39,14 +48,29 @@ export default function StoryListScreen() {
 
       {/* 헤더 요소들: 절대 위치로 배치됨 */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={28} color="white" />
+        <Ionicons
+          name="arrow-back"
+          size={STORY_LIST_CONSTANTS.ICON_SIZES.BACK_BUTTON}
+          color={STORY_LIST_CONSTANTS.COLORS.WHITE}
+        />
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
 
-      <View style={styles.headerTitleContainer}>
-        <MaterialCommunityIcons name="book-open-page-variant" size={30} color="white" />
+      {/* 헤더 제목: 스크롤에 따라 위로 올라가다가 사라짐 */}
+      <View
+        style={[styles.headerTitleContainer, { transform: [{ translateY: headerTranslateY }] }]}
+      >
+        <MaterialCommunityIcons
+          name="book-open-page-variant"
+          size={STORY_LIST_CONSTANTS.ICON_SIZES.HEADER_BOOK}
+          color={STORY_LIST_CONSTANTS.COLORS.WHITE}
+        />
         <Text style={styles.headerTitle}>My Story Collection</Text>
-        <Ionicons name="sparkles" size={24} color="#FFD700" />
+        <Ionicons
+          name="sparkles"
+          size={STORY_LIST_CONSTANTS.ICON_SIZES.HEADER_SPARKLES}
+          color={STORY_LIST_CONSTANTS.COLORS.GOLD}
+        />
       </View>
 
       {/* 갤러리 그리드: 스크롤 가능한 콘텐츠 영역 */}
@@ -54,6 +78,8 @@ export default function StoryListScreen() {
         style={styles.container}
         contentContainerStyle={styles.storyListGrid}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={STORY_LIST_CONSTANTS.SCROLL.THROTTLE}
       >
         {stories.map((story) => (
           <TouchableOpacity
@@ -64,16 +90,32 @@ export default function StoryListScreen() {
               console.log('동화 선택:', story.id);
             }}
           >
-            <Text style={styles.storyTitle}>{story.title}</Text>
-            <Text style={styles.storyKeywords}>Keywords: {story.keywords}</Text>
+            <View style={STORY_LIST_CONSTANTS.INLINE_STYLES.CARD_CONTENT}>
+              <Text style={styles.storyTitle}>{story.title}</Text>
+              <Text style={styles.storyKeywords}>Keywords: {story.keywords}</Text>
 
-            <LinearGradient colors={['#EADFFF', '#D1C4E9']} style={styles.illustrationPlaceholder}>
-              <Ionicons name="sparkles-outline" size={40} color="rgba(255, 255, 255, 0.9)" />
-              <Text style={styles.illustrationText}>Story Illustration</Text>
-            </LinearGradient>
+              <LinearGradient
+                colors={[
+                  STORY_LIST_CONSTANTS.COLORS.GRADIENT_START,
+                  STORY_LIST_CONSTANTS.COLORS.GRADIENT_END,
+                ]}
+                style={styles.illustrationPlaceholder}
+              >
+                <Ionicons
+                  name="sparkles-outline"
+                  size={STORY_LIST_CONSTANTS.ICON_SIZES.ILLUSTRATION_SPARKLES}
+                  color={STORY_LIST_CONSTANTS.COLORS.ILLUSTRATION_SPARKLES}
+                />
+                <Text style={styles.illustrationText}>Story Illustration</Text>
+              </LinearGradient>
+            </View>
 
             <TouchableOpacity style={styles.readButton}>
-              <Ionicons name="eye-outline" size={20} color="white" />
+              <Ionicons
+                name="eye-outline"
+                size={STORY_LIST_CONSTANTS.ICON_SIZES.READ_BUTTON_EYE}
+                color={STORY_LIST_CONSTANTS.COLORS.WHITE}
+              />
               <Text style={styles.readButtonText}>Read Story</Text>
             </TouchableOpacity>
           </TouchableOpacity>
