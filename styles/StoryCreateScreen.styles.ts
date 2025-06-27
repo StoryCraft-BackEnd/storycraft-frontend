@@ -16,6 +16,7 @@ export const ICON_SIZES = {
   keywordClose: 16,
   createButtonSparkles: 22,
   backButton: 28,
+  voiceButton: 24,
 };
 
 // 그라데이션 색상을 관리하기 위한 상수
@@ -27,6 +28,8 @@ export const GRADIENT_COLORS = {
 export const COLORS = {
   placeholder: '#999',
   headerIcon: '#fff',
+  voiceButton: '#ccc',
+  voiceButtonActive: '#FF6B6B',
 };
 
 export const useStoryCreateScreenStyles = () => {
@@ -124,7 +127,7 @@ export const useStoryCreateScreenStyles = () => {
     // 키워드 입력 필드 스타일
     textInput: {
       flex: 1, // 남은 공간을 모두 차지
-      height: hp('5%'), // 화면 높이의 5%로 감소 (기존 6%)
+      height: hp('6%'), // 화면 높이의 6%
       backgroundColor: 'rgba(255, 255, 255, 0.1)', // 반투명한 흰색 배경
       borderRadius: wp('2.5%'), // 화면 너비의 2.5%를 모서리 둥글기로 사용 (기존 10px)
       borderTopRightRadius: 0, // 오른쪽 상단 모서리는 각지게
@@ -134,11 +137,22 @@ export const useStoryCreateScreenStyles = () => {
       fontSize: wp('4%'), // 폰트 크기 4%
     },
 
+    // --- 음성 입력 버튼 ---
+    // 음성 입력 버튼 스타일 (입력창과 동일한 배경색으로 통합)
+    voiceButton: {
+      width: wp('12.5%'), // 화면 너비의 12.5%를 너비로 사용
+      height: hp('6%'), // 입력창과 동일한 높이
+      backgroundColor: 'rgba(255, 255, 255, 0.1)', // 입력창과 동일한 배경색
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 0, // 모서리를 각지게
+    },
+
     // --- 키워드 추가 버튼 ---
     // 키워드 추가 버튼 스타일
     addButton: {
       width: wp('12.5%'), // 화면 너비의 12.5%를 너비로 사용 (기존 50px)
-      height: hp('6%'), // 화면 높이의 5%로 감소 (기존 6%)
+      height: hp('6%'), // 입력창과 동일한 높이
       backgroundColor: '#FFD700', // 금색 배경
       justifyContent: 'center',
       alignItems: 'center',

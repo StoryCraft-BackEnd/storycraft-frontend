@@ -85,6 +85,20 @@ const StoryCreateScreen = () => {
   };
 
   /**
+   * 음성 입력 버튼을 눌렀을 때 실행되는 함수 (추후 서비스 제공 예정)
+   *
+   * TODO: NATIVE로 음성 입출력 기능 추가 필요
+   * - React Native Voice Recognition 라이브러리 사용
+   * - 사용자 음성을 텍스트로 변환하여 키워드 입력
+   * - 마이크 권한 요청 및 처리
+   * - 음성 인식 시작/중지 상태 관리
+   * - 영어 음성 인식 설정 (키워드가 영어이므로)
+   */
+  const handleVoiceInput = () => {
+    showPopup('알림', '음성 입력 기능은 추후 서비스 제공 예정입니다.');
+  };
+
+  /**
    * 'Create My Story!' 버튼을 눌렀을 때 실행되는 함수.
    * 키워드 목록을 서버에 전송하여 동화 생성을 요청합니다.
    */
@@ -177,6 +191,15 @@ const StoryCreateScreen = () => {
                 onChangeText={setCurrentKeyword}
                 onSubmitEditing={handleAddKeyword}
               />
+              {/* 음성 입력 버튼 (추후 서비스 제공 예정) */}
+              {/* TODO: NATIVE 음성 인식 구현 시 아이콘 상태 변경 필요 (mic-outline <-> mic, 색상 변경) */}
+              <TouchableOpacity onPress={handleVoiceInput} style={styles.voiceButton}>
+                <Ionicons
+                  name="mic-outline"
+                  size={ICON_SIZES.voiceButton}
+                  color={COLORS.voiceButton}
+                />
+              </TouchableOpacity>
               {/* 키워드 추가 버튼 */}
               <TouchableOpacity onPress={handleAddKeyword} style={styles.addButton}>
                 <Text style={styles.addButtonText}>+</Text>
