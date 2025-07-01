@@ -198,7 +198,7 @@ export default function MainScreen() {
 
           <TouchableOpacity
             style={[MainScreenStyles.button, MainScreenStyles.button6]}
-            onPress={() => router.push('./mypage')}
+            onPress={() => router.push('/(main)/mypage')}
           >
             <Image source={mypage} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>마이페이지</Text>
