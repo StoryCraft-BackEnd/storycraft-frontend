@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ImageBackground,
-  StyleSheet,
-  FlatList,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import styles from '../../../../styles/StoryListScreen.styles';
+import nightBg from '../../../../assets/images/background/night-bg.png';
 
 const TABS = [
   { key: 'all', label: '전체 동화' },
@@ -41,17 +34,11 @@ const DUMMY_STORIES = [
   },
 ];
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export default function StoryListScreen() {
   const [activeTab, setActiveTab] = useState('all');
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/images/background/night-bg.png')}
-      style={styles.bg}
-      resizeMode="cover"
-    >
+    <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
       <View style={styles.tabRow}>
         {TABS.map((tab) => (
           <TouchableOpacity

@@ -6,15 +6,13 @@ import {
   TouchableOpacity,
   TextInput,
   ImageBackground,
-  StyleSheet,
   SafeAreaView,
   ScrollView,
-  Platform,
-  Dimensions,
 } from 'react-native';
 import defaultProfile from '../../../../assets/images/profile/default_profile.png';
-import styles, { SCREEN_WIDTH } from '../../../../styles/MyInfoScreen.styles';
+import styles from '../../../../styles/MyInfoScreen.styles';
 import BackButton from '../../../../components/ui/BackButton';
+import nightBg from '../../../../assets/images/background/night-bg.png';
 
 export default function MyInfoScreen() {
   // 더미 데이터
@@ -29,14 +27,9 @@ export default function MyInfoScreen() {
   const [pw, setPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [loading, setLoading] = useState(false);
 
   return (
-    <ImageBackground
-      source={require('../../../../assets/images/background/night-bg.png')}
-      style={styles.bg}
-      resizeMode="cover"
-    >
+    <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
       <BackButton />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -113,7 +106,7 @@ export default function MyInfoScreen() {
                   secureTextEntry
                 />
               </View>
-              <TouchableOpacity style={styles.pwBtn} disabled={loading}>
+              <TouchableOpacity style={styles.pwBtn}>
                 <Text style={styles.pwBtnText}>비밀번호 변경</Text>
               </TouchableOpacity>
             </View>
