@@ -130,6 +130,33 @@ export default function MainScreen() {
           </ThemedText>
         </TouchableOpacity>
 
+        {/* 영어 학습 화면으로 이동 버튼 */}
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 420,
+            zIndex: 1000,
+            backgroundColor: isDark ? 'rgba(0,100,0,0.7)' : 'rgba(0,200,0,0.7)',
+            paddingHorizontal: 15,
+            paddingVertical: 8,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: isDark ? '#0f0' : '#0a0',
+          }}
+          onPress={() => router.push('/(english-learning)')}
+        >
+          <ThemedText
+            style={{
+              color: isDark ? '#fff' : '#000',
+              fontSize: 16,
+              fontWeight: 'bold',
+            }}
+          >
+            영어 학습 화면으로 이동
+          </ThemedText>
+        </TouchableOpacity>
+
         <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
         <View style={MainScreenStyles.userProfileContainer}>
           <Image source={defaultProfile} style={MainScreenStyles.userProfileImage} />
@@ -171,7 +198,10 @@ export default function MainScreen() {
         </View>
 
         <View style={MainScreenStyles.buttonContainer}>
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button1]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button1]}
+            onPress={() => router.push('./storylist')}
+          >
             <Image source={bookmark} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>동화 목록</Text>
           </TouchableOpacity>

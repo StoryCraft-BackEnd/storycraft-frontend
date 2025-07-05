@@ -44,7 +44,11 @@ function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       {isLoggedIn ? (
         // 로그인된 경우 메인 스택 표시
-        <Stack.Screen name="(main)" />
+        <>
+          <Stack.Screen name="(main)" />
+          <Stack.Screen name="(english-learning)" />
+          <Stack.Screen name="(profile)" />
+        </>
       ) : (
         // 로그인되지 않은 경우 인증 스택 표시
         <Stack.Screen name="(auth)" />
