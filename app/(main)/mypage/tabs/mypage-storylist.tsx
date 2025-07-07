@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import styles from '../../../../styles/StoryListScreen.styles';
 import nightBg from '../../../../assets/images/background/night-bg.png';
+import styles from '../../../../styles/StoryListTabScreen.styles';
 
 const TABS = [
-  { key: 'all', label: '전체 동화' },
-  { key: 'bookmark', label: '북마크' },
-  { key: 'like', label: '좋아요' },
+  { key: 'all', label: '전체 동화', iconName: 'book-outline' as const },
+  { key: 'bookmark', label: '북마크', iconName: 'bookmark-outline' as const },
+  { key: 'like', label: '좋아요', iconName: 'heart-outline' as const },
 ];
 
 const DUMMY_STORIES = [
@@ -40,17 +40,24 @@ export default function StoryListScreen() {
   return (
     <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
       <View style={styles.tabRow}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tabBtn, activeTab === tab.key && styles.activeTabBtn]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabBtn, isActive && styles.activeTabBtn]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Ionicons
+                name={tab.iconName}
+                size={18}
+                color={isActive ? '#fff' : '#b3b3ff'}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[styles.tabText, isActive && styles.activeTabText]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
       <FlatList
         data={DUMMY_STORIES}
