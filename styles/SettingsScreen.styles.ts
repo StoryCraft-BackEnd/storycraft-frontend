@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 export const SettingsScreenStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e9ecef',
+    backgroundColor: 'transparent', // ImageBackground 사용 예정
     padding: 0,
   },
   backButton: {
@@ -15,14 +15,14 @@ export const SettingsScreenStyles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 28,
-    color: '#222',
+    color: '#fff',
   },
   landscapeWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e9ecef',
+    backgroundColor: 'transparent',
     paddingHorizontal: 48,
   },
   scrollContent: {
@@ -34,15 +34,18 @@ export const SettingsScreenStyles = StyleSheet.create({
     width: '100%',
   },
   settingsBox: {
-    width: 480,
-    backgroundColor: '#fff',
+    flex: 1,
+    minWidth: 280,
+    maxWidth: 480,
+    backgroundColor: 'rgba(24,31,58,0.95)',
     borderRadius: 24,
     padding: 36,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 8,
     marginVertical: 40,
+    marginHorizontal: 8,
   },
   sectionTitle: {
     fontSize: 22,
@@ -50,13 +53,14 @@ export const SettingsScreenStyles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     letterSpacing: 1,
+    color: '#fff',
   },
   categoryTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 24,
     marginBottom: 12,
-    color: '#222',
+    color: '#b3b3ff',
   },
   row: {
     flexDirection: 'row',
@@ -70,7 +74,7 @@ export const SettingsScreenStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#23284a',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -85,19 +89,19 @@ export const SettingsScreenStyles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    color: '#222',
+    color: '#fff',
     fontWeight: '500',
   },
   value: {
     fontSize: 15,
-    color: '#6b7280',
+    color: '#b3b3ff',
     marginTop: 2,
   },
   dangerButton: {
     marginTop: 40,
     marginBottom: 16,
     alignSelf: 'center',
-    backgroundColor: '#fff0f0',
+    backgroundColor: 'rgba(255,77,79,0.08)',
     borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 36,
