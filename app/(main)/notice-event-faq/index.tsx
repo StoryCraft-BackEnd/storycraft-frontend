@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  ImageBackground,
+} from 'react-native';
 import { router } from 'expo-router';
 import NoticeList from './NoticeList';
 import EventList from './EventList';
 import FAQList from './FAQList';
 import styles from '@/styles/NoticeEventFAQScreen.styles';
+import nightBg from '@/assets/images/background/night-bg.png';
 
 const TABS = [
   { key: 'notice', label: '공지사항' },
@@ -29,32 +37,36 @@ const NoticeEventFAQScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>{'←'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>공지/이벤트/FAQ</Text>
-      </View>
-      <View style={styles.container}>
-        <View style={styles.tabContainer}>
-          {TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+    <ImageBackground source={nightBg} style={{ flex: 1 }} resizeMode="cover">
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>{'←'}</Text>
+          </TouchableOpacity>
+          <View style={styles.tabContainerInHeader}>
+            {TABS.map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-        <ScrollView style={styles.scrollArea} contentContainerStyle={styles.contentInnerContainer}>
-          {renderTabContent()}
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+        <View style={styles.container}>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.contentInnerContainer}
+          >
+            {renderTabContent()}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
