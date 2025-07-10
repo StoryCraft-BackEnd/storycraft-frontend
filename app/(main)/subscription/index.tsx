@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ImageBackground, View, Text, TouchableOpacity, FlatList, ScrollView } from 'react-native';
-import nightBg from '../../../../assets/images/background/night-bg.png';
-import styles from '../../../../styles/SubscriptionScreen.styles';
+import nightBg from '../../../assets/images/background/night-bg.png';
+import styles from '../../../styles/SubscriptionScreen.styles';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 const PLANS = [
   {
@@ -36,10 +38,8 @@ const PAYMENT_HISTORY = [
 
 const NEXT_PAYMENT_DATE = '2024-02-15';
 
-export default function SubscriptionScreen() {
-  // 디폴트: 무료 플랜
+export default function SubscriptionPage() {
   const [currentPlan, setCurrentPlan] = useState('basic');
-
   const planObj = PLANS.find((p) => p.key === currentPlan);
   const isBasic = currentPlan === 'basic';
 
@@ -49,6 +49,13 @@ export default function SubscriptionScreen() {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* 상단: 뒤로가기 + 제목 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 8, padding: 4 }}>
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={{ color: '#fff', fontSize: 28, fontWeight: 'bold' }}>구독/결제</Text>
+        </View>
         {/* 상단 현재 구독 플랜 정보 */}
         <View style={styles.currentPlanBox}>
           <Text style={styles.currentPlanTitle}>현재 구독 플랜</Text>
@@ -68,7 +75,6 @@ export default function SubscriptionScreen() {
             </>
           )}
         </View>
-
         {/* 구독 플랜 카드 */}
         <View style={styles.plansRow}>
           {PLANS.map((plan) => {
@@ -105,7 +111,6 @@ export default function SubscriptionScreen() {
             );
           })}
         </View>
-
         {/* 결제 내역 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>결제 내역</Text>

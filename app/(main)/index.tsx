@@ -221,7 +221,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>영어 퀴즈</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button5]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button5]}
+            onPress={() => router.push('/(main)/subscription')}
+          >
             <Image source={donate} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>결제/구독</Text>
           </TouchableOpacity>
