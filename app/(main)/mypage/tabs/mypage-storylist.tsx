@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ImageBackground, FlatList } from 'react-n
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import nightBg from '../../../../assets/images/background/night-bg.png';
 import styles from '../../../../styles/StoryListTabScreen.styles';
+import BackButton from '../../../../components/ui/BackButton';
 
 const TABS = [
   { key: 'all', label: '전체 동화', iconName: 'book-outline' as const },
@@ -39,6 +40,7 @@ export default function StoryListScreen() {
 
   return (
     <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
+      <BackButton />
       <View style={styles.tabRow}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;

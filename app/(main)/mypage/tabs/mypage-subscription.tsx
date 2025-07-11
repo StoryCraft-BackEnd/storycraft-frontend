@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ImageBackground, View, Text, TouchableOpacity, FlatList, ScrollView } from 'react-native';
 import nightBg from '../../../../assets/images/background/night-bg.png';
 import styles from '../../../../styles/SubscriptionScreen.styles';
+import BackButton from '../../../../components/ui/BackButton';
 
 const PLANS = [
   {
@@ -32,6 +33,9 @@ const PAYMENT_HISTORY = [
   { date: '2024-01-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
   { date: '2023-12-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
   { date: '2023-11-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
+  { date: '2023-10-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
+  { date: '2023-09-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
+  { date: '2023-08-15', plan: 'Premium 플랜', amount: '9,900원', status: '완료' },
 ];
 
 const NEXT_PAYMENT_DATE = '2024-02-15';
@@ -39,14 +43,16 @@ const NEXT_PAYMENT_DATE = '2024-02-15';
 export default function SubscriptionScreen() {
   // 디폴트: 무료 플랜
   const [currentPlan, setCurrentPlan] = useState('basic');
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   const planObj = PLANS.find((p) => p.key === currentPlan);
   const isBasic = currentPlan === 'basic';
 
   return (
     <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
+      <BackButton />
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { paddingTop: 56 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* 상단 현재 구독 플랜 정보 */}
@@ -58,9 +64,6 @@ export default function SubscriptionScreen() {
             <>
               <Text style={styles.nextPaymentDate}>다음 결제일: {NEXT_PAYMENT_DATE}</Text>
               <View style={styles.currentPlanBtnRow}>
-                <TouchableOpacity style={styles.changePlanBtn}>
-                  <Text style={styles.changePlanBtnText}>플랜 변경</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.cancelBtn}>
                   <Text style={styles.cancelBtnText}>구독 취소</Text>
                 </TouchableOpacity>
@@ -98,7 +101,13 @@ export default function SubscriptionScreen() {
                   onPress={() => setCurrentPlan(plan.key)}
                 >
                   <Text style={[styles.planButtonText, isCurrent && styles.currentPlanButtonText]}>
-                    {isCurrent ? '현재 플랜' : plan.key === 'family' ? '업그레이드' : '선택하기'}
+                    {isCurrent
+                      ? '현재 플랜'
+                      : currentPlan === 'basic' && (plan.key === 'premium' || plan.key === 'family')
+                        ? '업그레이드'
+                        : plan.key === 'family'
+                          ? '업그레이드'
+                          : '선택하기'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -110,7 +119,7 @@ export default function SubscriptionScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>결제 내역</Text>
           <FlatList
-            data={PAYMENT_HISTORY}
+            data={showAllHistory ? PAYMENT_HISTORY : PAYMENT_HISTORY.slice(0, 3)}
             keyExtractor={(_, i) => i.toString()}
             renderItem={({ item }) => (
               <View style={styles.paymentRow}>
@@ -127,9 +136,14 @@ export default function SubscriptionScreen() {
               </View>
             )}
             ListFooterComponent={
-              <TouchableOpacity style={styles.allHistoryBtn}>
-                <Text style={styles.allHistoryText}>전체 내역 보기</Text>
-              </TouchableOpacity>
+              !showAllHistory && PAYMENT_HISTORY.length > 3 ? (
+                <TouchableOpacity
+                  style={styles.allHistoryBtn}
+                  onPress={() => setShowAllHistory(true)}
+                >
+                  <Text style={styles.allHistoryText}>전체 내역 보기</Text>
+                </TouchableOpacity>
+              ) : null
             }
             scrollEnabled={false}
           />

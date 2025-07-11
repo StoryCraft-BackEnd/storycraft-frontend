@@ -13,6 +13,7 @@ import EventList from './EventList';
 import FAQList from './FAQList';
 import styles from '@/styles/NoticeEventFAQScreen.styles';
 import nightBg from '@/assets/images/background/night-bg.png';
+import BackButton from '@/components/ui/BackButton';
 
 const TABS = [
   { key: 'notice', label: '공지사항' },
@@ -40,9 +41,7 @@ const NoticeEventFAQScreen = () => {
     <ImageBackground source={nightBg} style={{ flex: 1 }} resizeMode="cover">
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>{'←'}</Text>
-          </TouchableOpacity>
+          <BackButton />
           <View style={styles.tabContainerInHeader}>
             {TABS.map((tab) => (
               <TouchableOpacity

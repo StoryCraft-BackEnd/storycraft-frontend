@@ -19,6 +19,7 @@ import { savePushEnabled, loadPushEnabled } from '@/shared/utils/notificationSto
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import nightBg from '../../../assets/images/background/night-bg.png';
+import BackButton from '../../../components/ui/BackButton';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -86,9 +87,7 @@ const SettingsScreen = () => {
   return (
     <ImageBackground source={nightBg} style={{ flex: 1 }} resizeMode="cover">
       <SafeAreaView style={SettingsScreenStyles.container}>
-        <TouchableOpacity style={SettingsScreenStyles.backButton} onPress={() => router.back()}>
-          <Text style={SettingsScreenStyles.backButtonText}>{'←'}</Text>
-        </TouchableOpacity>
+        <BackButton />
         <View style={SettingsScreenStyles.landscapeWrapper}>
           <ScrollView
             showsVerticalScrollIndicator={false}

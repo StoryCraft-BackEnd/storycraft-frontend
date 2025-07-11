@@ -11,12 +11,12 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 32,
     marginBottom: 18,
     marginLeft: 18,
-    gap: 8,
+    gap: 12,
   },
   tabBtn: {
     paddingVertical: 8,
