@@ -1,0 +1,41 @@
+{
+  "beautiful": [
+    {
+      "question": "What does \"beautiful\" mean?",
+      "options": [
+        { "id": "A", "text": "Very small", "isCorrect": false },
+        { "id": "B", "text": "Very beautiful and impressive", "isCorrect": true },
+        { "id": "C", "text": "Very sad", "isCorrect": false },
+        { "id": "D", "text": "Very loud", "isCorrect": false }
+      ],
+      "word": "beautiful",
+      "correctAnswer": "아름다운"
+    }
+  ],
+  "sparkled": [
+    {
+      "question": "What does \"sparkled\" mean?",
+      "options": [
+        { "id": "A", "text": "Shined with small flashes of light", "isCorrect": true },
+        { "id": "B", "text": "Made a loud noise", "isCorrect": false },
+        { "id": "C", "text": "Moved very fast", "isCorrect": false },
+        { "id": "D", "text": "Became very dark", "isCorrect": false }
+      ],
+      "word": "sparkled",
+      "correctAnswer": "반짝였다"
+    }
+  ],
+  "moonlight": [
+    {
+      "question": "What does \"moonlight\" mean?",
+      "options": [
+        { "id": "A", "text": "Sunlight during the day", "isCorrect": false },
+        { "id": "B", "text": "Light from electric bulbs", "isCorrect": false },
+        { "id": "C", "text": "Light from the moon", "isCorrect": true },
+        { "id": "D", "text": "Light from fire", "isCorrect": false }
+      ],
+      "word": "moonlight",
+      "correctAnswer": "달빛"
+    }
+  ]
+}

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { englishLearningStyles } from '../../styles/EnglishLearningScreen.styles';
 import { useRouter } from 'expo-router';
+import QuizPopup from '../../components/ui/QuizPopup';
+import { getQuizByWords } from '../../shared/utils/quizLoader';
+import { QuizData } from '../../shared/types/quiz';
 
 export default function EnglishLearningScreen() {
   const router = useRouter();
@@ -9,6 +12,9 @@ export default function EnglishLearningScreen() {
   const [wordFavorites, setWordFavorites] = useState<boolean[]>([false, false, false]);
   const [wordClicked, setWordClicked] = useState<boolean[]>([false, false, false]);
   const [favoritePage, setFavoritePage] = useState(1);
+  const [quizVisible, setQuizVisible] = useState(false);
+  const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
+  const [quizData, setQuizData] = useState<QuizData[]>([]);
 
   const storyData = {
     title: 'The Brave Little Rabbit',
@@ -21,6 +27,13 @@ export default function EnglishLearningScreen() {
       { word: 'moonlight', korean: '달빛', pronunciation: '[ˈmuːnlaɪt]' },
     ],
   };
+
+  // 컴포넌트 마운트 시 퀴즈 데이터 로드
+  useEffect(() => {
+    const words = storyData.highlightedWords.map((item) => item.word);
+    const loadedQuizData = getQuizByWords(words);
+    setQuizData(loadedQuizData);
+  }, []);
 
   const handleWordPress = (index: number) => {
     const newWordClicked = [...wordClicked];
@@ -45,6 +58,27 @@ export default function EnglishLearningScreen() {
     } else if (direction === 'next' && currentPage < storyData.totalPages) {
       setCurrentPage(currentPage + 1);
     }
+  };
+
+  const handleShowQuiz = () => {
+    if (quizData.length > 0) {
+      setQuizVisible(true);
+      setCurrentQuizIndex(0);
+    }
+  };
+
+  const handleNextQuiz = () => {
+    if (currentQuizIndex < quizData.length - 1) {
+      setCurrentQuizIndex(currentQuizIndex + 1);
+    } else {
+      setQuizVisible(false);
+      setCurrentQuizIndex(0);
+    }
+  };
+
+  const handleCloseQuiz = () => {
+    setQuizVisible(false);
+    setCurrentQuizIndex(0);
   };
 
   // 즐겨찾기 페이지네이션 로직
@@ -82,18 +116,24 @@ export default function EnglishLearningScreen() {
             <Text style={englishLearningStyles.backButtonText}>←</Text>
           </TouchableOpacity>
 
-          <View style={englishLearningStyles.progressContainer}>
-            <Text style={englishLearningStyles.progressText}>
-              페이지 {currentPage} / {storyData.totalPages}
-            </Text>
-          </View>
+          <View style={englishLearningStyles.topControls}>
+            <TouchableOpacity style={englishLearningStyles.quizButton} onPress={handleShowQuiz}>
+              <Text style={englishLearningStyles.quizButtonText}>📝 퀴즈</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={englishLearningStyles.readAloudButton}
-            onPress={handleTextToSpeech}
-          >
-            <Text style={englishLearningStyles.readAloudText}>🔊 읽어주기</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={englishLearningStyles.readAloudButtonInGroup}
+              onPress={handleTextToSpeech}
+            >
+              <Text style={englishLearningStyles.quizButtonText}>🔊 읽어주기</Text>
+            </TouchableOpacity>
+
+            <View style={englishLearningStyles.progressContainerInGroup}>
+              <Text style={englishLearningStyles.progressText}>
+                {currentPage} / {storyData.totalPages}
+              </Text>
+            </View>
+          </View>
 
           <View style={englishLearningStyles.titleSection}>
             <Text style={englishLearningStyles.storyTitle}>{storyData.title}</Text>
@@ -248,6 +288,18 @@ export default function EnglishLearningScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 퀴즈 팝업 */}
+      {quizVisible && quizData.length > 0 && (
+        <QuizPopup
+          visible={quizVisible}
+          onClose={handleCloseQuiz}
+          quizData={quizData[currentQuizIndex]}
+          questionNumber={currentQuizIndex + 1}
+          totalQuestions={quizData.length}
+          onNext={handleNextQuiz}
+        />
+      )}
     </View>
   );
 }

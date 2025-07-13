@@ -150,6 +150,68 @@ export const englishLearningStyles = StyleSheet.create({
     fontWeight: '600', // 중간 굵기
   },
 
+  /**
+   * 🎛️ 상단 버튼 컨트롤 그룹
+   * 읽어주기와 퀴즈 버튼을 그룹화
+   * 일관된 레이아웃 유지
+   */
+  topControls: {
+    position: 'absolute', // 절대 위치
+    top: hp(4), // 상단에서 4% (반응형)
+    right: wp(5), // 우측에서 5% (반응형)
+    flexDirection: 'row', // 가로 방향 정렬
+    zIndex: 10, // 다른 요소 위에 표시
+  },
+
+  /**
+   * 📝 퀴즈 버튼
+   * 퀴즈 팝업을 열기 위한 버튼
+   * 읽어주기 버튼과 일관된 스타일
+   */
+  quizButton: {
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    marginRight: wp(2), // 읽어주기 버튼과의 간격 2% (반응형)
+  },
+
+  /**
+   * 🔊 그룹 내 읽어주기 버튼
+   * topControls 그룹 내에서 사용되는 읽어주기 버튼
+   * 퀴즈 버튼과 일관된 스타일
+   */
+  readAloudButtonInGroup: {
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    marginRight: wp(2), // 페이지 현황과의 간격 2% (반응형)
+  },
+
+  /**
+   * 📄 그룹 내 페이지 진행 상황 표시기
+   * topControls 그룹 내에서 사용되는 페이지 현황 표시
+   * 다른 버튼들과 일관된 스타일
+   */
+  progressContainerInGroup: {
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경 (90% 투명도)
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+  },
+
+  /**
+   * 📝 퀴즈 버튼 텍스트
+   * 연필 이모지와 텍스트 조합
+   * 퀴즈 기능 직관적 인식
+   */
+  quizButtonText: {
+    color: '#333', // 어두운 회색 텍스트
+    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontWeight: '600', // 중간 굵기
+  },
+
   // ===================================================================
   // 🏷️ 제목 및 헤더 섹션
   // ===================================================================
