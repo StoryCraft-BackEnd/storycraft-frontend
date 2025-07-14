@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,25 +8,115 @@ import {
   ImageBackground,
   SafeAreaView,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import defaultProfile from '../../../../assets/images/profile/default_profile.png';
 import styles from '../../../../styles/MyInfoScreen.styles';
 import BackButton from '../../../../components/ui/BackButton';
 import nightBg from '../../../../assets/images/background/night-bg.png';
+import { getMyInfo, updateNickname, UserInfo } from '../../../../features/user/userApi';
 
 export default function MyInfoScreen() {
-  // 더미 데이터
-  const [profile] = useState({
-    name: '김민수',
-    nickname: '스토리킹',
-    email: 'minsu@example.com',
-    age: 8,
-  });
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [nicknameInput, setNicknameInput] = useState(profile.nickname);
+  const [nicknameInput, setNicknameInput] = useState('');
   const [pw, setPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
+  const [updating, setUpdating] = useState(false);
+
+  // 사용자 정보 조회
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      setLoading(true);
+      console.log('사용자 정보 조회 시작...');
+      const data = await getMyInfo();
+      console.log('조회된 사용자 정보:', data);
+      setUserInfo(data);
+      setNicknameInput(data.nickname);
+      console.log('상태 업데이트 완료');
+    } catch (error) {
+      console.error('사용자 정보 조회 실패:', error);
+      Alert.alert('오류', '사용자 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 닉네임 수정
+  const handleUpdateNickname = async () => {
+    console.log('닉네임 수정 시작:', nicknameInput);
+
+    if (!nicknameInput.trim()) {
+      Alert.alert('오류', '닉네임을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setUpdating(true);
+      console.log('API 호출 시작...');
+      const success = await updateNickname(nicknameInput.trim());
+      console.log('API 응답:', success);
+
+      if (success) {
+        Alert.alert('성공', '닉네임이 수정되었습니다.');
+        setEditing(false);
+        // 사용자 정보 다시 조회
+        console.log('사용자 정보 재조회 시작...');
+        await fetchUserInfo();
+      } else {
+        Alert.alert('오류', '닉네임 수정에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('닉네임 수정 실패:', error);
+      Alert.alert('오류', '닉네임 수정에 실패했습니다.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // 편집 모드 토글
+  const toggleEditing = () => {
+    console.log('편집 모드 토글:', !editing);
+    if (editing) {
+      handleUpdateNickname();
+    } else {
+      setEditing(true);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
+        <BackButton />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={[styles.scrollContent, { justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="large" color="#fff" />
+            <Text style={[styles.profileName, { marginTop: 16 }]}>로딩 중...</Text>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    );
+  }
+
+  if (!userInfo) {
+    return (
+      <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
+        <BackButton />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={[styles.scrollContent, { justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={styles.profileName}>사용자 정보를 불러올 수 없습니다.</Text>
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
+    );
+  }
 
   return (
     <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
@@ -43,33 +133,44 @@ export default function MyInfoScreen() {
               <View style={styles.profileRow}>
                 <Image source={defaultProfile} style={styles.profileImage} />
                 <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.profileName}>{profile.name}</Text>
-                  <Text style={styles.profileNickname}>{profile.nickname}</Text>
+                  <Text style={styles.profileName}>{userInfo.name}</Text>
+                  <Text style={styles.profileNickname}>{userInfo.nickname}</Text>
                 </View>
-                <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(!editing)}>
-                  <Text style={styles.editBtnText}>수정</Text>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  onPress={toggleEditing}
+                  disabled={updating}
+                >
+                  <Text style={styles.editBtnText}>
+                    {updating ? '저장 중...' : editing ? '저장' : '수정'}
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.infoField}>
                 <Text style={styles.label}>이름</Text>
-                <TextInput style={styles.input} value={profile.name} editable={false} />
+                <TextInput style={styles.input} value={userInfo.name} editable={false} />
               </View>
               <View style={styles.infoField}>
                 <Text style={styles.label}>이메일</Text>
-                <TextInput style={styles.input} value={profile.email} editable={false} />
+                <TextInput style={styles.input} value={userInfo.email} editable={false} />
               </View>
               <View style={styles.infoField}>
                 <Text style={styles.label}>닉네임</Text>
                 <TextInput
-                  style={styles.input}
-                  value={editing ? nicknameInput : profile.nickname}
+                  style={[styles.input, editing && { borderColor: '#4CAF50', borderWidth: 2 }]}
+                  value={editing ? nicknameInput : userInfo.nickname}
                   editable={editing}
                   onChangeText={setNicknameInput}
+                  placeholder={editing ? '새 닉네임을 입력하세요' : ''}
                 />
               </View>
               <View style={styles.infoField}>
-                <Text style={styles.label}>나이</Text>
-                <TextInput style={styles.input} value={String(profile.age)} editable={false} />
+                <Text style={styles.label}>가입일</Text>
+                <TextInput
+                  style={styles.input}
+                  value={new Date(userInfo.signup_date).toLocaleDateString('ko-KR')}
+                  editable={false}
+                />
               </View>
             </View>
 
@@ -106,8 +207,8 @@ export default function MyInfoScreen() {
                   secureTextEntry
                 />
               </View>
-              <TouchableOpacity style={styles.pwBtn}>
-                <Text style={styles.pwBtnText}>비밀번호 변경</Text>
+              <TouchableOpacity style={[styles.pwBtn, { opacity: 0.6 }]} disabled={true}>
+                <Text style={styles.pwBtnText}>비밀번호 변경 (준비 중)</Text>
               </TouchableOpacity>
             </View>
           </View>
