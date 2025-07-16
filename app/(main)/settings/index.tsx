@@ -125,6 +125,9 @@ const SettingsScreen = () => {
               </View>
               <View style={SettingsScreenStyles.settingsBox}>
                 <Text style={SettingsScreenStyles.categoryTitle}>알림 설정</Text>
+                <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
+                  새로운 스토리와 학습 관련 알림을 받을 수 있습니다.
+                </Text>
                 <View style={SettingsScreenStyles.row}>
                   <View style={SettingsScreenStyles.iconBox}>
                     <Feather name="bell" size={22} color="#b3b3ff" />
@@ -132,14 +135,6 @@ const SettingsScreen = () => {
                   <Text style={SettingsScreenStyles.label}>푸시 알림</Text>
                   <View style={{ flex: 1 }} />
                   <Switch value={pushEnabled} onValueChange={handlePushToggle} />
-                </View>
-                <View style={SettingsScreenStyles.row}>
-                  <View style={SettingsScreenStyles.iconBox}>
-                    <MaterialIcons name="email" size={22} color="#b3b3ff" />
-                  </View>
-                  <Text style={SettingsScreenStyles.label}>마케팅 알림</Text>
-                  <View style={{ flex: 1 }} />
-                  <Switch value={emailEnabled} onValueChange={setEmailEnabled} />
                 </View>
               </View>
             </View>
@@ -224,24 +219,7 @@ const SettingsScreen = () => {
                   <Text style={SettingsScreenStyles.label}>서비스 이용약관</Text>
                 </TouchableOpacity>
               </View>
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-                <TouchableOpacity
-                  style={[
-                    SettingsScreenStyles.row,
-                    { flex: 1, backgroundColor: '#23284a', justifyContent: 'center' },
-                  ]}
-                >
-                  <Text style={SettingsScreenStyles.label}>데이터 다운로드</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    SettingsScreenStyles.row,
-                    { flex: 1, backgroundColor: '#23284a', justifyContent: 'center' },
-                  ]}
-                >
-                  <Text style={SettingsScreenStyles.label}>비밀번호 변경</Text>
-                </TouchableOpacity>
-              </View>
+
               <View
                 style={{
                   backgroundColor: 'rgba(255,77,79,0.08)',
