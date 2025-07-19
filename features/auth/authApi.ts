@@ -51,19 +51,85 @@ export const login = async (data: LoginRequest): Promise<ApiResponse<LoginRespon
 
 /**
  * 회원가입 API 호출 함수
- * @param data 회원가입 요청 데이터
- * @returns 회원가입 응답 데이터
- * @throws 회원가입 실패 시 에러
+ *
+ * 새로운 사용자 계정을 생성하기 위해 서버의 회원가입 엔드포인트로 요청을 보냅니다.
+ * 사용자 입력 데이터를 서버로 전송하고 회원가입 결과를 반환합니다.
+ *
+ * @param data 회원가입 요청 데이터 (이메일, 비밀번호, 이름, 닉네임, 역할)
+ * @returns 회원가입 응답 데이터 (성공 시 상태, 메시지, 사용자 정보)
+ * @throws 회원가입 실패 시 에러 (네트워크 오류, 서버 오류, 중복 데이터 등)
+ *
+ * @example
+ * ```typescript
+ * const userData = {
+ *   email: "user@example.com",
+ *   password: "password123",
+ *   name: "홍길동",
+ *   nickname: "hong",
+ *   role: "parent"
+ * };
+ * const result = await signup(userData);
+ * console.log(result.message); // "회원가입이 완료되었습니다."
+ * ```
  */
 export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
   try {
-    const response = await axios.post<SignupResponse>(`${API_CONFIG.BASE_URL}/auth/signup`, data);
+    // 요청할 완전한 URL 생성
+    const fullUrl = `${API_CONFIG.BASE_URL}/auth/signup`;
+
+    // 회원가입 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
+    console.log('🚀 회원가입 요청 시작:', {
+      url: fullUrl,
+      method: 'POST',
+      data: data, // 개발용 로그 - 전체 데이터 표시
+    });
+
+    // 실제 HTTP POST 요청을 서버로 전송
+    const response = await axios.post<SignupResponse>(fullUrl, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // 성공적인 응답을 받았을 때 결과를 로깅
+    console.log('✅ 회원가입 성공:', response.data);
+
+    // 서버 응답 데이터를 반환
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
+    // 에러가 발생했을 때 상세 정보를 로깅
+    console.error('❌ 회원가입 실패:', error);
+
+    // Axios 에러인지 확인하고 적절한 에러 메시지 생성
     if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || '회원가입 중 오류가 발생했습니다.');
+      // 서버에서 응답이 왔지만 에러 상태 코드인 경우
+      if (error.response) {
+        const statusCode = error.response.status;
+        const errorMessage = error.response.data?.message || '알 수 없는 오류';
+
+        // 상세한 에러 정보 로깅
+        console.error('📋 서버 응답 에러:', {
+          status: statusCode,
+          message: errorMessage,
+          data: error.response.data,
+        });
+
+        // 사용자에게 보여줄 에러 메시지 생성
+        throw new Error(`회원가입 실패 (${statusCode}): ${errorMessage}`);
+      } else if (error.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        console.error('📡 네트워크 오류: 서버에 연결할 수 없습니다');
+        throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+      } else {
+        // 요청 설정 중 오류가 발생한 경우
+        console.error('⚙️ 요청 설정 오류:', error.message);
+        throw new Error(`요청 설정 오류: ${error.message}`);
+      }
+    } else {
+      // Axios 에러가 아닌 기타 에러
+      console.error('🔧 예상치 못한 오류:', error);
+      throw new Error('회원가입 중 예상치 못한 오류가 발생했습니다.');
     }
-    throw error;
   }
 };
 
@@ -72,12 +138,85 @@ export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
  * @param data 이메일 중복확인 요청 데이터
  * @returns 이메일 중복확인 응답 데이터
  */
+/**
+ * 이메일 중복확인 API 호출 함수
+ *
+ * 입력된 이메일이 이미 사용 중인지 서버에서 확인합니다.
+ * 회원가입 시 이메일 중복을 방지하기 위해 사용됩니다.
+ *
+ * @param data 이메일 중복확인 요청 데이터 (이메일 주소)
+ * @returns 이메일 중복확인 응답 데이터 (사용 가능 여부)
+ * @throws 중복확인 실패 시 에러 (네트워크 오류, 서버 오류 등)
+ *
+ * @example
+ * ```typescript
+ * const result = await checkEmail({ email: "user@example.com" });
+ * if (result.data) {
+ *   console.log("사용 가능한 이메일입니다");
+ * } else {
+ *   console.log("이미 사용 중인 이메일입니다");
+ * }
+ * ```
+ */
 export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckResponse> => {
-  const response = await axios.post<EmailCheckResponse>(
-    `${API_CONFIG.BASE_URL}/auth/email/verification/exists`,
-    data
-  );
-  return response.data;
+  try {
+    // Swagger 스펙에 맞는 올바른 엔드포인트 URL 생성
+    const fullUrl = `${API_CONFIG.BASE_URL}/email/verification/exists`;
+
+    // 이메일 중복 확인 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
+    console.log('📧 이메일 중복 확인 요청:', {
+      url: fullUrl,
+      method: 'POST',
+      data: data,
+    });
+
+    // 실제 HTTP POST 요청을 서버로 전송
+    const response = await axios.post<EmailCheckResponse>(fullUrl, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // 성공적인 응답을 받았을 때 결과를 로깅
+    console.log('✅ 이메일 중복 확인 성공:', response.data);
+
+    // 서버 응답 데이터를 반환
+    return response.data;
+  } catch (error: any) {
+    // 에러가 발생했을 때 상세 정보를 로깅
+    console.error('❌ 이메일 중복 확인 실패:', error);
+
+    // Axios 에러인지 확인하고 적절한 에러 메시지 생성
+    if (axios.isAxiosError(error)) {
+      // 서버에서 응답이 왔지만 에러 상태 코드인 경우
+      if (error.response) {
+        const statusCode = error.response.status;
+        const errorMessage = error.response.data?.message || '알 수 없는 오류';
+
+        // 상세한 에러 정보 로깅
+        console.error('📋 서버 응답 에러:', {
+          status: statusCode,
+          message: errorMessage,
+          data: error.response.data,
+        });
+
+        // 사용자에게 보여줄 에러 메시지 생성
+        throw new Error(`이메일 중복 확인 실패 (${statusCode}): ${errorMessage}`);
+      } else if (error.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        console.error('📡 네트워크 오류: 서버에 연결할 수 없습니다');
+        throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+      } else {
+        // 요청 설정 중 오류가 발생한 경우
+        console.error('⚙️ 요청 설정 오류:', error.message);
+        throw new Error(`요청 설정 오류: ${error.message}`);
+      }
+    } else {
+      // Axios 에러가 아닌 기타 에러
+      console.error('🔧 예상치 못한 오류:', error);
+      throw new Error('이메일 중복 확인 중 예상치 못한 오류가 발생했습니다.');
+    }
+  }
 };
 
 /**
@@ -85,12 +224,85 @@ export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckRes
  * @param data 닉네임 중복확인 요청 데이터
  * @returns 닉네임 중복확인 응답 데이터
  */
+/**
+ * 닉네임 중복확인 API 호출 함수
+ *
+ * 입력된 닉네임이 이미 사용 중인지 서버에서 확인합니다.
+ * 회원가입 시 닉네임 중복을 방지하기 위해 사용됩니다.
+ *
+ * @param data 닉네임 중복확인 요청 데이터 (닉네임)
+ * @returns 닉네임 중복확인 응답 데이터 (사용 가능 여부)
+ * @throws 중복확인 실패 시 에러 (네트워크 오류, 서버 오류 등)
+ *
+ * @example
+ * ```typescript
+ * const result = await checkNickname({ nickname: "hong" });
+ * if (result.data) {
+ *   console.log("사용 가능한 닉네임입니다");
+ * } else {
+ *   console.log("이미 사용 중인 닉네임입니다");
+ * }
+ * ```
+ */
 export const checkNickname = async (data: NicknameCheckRequest): Promise<NicknameCheckResponse> => {
-  const response = await axios.post<NicknameCheckResponse>(
-    `${API_CONFIG.BASE_URL}/auth/nickname/exists`,
-    data
-  );
-  return response.data;
+  try {
+    // Swagger 스펙에 맞는 올바른 엔드포인트 URL 생성 (추정)
+    const fullUrl = `${API_CONFIG.BASE_URL}/nickname/exists`;
+
+    // 닉네임 중복 확인 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
+    console.log('🏷️ 닉네임 중복 확인 요청:', {
+      url: fullUrl,
+      method: 'POST',
+      data: data,
+    });
+
+    // 실제 HTTP POST 요청을 서버로 전송
+    const response = await axios.post<NicknameCheckResponse>(fullUrl, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // 성공적인 응답을 받았을 때 결과를 로깅
+    console.log('✅ 닉네임 중복 확인 성공:', response.data);
+
+    // 서버 응답 데이터를 반환
+    return response.data;
+  } catch (error: any) {
+    // 에러가 발생했을 때 상세 정보를 로깅
+    console.error('❌ 닉네임 중복 확인 실패:', error);
+
+    // Axios 에러인지 확인하고 적절한 에러 메시지 생성
+    if (axios.isAxiosError(error)) {
+      // 서버에서 응답이 왔지만 에러 상태 코드인 경우
+      if (error.response) {
+        const statusCode = error.response.status;
+        const errorMessage = error.response.data?.message || '알 수 없는 오류';
+
+        // 상세한 에러 정보 로깅
+        console.error('📋 서버 응답 에러:', {
+          status: statusCode,
+          message: errorMessage,
+          data: error.response.data,
+        });
+
+        // 사용자에게 보여줄 에러 메시지 생성
+        throw new Error(`닉네임 중복 확인 실패 (${statusCode}): ${errorMessage}`);
+      } else if (error.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        console.error('📡 네트워크 오류: 서버에 연결할 수 없습니다');
+        throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+      } else {
+        // 요청 설정 중 오류가 발생한 경우
+        console.error('⚙️ 요청 설정 오류:', error.message);
+        throw new Error(`요청 설정 오류: ${error.message}`);
+      }
+    } else {
+      // Axios 에러가 아닌 기타 에러
+      console.error('🔧 예상치 못한 오류:', error);
+      throw new Error('닉네임 중복 확인 중 예상치 못한 오류가 발생했습니다.');
+    }
+  }
 };
 
 /**

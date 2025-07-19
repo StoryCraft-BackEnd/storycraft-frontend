@@ -189,6 +189,14 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
       </TouchableOpacity>
 
+      {/* API 테스트 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#FF5722' }]}
+        onPress={() => router.push('./api-test')}
+      >
+        <ThemedText style={styles.buttonText}>🧪 API 테스트</ThemedText>
+      </TouchableOpacity>
+
       {/* 메인 화면으로 이동 버튼 */}
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#2196F3' }]}

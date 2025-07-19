@@ -1,55 +1,167 @@
 /**
  * API 서버 설정 관리
  *
- * 환경 변수를 통해 다양한 환경에서 유연하게 API 서버 설정을 관리합니다.
- * .env 파일을 통해 환경별로 다른 설정을 적용할 수 있습니다.
+ * environment.ts에서 정의된 환경 설정을 기반으로 API 클라이언트 설정을 제공합니다.
+ * TypeScript 환경 설정 파일을 사용하여 타입 안전성과 안정성을 보장합니다.
  *
  * @author StoryCraft Team
- * @version 2.0.0
+ * @version 4.0.0
+ * @since 2025-01-01
  */
-import Constants from 'expo-constants';
 
-// Metro Bundler의 IP 자동 감지 함수
-function getDevServerIp() {
-  // Expo Go 환경에서만 동작 (웹/프로덕션에서는 fallback)
-  const debuggerHost = Constants.manifest?.debuggerHost || Constants.expoConfig?.hostUri;
-  if (debuggerHost) {
-    return debuggerHost.split(':')[0];
-  }
-  return 'localhost';
+// ===== 환경 설정 import =====
+// 새로 생성된 TypeScript 환경 설정 파일에서 설정을 가져옵니다
+import { ENV_CONFIG, type EnvironmentConfig, getConfigForEnvironment } from './environment';
+
+// ===== API 설정 타입 정의 =====
+
+/**
+ * API 클라이언트 설정 타입 정의
+ *
+ * Axios 클라이언트에서 사용되는 설정 정보의 구조를 정의합니다.
+ */
+interface ApiClientConfiguration {
+  BASE_URL: string; // 완전한 API 기본 URL
+  HOST: string; // API 서버 호스트 주소
+  PORT: number; // API 서버 포트 번호
+  PROTOCOL: string; // 통신 프로토콜
+  API_PATH: string; // API 경로
+  TIMEOUT: number; // 요청 타임아웃 (밀리초)
+  ENVIRONMENT: string; // 환경 설정
 }
 
-// 환경 변수에서 설정 읽기 (fallback 값 포함)
-const getApiBaseUrl = (): string => {
-  // 환경 변수에서 API URL 읽기
-  const envApiUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+// ===== 최종 API 설정 객체 생성 =====
 
-  if (envApiUrl) {
-    return envApiUrl;
+/**
+ * 최종 API 설정 객체
+ *
+ * environment.ts에서 로드된 환경 설정을 기반으로 API 클라이언트 설정을 생성합니다.
+ * 이 객체는 앱의 모든 HTTP 통신에서 사용됩니다.
+ */
+export const API_CONFIG: ApiClientConfiguration = {
+  BASE_URL: ENV_CONFIG.api.baseUrl, // 환경 설정에서 가져온 완전한 URL
+  HOST: ENV_CONFIG.api.host, // 환경 설정에서 가져온 호스트
+  PORT: ENV_CONFIG.api.port, // 환경 설정에서 가져온 포트
+  PROTOCOL: ENV_CONFIG.api.protocol, // 환경 설정에서 가져온 프로토콜
+  API_PATH: ENV_CONFIG.api.path, // 환경 설정에서 가져온 API 경로
+  TIMEOUT: ENV_CONFIG.api.timeout, // 환경 설정에서 가져온 타임아웃
+  ENVIRONMENT: ENV_CONFIG.app.environment, // 환경 설정에서 가져온 환경 정보
+};
+
+// ===== 유틸리티 함수들 =====
+
+/**
+ * 동적 URL 생성 함수
+ *
+ * 특정 엔드포인트나 다른 설정으로 URL을 동적으로 생성할 때 사용합니다.
+ *
+ * @param endpoint - API 엔드포인트 (예: '/users', '/auth/login')
+ * @param customHost - 커스텀 호스트 (선택적)
+ * @param customPort - 커스텀 포트 (선택적)
+ * @returns {string} 완전한 API URL
+ *
+ * @example
+ * ```typescript
+ * // 기본 설정으로 URL 생성
+ * buildApiUrl('/users/123')
+ * // 결과: "http://54.180.180.213:8080/api/users/123"
+ *
+ * // 커스텀 호스트와 포트로 URL 생성
+ * buildApiUrl('/auth/login', 'localhost', 3000)
+ * // 결과: "http://localhost:3000/api/auth/login"
+ * ```
+ */
+export const buildApiUrl = (
+  endpoint: string = '',
+  customHost?: string,
+  customPort?: number
+): string => {
+  // 사용할 호스트, 포트, 프로토콜 결정 (커스텀 값이 있으면 우선 사용)
+  const host = customHost || API_CONFIG.HOST;
+  const port = customPort || API_CONFIG.PORT;
+  const protocol = API_CONFIG.PROTOCOL;
+
+  // 엔드포인트가 /로 시작하지 않으면 추가
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  // 완전한 URL 조립
+  const fullUrl = `${protocol}://${host}:${port}${API_CONFIG.API_PATH}${cleanEndpoint}`;
+
+  // 디버깅 정보 출력 (개발 환경에서만)
+  if (ENV_CONFIG.app.debugMode) {
+    console.log('🔧 동적 URL 생성:', {
+      endpoint: cleanEndpoint,
+      host,
+      port,
+      protocol,
+      result: fullUrl,
+    });
   }
 
-  // 환경 변수가 없을 경우 기존 방식으로 fallback
-  return process.env.NODE_ENV === 'production'
-    ? 'https://api.storycraft.com/api'
-    : `http://${getDevServerIp()}:8080/api`;
+  return fullUrl;
 };
 
-const getApiTimeout = (): number => {
-  const envTimeout = process.env.EXPO_PUBLIC_API_TIMEOUT;
-  return envTimeout ? parseInt(envTimeout, 10) : 10000;
+/**
+ * 설정 정보 요약 함수
+ *
+ * 현재 API 설정을 문자열로 포맷하여 로깅이나 디버깅에 사용할 수 있습니다.
+ *
+ * @returns {string} 포맷된 설정 정보
+ *
+ * @example
+ * ```typescript
+ * console.log(getConfigSummary());
+ * // 출력: "API Config - URL: http://54.180.180.213:8080/api, Timeout: 10000ms, Env: development"
+ * ```
+ */
+export const getConfigSummary = (): string => {
+  return `API Config - URL: ${API_CONFIG.BASE_URL}, Timeout: ${API_CONFIG.TIMEOUT}ms, Env: ${API_CONFIG.ENVIRONMENT}`;
 };
 
-export const API_CONFIG = {
-  BASE_URL: getApiBaseUrl(),
-  TIMEOUT: getApiTimeout(),
-  ENVIRONMENT: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
+/**
+ * 현재 API 설정의 전체 정보를 반환하는 함수
+ *
+ * 디버깅이나 설정 확인 목적으로 사용됩니다.
+ *
+ * @returns {ApiClientConfiguration} 현재 API 설정 객체의 복사본
+ */
+export const getFullApiConfig = (): ApiClientConfiguration => {
+  return { ...API_CONFIG };
 };
 
-// 디버깅을 위한 로깅 (개발 환경에서만)
-if (__DEV__) {
-  console.log('🔧 API Configuration:', {
-    BASE_URL: API_CONFIG.BASE_URL,
-    TIMEOUT: API_CONFIG.TIMEOUT,
-    ENVIRONMENT: API_CONFIG.ENVIRONMENT,
-  });
-}
+/**
+ * 환경별 API 설정을 가져오는 함수
+ *
+ * 특정 환경의 API 설정을 확인하거나 테스트할 때 사용합니다.
+ *
+ * @param environment - 확인할 환경 ('development' | 'staging' | 'production')
+ * @returns {ApiClientConfiguration} 해당 환경의 API 설정
+ */
+export const getApiConfigForEnvironment = (
+  environment: 'development' | 'staging' | 'production'
+): ApiClientConfiguration => {
+  // environment.ts에서 해당 환경의 설정을 가져옵니다
+  const envConfig: EnvironmentConfig = getConfigForEnvironment(environment);
+
+  // API 설정 형태로 변환하여 반환
+  return {
+    BASE_URL: envConfig.api.baseUrl,
+    HOST: envConfig.api.host,
+    PORT: envConfig.api.port,
+    PROTOCOL: envConfig.api.protocol,
+    API_PATH: envConfig.api.path,
+    TIMEOUT: envConfig.api.timeout,
+    ENVIRONMENT: envConfig.app.environment,
+  };
+};
+
+// ===== 추가 유틸리티 exports =====
+
+// 환경 설정 관련 유틸리티들을 re-export하여 편의성 제공
+export {
+  ENV_CONFIG, // 전체 환경 설정 객체
+  isDevelopment, // 개발 환경 여부 확인
+  isProduction, // 프로덕션 환경 여부 확인
+  getEnvironmentSummary, // 환경 설정 요약
+  type EnvironmentConfig, // 환경 설정 타입
+} from './environment';

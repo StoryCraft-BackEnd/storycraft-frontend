@@ -32,6 +32,11 @@ export default function SignupScreen() {
   const [emailChecked, setEmailChecked] = useState(false);
   const [nicknameChecked, setNicknameChecked] = useState(false);
 
+  // 로딩 상태 관리
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEmailChecking, setIsEmailChecking] = useState(false);
+  const [isNicknameChecking, setIsNicknameChecking] = useState(false);
+
   // 테마 색상 가져오기
   const placeholderColor = useThemeColor('secondary');
   const backgroundColor = useThemeColor('background');
@@ -42,7 +47,13 @@ export default function SignupScreen() {
 
   // 회원가입 처리
   const handleSignup = async () => {
+    // 이미 로딩 중이면 중복 요청 방지
+    if (isLoading) return;
+
+    setIsLoading(true); // 로딩 시작
+
     try {
+      // 사용자 입력 데이터로 회원가입 요청 객체 생성
       const formData: SignupRequest = {
         email,
         password,
@@ -50,51 +61,106 @@ export default function SignupScreen() {
         nickname,
         role,
       };
+
+      console.log('📝 회원가입 요청 데이터:', formData);
+
+      // 실제 회원가입 API 호출
       const result = await signup(formData);
-      Alert.alert('알림', result.message);
-      router.replace('/login');
+
+      console.log('✅ 회원가입 완료:', result);
+
+      // 성공 시 알림 표시 후 로그인 화면으로 이동
+      Alert.alert('회원가입 완료! 🎉', `${result.message}\n로그인 화면으로 이동합니다.`, [
+        {
+          text: '확인',
+          onPress: () => router.replace('/login'),
+        },
+      ]);
     } catch (error: unknown) {
+      console.error('❌ 회원가입 실패:', error);
+
+      // 에러 메시지 생성
       const message =
         error instanceof Error
           ? error.message
           : typeof error === 'string'
             ? error
             : '회원가입 중 문제가 발생했습니다.';
-      Alert.alert('오류', message);
+
+      // 에러 알림 표시
+      Alert.alert('회원가입 실패 ❌', message, [{ text: '다시 시도', style: 'default' }]);
+    } finally {
+      setIsLoading(false); // 로딩 종료
     }
   };
 
   // 이메일 중복 확인
   const handleEmailCheck = async () => {
+    // 이메일 입력 검증
+    if (!email || !email.includes('@')) {
+      Alert.alert('오류', '올바른 이메일 주소를 입력해주세요.');
+      return;
+    }
+
+    // 이미 확인 중이면 중복 요청 방지
+    if (isEmailChecking) return;
+
+    setIsEmailChecking(true); // 로딩 시작
+
     try {
+      console.log('📧 이메일 중복 확인 요청:', email);
       const result = await checkEmail({ email });
+
       if (result.data) {
-        Alert.alert('알림', '사용 가능한 이메일입니다.');
+        Alert.alert('사용 가능 ✅', '사용 가능한 이메일입니다.');
         setEmailChecked(true);
+        console.log('✅ 이메일 사용 가능:', email);
       } else {
-        Alert.alert('알림', '이미 사용 중인 이메일입니다.');
+        Alert.alert('중복 이메일 ❌', '이미 사용 중인 이메일입니다.');
         setEmailChecked(false);
+        console.log('❌ 이메일 중복:', email);
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ 이메일 중복 확인 실패:', error);
       setEmailChecked(false);
-      Alert.alert('오류', '이메일 중복 확인 중 문제가 발생했습니다.');
+      Alert.alert('확인 실패', '이메일 중복 확인 중 문제가 발생했습니다.');
+    } finally {
+      setIsEmailChecking(false); // 로딩 종료
     }
   };
 
   // 닉네임 중복 확인
   const handleNicknameCheck = async () => {
+    // 닉네임 입력 검증
+    if (!nickname || nickname.length < 2) {
+      Alert.alert('오류', '닉네임을 2자 이상 입력해주세요.');
+      return;
+    }
+
+    // 이미 확인 중이면 중복 요청 방지
+    if (isNicknameChecking) return;
+
+    setIsNicknameChecking(true); // 로딩 시작
+
     try {
+      console.log('🏷️ 닉네임 중복 확인 요청:', nickname);
       const result = await checkNickname({ nickname });
+
       if (result.data) {
-        Alert.alert('알림', '사용 가능한 닉네임입니다.');
+        Alert.alert('사용 가능 ✅', '사용 가능한 닉네임입니다.');
         setNicknameChecked(true);
+        console.log('✅ 닉네임 사용 가능:', nickname);
       } else {
-        Alert.alert('알림', '이미 사용 중인 닉네임입니다.');
+        Alert.alert('중복 닉네임 ❌', '이미 사용 중인 닉네임입니다.');
         setNicknameChecked(false);
+        console.log('❌ 닉네임 중복:', nickname);
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ 닉네임 중복 확인 실패:', error);
       setNicknameChecked(false);
-      Alert.alert('오류', '닉네임 중복 확인 중 문제가 발생했습니다.');
+      Alert.alert('확인 실패', '닉네임 중복 확인 중 문제가 발생했습니다.');
+    } finally {
+      setIsNicknameChecking(false); // 로딩 종료
     }
   };
 
@@ -188,8 +254,11 @@ export default function SignupScreen() {
               <TouchableOpacity
                 style={[styles.checkButton, { backgroundColor: primaryColor }]}
                 onPress={handleEmailCheck}
+                disabled={isEmailChecking}
               >
-                <ThemedText style={{ color: cardColor }}>중복확인</ThemedText>
+                <ThemedText style={{ color: cardColor }}>
+                  {isEmailChecking ? '확인중...' : '중복확인'}
+                </ThemedText>
               </TouchableOpacity>
             </View>
           </>
@@ -230,8 +299,11 @@ export default function SignupScreen() {
               <TouchableOpacity
                 style={[styles.checkButton, { backgroundColor: primaryColor }]}
                 onPress={handleNicknameCheck}
+                disabled={isNicknameChecking}
               >
-                <ThemedText style={{ color: cardColor }}>중복확인</ThemedText>
+                <ThemedText style={{ color: cardColor }}>
+                  {isNicknameChecking ? '확인중...' : '중복확인'}
+                </ThemedText>
               </TouchableOpacity>
             </View>
           </>
@@ -310,10 +382,10 @@ export default function SignupScreen() {
                     { backgroundColor: primaryColor, flex: 1, marginLeft: step > 1 ? 8 : 0 },
                   ]}
                   onPress={handleNext}
+                  disabled={step === 5 && isLoading}
                 >
                   <ThemedText style={[styles.signupButtonText, { color: cardColor }]}>
-                    {' '}
-                    {step === 5 ? '프로필 생성하기' : '계속하기'}{' '}
+                    {step === 5 ? (isLoading ? '프로필 생성중...' : '프로필 생성하기') : '계속하기'}
                   </ThemedText>
                 </TouchableOpacity>
               </View>
