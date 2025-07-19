@@ -59,19 +59,30 @@ export default function LoginScreen() {
       const res = await login({ email, password });
       console.log('로그인 결과:', res);
 
-      if (res.status === 200 && res.data?.access_token) {
-        await AsyncStorage.setItem('token', res.data.access_token);
-        await AsyncStorage.setItem('refreshToken', res.data.refresh_token);
-        console.log('토큰 저장 완료');
+      // 상세한 조건 확인 로그
+      console.log('🔍 조건 확인:');
+      console.log('  - res.status:', res.status);
+      console.log('  - res.data:', res.data);
+      console.log('  - res.data.data?.access_token:', res.data.data?.access_token);
+      console.log('  - 조건 만족 여부:', res.status === 200 && res.data.data?.access_token);
 
+      if (res.status === 200 && res.data.data?.access_token) {
+        console.log('✅ 조건 만족 - 토큰 저장 시작');
+        await AsyncStorage.setItem('token', res.data.data.access_token);
+        await AsyncStorage.setItem('refreshToken', res.data.data.refresh_token);
+        console.log('✅ 토큰 저장 완료');
+
+        console.log('🔄 화면 전환 시작 - 프로필 선택 화면으로 이동');
         // 네비게이션 스택을 정리하고 프로필 선택 화면으로 이동
         router.replace('/(profile)');
+        console.log('✅ 화면 전환 명령 완료');
       } else {
+        console.log('❌ 조건 불만족 - 로그인 실패');
         console.log('로그인 실패:', res);
         Alert.alert('로그인 실패', res.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch (error) {
-      console.error('로그인 에러:', error);
+      console.error('❌ 로그인 에러:', error);
       if (error instanceof Error) {
         Alert.alert('로그인 실패', error.message);
       } else {

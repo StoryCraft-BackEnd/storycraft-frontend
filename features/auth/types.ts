@@ -11,13 +11,12 @@ export interface LoginRequest {
 
 // 로그인 응답 데이터 타입
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  user: {
-    id: number;
-    email: string;
-    name: string;
+  data: {
+    access_token: string;
+    refresh_token: string;
   };
+  message: string;
+  status: number;
 }
 
 // 에러 응답 데이터 타입
