@@ -8,7 +8,6 @@ import { apiClient } from '@/shared/api/client';
 import {
   LoginRequest,
   LoginResponse,
-  ErrorResponse,
   ApiResponse,
   SignupRequest,
   SignupResponse,
@@ -33,18 +32,24 @@ import {
 export const login = async (data: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
   try {
     console.log('로그인 시도:', data);
-    const response = await axios.post<LoginResponse>(`${API_CONFIG.BASE_URL}/auth/login`, data);
+    const response = await apiClient.post<LoginResponse>('/auth/login', data);
     console.log('로그인 응답:', response.data);
+    console.log('로그인 응답 구조:', {
+      status: response.status,
+      data: response.data,
+      dataType: typeof response.data,
+      hasData: 'data' in response.data,
+      dataKeys: Object.keys(response.data),
+    });
     return {
       status: response.status,
       data: response.data,
       message: '로그인 성공',
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('로그인 에러:', error);
-    if (axios.isAxiosError(error)) {
-      const errorResponse = error.response?.data as ErrorResponse;
-      throw new Error(errorResponse?.message || '로그인 중 오류가 발생했습니다.');
+    if (error.response?.data) {
+      throw new Error(error.response.data.message || '로그인 중 오류가 발생했습니다.');
     }
     throw error;
   }
@@ -293,8 +298,8 @@ export const checkNickname = async (data: NicknameCheckRequest): Promise<Nicknam
 export const sendEmailVerificationCode = async (
   data: EmailVerificationSendRequest
 ): Promise<EmailVerificationSendResponse> => {
-  const response = await axios.post<EmailVerificationSendResponse>(
-    `${API_CONFIG.BASE_URL}/auth/request-reset-code`,
+  const response = await apiClient.post<EmailVerificationSendResponse>(
+    '/auth/request-reset-code',
     data
   );
   return response.data;
@@ -308,8 +313,8 @@ export const sendEmailVerificationCode = async (
 export const verifyEmailCode = async (
   data: EmailVerificationCheckRequest
 ): Promise<EmailVerificationCheckResponse> => {
-  const response = await axios.post<EmailVerificationCheckResponse>(
-    `${API_CONFIG.BASE_URL}/auth/verify-reset-code`,
+  const response = await apiClient.post<EmailVerificationCheckResponse>(
+    '/auth/verify-reset-code',
     data
   );
   return response.data;
@@ -321,10 +326,7 @@ export const verifyEmailCode = async (
  * @returns 비밀번호 재설정 응답 데이터
  */
 export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-  const response = await axios.post<ResetPasswordResponse>(
-    `${API_CONFIG.BASE_URL}/auth/reset-password`,
-    data
-  );
+  const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', data);
   return response.data;
 };
 
@@ -335,8 +337,8 @@ export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPa
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
   try {
-    const response = await axios.post<{ data: { access_token: string } }>(
-      `${API_CONFIG.BASE_URL}/auth/token/refresh`,
+    const response = await apiClient.post<{ data: { access_token: string } }>(
+      '/auth/token/refresh',
       { refreshToken }
     );
     return response.data.data.access_token;
@@ -350,19 +352,9 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
  * @param accessToken 액세스 토큰
  * @returns 로그아웃 결과
  */
-export const logout = async (
-  accessToken: string
-): Promise<{ status: number; message: string; data: boolean }> => {
+export const logout = async (): Promise<{ status: number; message: string; data: boolean }> => {
   try {
-    const response = await axios.post(
-      `${API_CONFIG.BASE_URL}/auth/logout`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+    const response = await apiClient.post('/auth/logout', {});
     return response.data;
   } catch {
     throw new Error('로그아웃에 실패했습니다.');
@@ -374,15 +366,9 @@ export const logout = async (
  * @param accessToken 액세스 토큰
  * @returns 회원 탈퇴 결과
  */
-export const withdraw = async (
-  accessToken: string
-): Promise<{ status: number; message: string; data: boolean }> => {
+export const withdraw = async (): Promise<{ status: number; message: string; data: boolean }> => {
   try {
-    const response = await axios.delete(`${API_CONFIG.BASE_URL}/users`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const response = await apiClient.delete('/users');
     return response.data;
   } catch {
     throw new Error('회원 탈퇴에 실패했습니다.');

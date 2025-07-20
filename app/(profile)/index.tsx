@@ -21,7 +21,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
 import { ChildProfile } from '@/features/profile/types';
 import { loadImage } from '@/features/main/imageLoader';
-import { loadProfilesFromStorage, saveProfiles } from '@/features/profile/profileStorage';
+import { saveProfiles } from '@/features/profile/profileStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function ProfileScreen() {
@@ -32,7 +32,6 @@ export default function ProfileScreen() {
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // 화면이 포커스될 때마다 프로필 목록을 새로고침
   useFocusEffect(
@@ -82,21 +81,10 @@ export default function ProfileScreen() {
     try {
       setIsLoading(true);
 
-      // 첫 로드가 아니면 로컬 스토리지에서 먼저 불러옴
-      if (!isFirstLoad) {
-        const localProfiles = await loadProfilesFromStorage();
-        if (localProfiles) {
-          setProfiles(localProfiles);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // 첫 로드이거나 로컬 데이터가 없는 경우 서버에서 불러옴
+      // 서버에서 항상 최신 데이터를 불러옴
       const response = await getProfiles();
       setProfiles(response.data);
       await saveProfiles(response.data); // 로컬에 저장
-      setIsFirstLoad(false);
       setError(null);
     } catch (err) {
       setError('프로필을 불러오는데 실패했습니다.');
@@ -136,11 +124,8 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await deleteProfile(profileId);
-            // 서버에서 최신 프로필 목록을 다시 받아옴
-            const response = await getProfiles();
-            setProfiles(response.data);
-            // 로컬 스토리지도 서버 데이터로 업데이트
-            await saveProfiles(response.data);
+            // 프로필 목록을 다시 불러옴
+            await loadProfiles();
             Alert.alert('알림', '프로필이 삭제되었습니다.');
           } catch (error) {
             Alert.alert('오류', '프로필 삭제에 실패했습니다.');
@@ -178,10 +163,9 @@ export default function ProfileScreen() {
   };
 
   // 프로필 이미지 로드 함수
-  const getProfileImage = (index: number) => {
-    // 프로필 순서에 따라 다른 이미지 사용 (1-8 사이 순환)
-    const imageIndex = (index % 8) + 1;
-    return loadImage(`storycraft_cover_${imageIndex}`);
+  const getProfileImage = () => {
+    // 모든 프로필에 기본 이미지 사용
+    return loadImage('default_profile');
   };
 
   return (
@@ -215,16 +199,18 @@ export default function ProfileScreen() {
               contentContainerStyle={{ flexGrow: 1 }}
             >
               <View style={styles.profileList}>
-                {profiles.map((profile, index) => (
+                {profiles.map((profile) => (
                   <TouchableOpacity
-                    key={profile.child_id}
+                    key={profile.childId}
                     style={styles.profileCard}
-                    onPress={() => handleProfileSelect(profile.child_id)}
+                    onPress={() => handleProfileSelect(profile.childId)}
                   >
-                    <Image source={getProfileImage(index)} style={styles.profileImage} />
+                    <Image source={getProfileImage()} style={styles.profileImage} />
                     <ThemedText style={styles.profileName}>{profile.name}</ThemedText>
                     <ThemedText style={styles.profileAge}>{profile.age}세</ThemedText>
-                    <ThemedText style={styles.profileLevel}>{profile.learning_level}</ThemedText>
+                    <ThemedText style={styles.profileLevel}>
+                      {profile.learningLevel || '미설정'}
+                    </ThemedText>
                     <View style={styles.profileActions}>
                       <TouchableOpacity
                         onPress={() => handleEditProfile(profile)}
@@ -233,7 +219,7 @@ export default function ProfileScreen() {
                         <ThemedText style={styles.actionButtonText}>수정</ThemedText>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={() => handleDeleteProfile(profile.child_id)}
+                        onPress={() => handleDeleteProfile(profile.childId)}
                         style={[styles.actionButton, styles.deleteButton]}
                       >
                         <ThemedText style={styles.actionButtonText}>삭제</ThemedText>

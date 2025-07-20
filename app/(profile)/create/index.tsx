@@ -7,7 +7,6 @@ import { MainScreenStyles } from '@/styles/MainScreen';
 import { createProfile } from '@/features/profile/profileApi';
 import { LearningLevel } from '@/features/profile/types';
 import { createProfileCreateScreenStyles } from '@/styles/ProfileCreateScreen.styles';
-import { addProfileToStorage } from '@/features/profile/profileStorage';
 
 export default function CreateProfileScreen() {
   const [name, setName] = useState('');
@@ -43,13 +42,11 @@ export default function CreateProfileScreen() {
         learning_level: learningLevel,
       });
 
-      if (response.status === 201) {
-        // 로컬 스토리지에도 저장
-        await addProfileToStorage(response.data);
+      if (response.status === 200 || response.status === 201) {
         Alert.alert('성공', '프로필이 생성되었습니다.', [
           {
             text: '확인',
-            onPress: () => router.replace('/(profile)'),
+            onPress: () => router.back(),
           },
         ]);
       } else {

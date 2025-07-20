@@ -10,7 +10,8 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createProfileEditFormStyles } from '@/styles/ProfileEditForm.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { ChildProfile } from '@/features/profile/types';
+import { ChildProfile, LearningLevel } from '@/features/profile/types';
+import { updateProfile } from '@/features/profile/profileApi';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 export default function ProfileEditScreen() {
@@ -30,13 +31,16 @@ export default function ProfileEditScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   // 프로필 정보 파싱 및 초기화
+  const [profile, setProfile] = useState<ChildProfile | null>(null);
+
   useEffect(() => {
     if (profileParam) {
       try {
-        const profile: ChildProfile = JSON.parse(profileParam);
-        setName(profile.name || '');
-        setAge(profile.age?.toString() || '');
-        setLearningLevel(profile.learning_level || '');
+        const parsedProfile: ChildProfile = JSON.parse(profileParam);
+        setProfile(parsedProfile);
+        setName(parsedProfile.name || '');
+        setAge(parsedProfile.age?.toString() || '');
+        setLearningLevel(parsedProfile.learningLevel || '');
       } catch (error) {
         console.error('프로필 정보 파싱 실패:', error);
         Alert.alert('오류', '프로필 정보를 불러오는데 실패했습니다.');
@@ -85,8 +89,22 @@ export default function ProfileEditScreen() {
     setIsLoading(true);
 
     try {
-      // TODO: 실제 API 호출로 프로필 수정
-      // await updateProfile(profileId, { name, age: ageNum, learning_level: learningLevel });
+      if (!profile) {
+        throw new Error('프로필 정보가 없습니다.');
+      }
+
+      // 프로필 ID 가져오기
+      const profileId = profile.childId;
+      if (!profileId) {
+        throw new Error('프로필 ID를 찾을 수 없습니다.');
+      }
+
+      // 실제 API 호출로 프로필 수정
+      await updateProfile(profileId, {
+        name,
+        age: ageNum,
+        learningLevel: learningLevel as LearningLevel,
+      });
 
       Alert.alert('성공', '프로필이 수정되었습니다.', [
         {
