@@ -69,16 +69,8 @@ export interface LoginResponse {
   message: string; // 로그인 결과 메시지
   data: {
     // 로그인 성공 시 반환되는 데이터 (필수)
-    accessToken: string; // JWT 액세스 토큰 (API 인증에 사용, 짧은 유효기간)
-    refreshToken: string; // JWT 리프레시 토큰 (토큰 갱신에 사용, 긴 유효기간)
-    user: {
-      // 로그인한 사용자의 기본 정보
-      userId: number; // 사용자 고유 식별 번호
-      email: string; // 사용자 이메일 주소
-      name: string; // 사용자 실명
-      nickname: string; // 사용자 닉네임
-      role: string; // 사용자 권한 레벨
-    };
+    access_token: string; // JWT 액세스 토큰 (API 인증에 사용, 짧은 유효기간)
+    refresh_token: string; // JWT 리프레시 토큰 (토큰 갱신에 사용, 긴 유효기간)
   };
 }
 
@@ -217,21 +209,31 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
     // 서버로 로그인 요청을 전송합니다
     const response = await apiClient.post<LoginResponse>('/auth/login', loginData);
 
-    // 응답에서 토큰 정보를 추출합니다
-    const { accessToken, refreshToken } = response.data.data;
+    // 응답에서 토큰 정보를 추출합니다 (서버는 snake_case 사용)
+    const { access_token, refresh_token } = response.data.data;
 
-    // 받은 토큰들을 디바이스의 로컬 스토리지에 저장합니다
-    // 이 토큰들은 향후 API 요청 시 자동으로 인증 헤더에 포함됩니다
-    await AsyncStorage.setItem('token', accessToken); // 액세스 토큰 저장
-    await AsyncStorage.setItem('refreshToken', refreshToken); // 리프레시 토큰 저장
+    // 토큰 유효성 검사 및 저장
+    if (access_token && refresh_token) {
+      // 받은 토큰들을 디바이스의 로컬 스토리지에 저장합니다
+      // 이 토큰들은 향후 API 요청 시 자동으로 인증 헤더에 포함됩니다
+      await AsyncStorage.setItem('token', access_token); // 액세스 토큰 저장
+      await AsyncStorage.setItem('refreshToken', refresh_token); // 리프레시 토큰 저장
+      console.log('✅ 토큰 저장 완료');
+    } else {
+      console.warn('⚠️ 토큰이 서버 응답에 포함되지 않았습니다:', {
+        access_token: access_token ? '있음' : '없음',
+        refresh_token: refresh_token ? '있음' : '없음',
+      });
+      throw new Error('서버에서 토큰을 발급받지 못했습니다.');
+    }
 
     // 성공 로그를 출력합니다 (보안상 실제 토큰 값은 숨김)
     console.log('✅ 로그인 성공:', {
-      ...response.data, // 기본 응답 데이터
+      status: response.data.status,
+      message: response.data.message,
       data: {
-        ...response.data.data, // 사용자 정보 유지
-        accessToken: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
-        refreshToken: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
+        access_token: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
+        refresh_token: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
       },
     });
 

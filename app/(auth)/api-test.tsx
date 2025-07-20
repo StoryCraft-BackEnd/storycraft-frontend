@@ -216,8 +216,6 @@ export default function ApiTestScreen() {
             ⏱️ Timeout: {API_CONFIG.TIMEOUT}ms{'\n'}
             🏷️ Environment: {API_CONFIG.ENVIRONMENT}
             {'\n'}
-            📱 App: {ENV_CONFIG.app.name} v{ENV_CONFIG.app.version}
-            {'\n'}
             🐛 Debug Mode: {ENV_CONFIG.app.debugMode ? 'ON' : 'OFF'}
           </Text>
         </View>

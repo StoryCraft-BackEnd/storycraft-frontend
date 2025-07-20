@@ -59,10 +59,12 @@ export const testSignup = async () => {
     // 고유한 테스트 데이터 생성 (중복 방지 및 서버 오류 해결)
     const timestamp = Date.now();
     const testData = {
-      email: `testuser${timestamp}@example.com`, // 고유한 이메일 (중복 방지)
+      email: `testuser@example.com`,
+      // email: `testuser${timestamp}@example.com`, // 고유한 이메일 (중복 방지)
       password: 'password123', // 더 단순한 비밀번호 (정책 문제 방지)
       name: '홍길동', // 사용자 지정 실명 (string)
-      nickname: `hong${timestamp}`, // 고유한 닉네임 (중복 방지)
+      nickname: `FRONTEND`, // 고유한 닉네임 (중복 방지)
+      // nickname: `hong${timestamp}`, // 고유한 닉네임 (중복 방지)
       role: 'parent', // 부모 권한으로 변경 (admin보다 안전)
     };
 
@@ -337,10 +339,10 @@ export const testLogin = async () => {
 
   try {
     // 테스트용 로그인 인증 정보를 준비합니다
-    // mock 서버에 등록된 테스트 계정 정보를 사용합니다
+    // 회원가입 테스트와 동일한 계정 정보를 사용합니다
     const testData = {
-      email: 'test@example.com', // 테스트용 이메일 (mock 서버에 등록됨)
-      password: '1234', // mock 서버의 실제 비밀번호와 일치
+      email: 'testuser@example.com', // 회원가입 테스트와 동일한 이메일
+      password: 'password123', // 회원가입 테스트와 동일한 비밀번호
     };
 
     // 로그인 시도할 계정 정보를 로깅합니다 (보안상 비밀번호는 마스킹)
@@ -354,10 +356,8 @@ export const testLogin = async () => {
     // 로그인 성공 시 결과를 상세히 로깅합니다
     console.log('✅ 로그인 테스트 성공:');
     console.log('   🎯 반환된 정보:');
-    console.log(`      사용자 ID: ${result.data.user.userId}`);
-    console.log(`      이메일: ${result.data.user.email}`);
-    console.log(`      닉네임: ${result.data.user.nickname}`);
-    console.log(`      권한: ${result.data.user.role}`);
+    console.log(`      상태 코드: ${result.status}`);
+    console.log(`      메시지: ${result.message}`);
     console.log('   🔑 토큰 정보:');
     console.log(`      액세스 토큰: 저장 완료 (실제 값은 보안상 표시 안 함)`);
     console.log(`      리프레시 토큰: 저장 완료 (실제 값은 보안상 표시 안 함)`);
@@ -582,7 +582,7 @@ export const runAllAuthTests = async () => {
     // === 5단계: 생성된 계정으로 로그인 ===
     console.log('\n📍 5단계: 테스트 계정으로 로그인');
     const loginResult = await testLogin();
-    console.log(`   🔐 로그인 완료: ${loginResult.data.user.nickname}님 환영합니다`);
+    console.log(`   🔐 로그인 완료: ${loginResult.message}`);
 
     // === 6단계: 로그인 후 토큰 상태 재확인 ===
     console.log('\n📍 6단계: 로그인 후 토큰 상태 재확인');

@@ -18,24 +18,33 @@ shared/api/
 
 ### 1. 서버 주소 설정
 
-`.env` 파일에서 API 서버 주소를 설정하세요:
+`shared/config/environment.ts` 파일에서 API 서버 주소를 설정하세요:
 
-```bash
-EXPO_PUBLIC_API_BASE_URL=http://54.180.180.213:8080
-EXPO_PUBLIC_API_TIMEOUT=10000
-EXPO_PUBLIC_ENVIRONMENT=development
+```typescript
+const defaultConfig: EnvironmentConfig = {
+  api: {
+    baseUrl: 'http://54.180.180.213:8080', // API 서버 URL
+    host: '54.180.180.213', // API 서버 호스트
+    port: 8080, // API 서버 포트
+    protocol: 'http', // HTTP 프로토콜
+    path: '', // API 기본 경로
+    timeout: 10000, // 10초 타임아웃
+  },
+  app: {
+    debugMode: true, // 디버그 모드 활성화
+  },
+};
 ```
 
-### 2. 현재 설정 확인
+### 2. 설정 사용
 
-앱을 실행하면 개발 환경에서 콘솔에 현재 설정이 출력됩니다:
+앱에서 환경 설정을 사용하려면:
 
-```
-🔧 API Configuration: {
-  BASE_URL: "http://54.180.180.213:8080",
-  TIMEOUT: 10000,
-  ENVIRONMENT: "development"
-}
+```typescript
+import { ENV_CONFIG } from '@/shared/config/environment';
+
+console.log('API URL:', ENV_CONFIG.api.baseUrl);
+console.log('Debug Mode:', ENV_CONFIG.app.debugMode);
 ```
 
 ## API 사용법
@@ -285,7 +294,7 @@ const ProfileCreateScreen = () => {
 
 **해결 방법:**
 
-- `.env` 파일의 `EXPO_PUBLIC_API_BASE_URL` 주소 확인
+- `shared/config/environment.ts` 파일의 `baseUrl` 주소 확인
 - 서버가 실행 중인지 확인
 - 네트워크 연결 상태 확인
 
@@ -297,7 +306,7 @@ const ProfileCreateScreen = () => {
 
 **해결 방법:**
 
-- `.env` 파일의 `EXPO_PUBLIC_API_TIMEOUT` 값 증가
+- `shared/config/environment.ts` 파일의 `timeout` 값 증가
 - 서버 응답 속도 확인
 
 ### 3. 401 인증 오류

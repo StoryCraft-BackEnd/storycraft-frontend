@@ -170,29 +170,44 @@ apiClient.interceptors.response.use(
  * ```
  */
 export const checkServerConnection = async (): Promise<boolean> => {
-  try {
-    // 서버 헬스체크 요청을 보낼 완전한 URL을 생성합니다
-    const url = `${API_CONFIG.BASE_URL}/health`;
+  // 서버 연결 테스트를 위한 URL 생성
+  const url = `${API_CONFIG.BASE_URL}`;
 
+  try {
     // 디버깅을 위해 서버 연결 테스트 요청 정보를 콘솔에 로깅합니다
     console.log('🔗 서버 연결 테스트 요청:', {
       url, // 요청 대상 URL
       method: 'GET', // HTTP 메서드
     });
 
-    // === 테스트 모드 (실제 서버 호출 없이 성공 시뮬레이션) ===
-    // 개발 중에는 실제 서버가 준비되지 않았을 수 있으므로 임시로 성공을 반환합니다
-    const response = { status: 200 }; // 테스트로 무조건 True 반환하는 test 코드
-
-    // === 실제 운영 모드 (실제 서버 헬스체크 API 호출) ===
-    // 실제 서버가 준비되면 아래 주석을 해제하고 위의 테스트 코드를 제거하세요
-    // const response = await apiClient.get('/health');
-
-    // HTTP 상태 코드가 200(OK)인지 확인하여 서버 정상 여부를 판단합니다
-    return response.status === 200;
-  } catch (error) {
+    // === 간단한 서버 연결 테스트 ===
+    // 실제 API 호출 대신 서버 응답 가능 여부만 확인
+    // 403 에러가 발생하더라도 서버가 응답한다는 것은 서버가 실행 중임을 의미
+    try {
+      await apiClient.get('/auth/signup', { timeout: 3000 });
+      console.log('✅ 서버 연결 성공: 서버가 정상적으로 응답합니다');
+      return true;
+    } catch (apiError: any) {
+      // 403, 404, 405 등의 에러는 서버가 실행 중이지만 해당 엔드포인트가 없거나 권한이 없는 것
+      if (apiError.response?.status) {
+        console.log(
+          '✅ 서버 연결 성공: 서버가 실행 중입니다 (상태 코드:',
+          apiError.response.status,
+          ')'
+        );
+        return true;
+      }
+      // 네트워크 에러나 타임아웃은 실제 연결 실패
+      throw apiError;
+    }
+  } catch (error: any) {
     // 서버 연결 확인 중 에러가 발생한 경우 상세 정보를 로깅합니다
-    console.error('서버 연결 실패:', error);
+    console.error('❌ 서버 연결 실패:', {
+      url,
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+    });
 
     // 연결 실패를 나타내는 false를 반환합니다
     return false;

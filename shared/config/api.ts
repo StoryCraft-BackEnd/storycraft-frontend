@@ -10,8 +10,8 @@
  */
 
 // ===== 환경 설정 import =====
-// 새로 생성된 TypeScript 환경 설정 파일에서 설정을 가져옵니다
-import { ENV_CONFIG, type EnvironmentConfig, getConfigForEnvironment } from './environment';
+// TypeScript 환경 설정 파일에서 설정을 가져옵니다
+import { ENV_CONFIG } from './environment';
 
 // ===== API 설정 타입 정의 =====
 
@@ -45,7 +45,7 @@ export const API_CONFIG: ApiClientConfiguration = {
   PROTOCOL: ENV_CONFIG.api.protocol, // 환경 설정에서 가져온 프로토콜
   API_PATH: ENV_CONFIG.api.path, // 환경 설정에서 가져온 API 경로
   TIMEOUT: ENV_CONFIG.api.timeout, // 환경 설정에서 가져온 타임아웃
-  ENVIRONMENT: ENV_CONFIG.app.environment, // 환경 설정에서 가져온 환경 정보
+  ENVIRONMENT: 'development', // 기본 환경으로 설정
 };
 
 // ===== 유틸리티 함수들 =====
@@ -129,39 +129,10 @@ export const getFullApiConfig = (): ApiClientConfiguration => {
   return { ...API_CONFIG };
 };
 
-/**
- * 환경별 API 설정을 가져오는 함수
- *
- * 특정 환경의 API 설정을 확인하거나 테스트할 때 사용합니다.
- *
- * @param environment - 확인할 환경 ('development' | 'staging' | 'production')
- * @returns {ApiClientConfiguration} 해당 환경의 API 설정
- */
-export const getApiConfigForEnvironment = (
-  environment: 'development' | 'staging' | 'production'
-): ApiClientConfiguration => {
-  // environment.ts에서 해당 환경의 설정을 가져옵니다
-  const envConfig: EnvironmentConfig = getConfigForEnvironment(environment);
-
-  // API 설정 형태로 변환하여 반환
-  return {
-    BASE_URL: envConfig.api.baseUrl,
-    HOST: envConfig.api.host,
-    PORT: envConfig.api.port,
-    PROTOCOL: envConfig.api.protocol,
-    API_PATH: envConfig.api.path,
-    TIMEOUT: envConfig.api.timeout,
-    ENVIRONMENT: envConfig.app.environment,
-  };
-};
-
 // ===== 추가 유틸리티 exports =====
 
 // 환경 설정 관련 유틸리티들을 re-export하여 편의성 제공
 export {
   ENV_CONFIG, // 전체 환경 설정 객체
-  isDevelopment, // 개발 환경 여부 확인
-  isProduction, // 프로덕션 환경 여부 확인
-  getEnvironmentSummary, // 환경 설정 요약
   type EnvironmentConfig, // 환경 설정 타입
 } from './environment';

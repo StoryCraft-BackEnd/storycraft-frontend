@@ -4,6 +4,7 @@
  */
 import axios from 'axios';
 import { API_CONFIG } from '@/shared/config/api';
+import { apiClient } from '@/shared/api/client';
 import {
   LoginRequest,
   LoginResponse,
@@ -74,22 +75,15 @@ export const login = async (data: LoginRequest): Promise<ApiResponse<LoginRespon
  */
 export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
   try {
-    // 요청할 완전한 URL 생성
-    const fullUrl = `${API_CONFIG.BASE_URL}/auth/signup`;
-
     // 회원가입 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
     console.log('🚀 회원가입 요청 시작:', {
-      url: fullUrl,
+      url: `${API_CONFIG.BASE_URL}/auth/signup`,
       method: 'POST',
       data: data, // 개발용 로그 - 전체 데이터 표시
     });
 
-    // 실제 HTTP POST 요청을 서버로 전송
-    const response = await axios.post<SignupResponse>(fullUrl, data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // apiClient를 사용하여 서버로 POST 요청 전송
+    const response = await apiClient.post<SignupResponse>('/auth/signup', data);
 
     // 성공적인 응답을 받았을 때 결과를 로깅
     console.log('✅ 회원가입 성공:', response.data);
@@ -160,22 +154,15 @@ export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
  */
 export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckResponse> => {
   try {
-    // Swagger 스펙에 맞는 올바른 엔드포인트 URL 생성
-    const fullUrl = `${API_CONFIG.BASE_URL}/email/verification/exists`;
-
     // 이메일 중복 확인 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
     console.log('📧 이메일 중복 확인 요청:', {
-      url: fullUrl,
+      url: `${API_CONFIG.BASE_URL}/email/verification/exists`,
       method: 'POST',
       data: data,
     });
 
-    // 실제 HTTP POST 요청을 서버로 전송
-    const response = await axios.post<EmailCheckResponse>(fullUrl, data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // apiClient를 사용하여 서버로 POST 요청 전송
+    const response = await apiClient.post<EmailCheckResponse>('/email/verification/exists', data);
 
     // 성공적인 응답을 받았을 때 결과를 로깅
     console.log('✅ 이메일 중복 확인 성공:', response.data);
@@ -246,22 +233,15 @@ export const checkEmail = async (data: EmailCheckRequest): Promise<EmailCheckRes
  */
 export const checkNickname = async (data: NicknameCheckRequest): Promise<NicknameCheckResponse> => {
   try {
-    // Swagger 스펙에 맞는 올바른 엔드포인트 URL 생성 (추정)
-    const fullUrl = `${API_CONFIG.BASE_URL}/nickname/exists`;
-
     // 닉네임 중복 확인 요청 정보를 콘솔에 출력 (개발 시 디버깅용)
     console.log('🏷️ 닉네임 중복 확인 요청:', {
-      url: fullUrl,
+      url: `${API_CONFIG.BASE_URL}/nickname/exists`,
       method: 'POST',
       data: data,
     });
 
-    // 실제 HTTP POST 요청을 서버로 전송
-    const response = await axios.post<NicknameCheckResponse>(fullUrl, data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // apiClient를 사용하여 서버로 POST 요청 전송
+    const response = await apiClient.post<NicknameCheckResponse>('/nickname/exists', data);
 
     // 성공적인 응답을 받았을 때 결과를 로깅
     console.log('✅ 닉네임 중복 확인 성공:', response.data);
