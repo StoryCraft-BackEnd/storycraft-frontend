@@ -21,7 +21,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
 import { ChildProfile } from '@/features/profile/types';
 import { loadImage } from '@/features/main/imageLoader';
-import { saveProfiles } from '@/features/profile/profileStorage';
+import { saveProfiles, saveSelectedProfile } from '@/features/profile/profileStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export default function ProfileScreen() {
@@ -96,8 +96,14 @@ export default function ProfileScreen() {
 
   const handleProfileSelect = async (profileId: number) => {
     try {
-      // TODO: 선택된 프로필 정보를 전역 상태나 로컬 스토리지에 저장
-      console.log('선택된 프로필 ID:', profileId);
+      // 선택된 프로필 찾기
+      const selectedProfile = profiles.find((profile) => profile.childId === profileId);
+      if (selectedProfile) {
+        // 선택된 프로필을 로컬 스토리지에 저장
+        await saveSelectedProfile(selectedProfile);
+        console.log('선택된 프로필 저장:', selectedProfile.name);
+      }
+
       // 메인 화면으로 이동 (화면 방향은 이미 가로 모드로 고정되어 있음)
       router.replace('/(main)');
     } catch (error) {

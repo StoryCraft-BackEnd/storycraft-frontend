@@ -35,6 +35,8 @@ import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
 import defaultProfile from '@/assets/images/profile/default_profile.png';
 import { MainScreenStyles } from '@/styles/MainScreen';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { loadSelectedProfile } from '@/features/profile/profileStorage';
+import { ChildProfile } from '@/features/profile/types';
 
 // 임시 동화 데이터
 const stories = [
@@ -50,6 +52,7 @@ const stories = [
 
 export default function MainScreen() {
   const [backgroundImage, setBackgroundImage] = useState(nightBg);
+  const [selectedProfile, setSelectedProfile] = useState<ChildProfile | null>(null);
   const backgroundColor = useThemeColor('background');
   const isDark = backgroundColor === '#0d1b1e';
 
@@ -60,6 +63,17 @@ export default function MainScreen() {
     // 시스템 UI 숨기기
     setStatusBarHidden(true);
     NavigationBar.setVisibilityAsync('hidden');
+
+    // 선택된 프로필 불러오기
+    const loadProfile = async () => {
+      try {
+        const profile = await loadSelectedProfile();
+        setSelectedProfile(profile);
+      } catch (error) {
+        console.error('프로필 불러오기 실패:', error);
+      }
+    };
+    loadProfile();
 
     // 시간대별 배경 이미지 설정 (추후 개발 예정)
     // const updateBackgroundImage = () => {
@@ -160,7 +174,9 @@ export default function MainScreen() {
         <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
         <View style={MainScreenStyles.userProfileContainer}>
           <Image source={defaultProfile} style={MainScreenStyles.userProfileImage} />
-          <Text style={MainScreenStyles.userNameText}>홍길동</Text>
+          <Text style={MainScreenStyles.userNameText}>
+            {selectedProfile?.name || '프로필을 선택해주세요'}
+          </Text>
         </View>
         <View style={MainScreenStyles.pointContainer}>
           <View style={MainScreenStyles.achieveContainer}>
