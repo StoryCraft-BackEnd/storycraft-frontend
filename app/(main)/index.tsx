@@ -222,7 +222,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>동화 목록</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button2]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button2]}
+            onPress={() => router.push('/(main)/storylist/favorites')}
+          >
             <Image source={heart} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>즐겨찾기</Text>
           </TouchableOpacity>
