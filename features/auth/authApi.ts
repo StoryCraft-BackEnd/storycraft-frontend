@@ -3,6 +3,7 @@
  * 프론트엔드에서 백엔드로 요청을 보내고 응답을 받는 기능을 담당합니다.
  */
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '@/shared/config/api';
 import { apiClient } from '@/shared/api/client';
 import {
@@ -337,12 +338,33 @@ export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPa
  */
 export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
   try {
-    const response = await apiClient.post<{ data: { access_token: string } }>(
-      '/auth/token/refresh',
-      { refreshToken }
-    );
-    return response.data.data.access_token;
-  } catch {
+    console.log('🔄 토큰 갱신 시도:', { refreshToken: refreshToken ? '있음' : '없음' });
+
+    const response = await apiClient.post<{
+      status: number;
+      message: string;
+      data: {
+        accessToken: string;
+        refreshToken: string;
+      };
+    }>('/auth/token/refresh', { refreshToken });
+
+    console.log('✅ 토큰 갱신 응답:', response.data);
+
+    if (response.data.data?.accessToken) {
+      // 새로운 리프레시 토큰도 함께 저장
+      if (response.data.data.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', response.data.data.refreshToken);
+      }
+      return response.data.data.accessToken;
+    } else {
+      throw new Error('서버에서 액세스 토큰을 받지 못했습니다.');
+    }
+  } catch (error: any) {
+    console.error('❌ 토큰 갱신 실패:', error);
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
     throw new Error('액세스 토큰 재발급에 실패했습니다.');
   }
 };

@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/shared/contexts/ThemeContext';
 import { useEffect, useState } from 'react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { startTokenRefreshManager, stopTokenRefreshManager } from '@/shared/api/authApi';
 
 // 실제 레이아웃 로직을 처리하는 컴포넌트
 function RootLayout() {
@@ -19,6 +20,9 @@ function RootLayout() {
       try {
         // 초기화 작업 (필요시 토큰 확인 등)
         await AsyncStorage.getItem('token');
+
+        // 토큰 갱신 매니저 시작
+        await startTokenRefreshManager();
       } catch (error) {
         console.error('초기화 중 오류:', error);
       } finally {
@@ -28,6 +32,11 @@ function RootLayout() {
     };
 
     initialize();
+
+    // 컴포넌트 언마운트 시 토큰 갱신 매니저 정리
+    return () => {
+      stopTokenRefreshManager();
+    };
   }, []); // 빈 배열: 컴포넌트 마운트 시에만 실행
 
   // 로딩 중일 때 로딩 화면 표시

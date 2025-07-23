@@ -31,12 +31,12 @@ const updateStoriesFile = async (stories) => {
 // 동화 생성 컨트롤러
 export const createStory = async (req, res) => {
   try {
-    const { prompt, childId } = req.body;
+    const { keywords, childId } = req.body;
 
-    if (!prompt || !childId) {
+    if (!keywords || !Array.isArray(keywords) || keywords.length === 0 || !childId) {
       return res.status(400).json({
         status: 400,
-        message: '동화 생성 키워드와 자녀 프로필ID가 필요합니다.',
+        message: '동화 생성 키워드 배열과 자녀 프로필ID가 필요합니다.',
       });
     }
 
@@ -47,8 +47,9 @@ export const createStory = async (req, res) => {
     const newStory = {
       storyId: Date.now(),
       title: '꼬마 용사와 동물 친구들의 모험',
-      summary: 'AI가 생성한 동화입니다.',
-      thumbnailUrl: 'https://cdn/default-story.jpg',
+      content: '옛날 옛적에...', // API 스펙에 맞춰 content 필드 추가
+      thumbnailUrl: 'https://cdn/story1.jpg',
+      keywords: keywords, // API 스펙에 맞춰 keywords 필드 추가
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

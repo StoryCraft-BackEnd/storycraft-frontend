@@ -39,7 +39,7 @@ export default function CreateProfileScreen() {
       const response = await createProfile({
         name: name.trim(),
         age: ageNum,
-        learning_level: learningLevel,
+        learningLevel: learningLevel,
       });
 
       if (response.status === 200 || response.status === 201) {

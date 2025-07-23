@@ -105,6 +105,23 @@ apiClient.interceptors.response.use(
     // 401 Unauthorized 에러이고, 아직 재시도하지 않은 요청인 경우에만 토큰 갱신을 시도합니다
     // _retry 플래그는 무한 루프를 방지하기 위한 안전장치입니다
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('🔄 401 에러 감지 - 토큰 갱신 시도');
+
+      // 로그인 요청인지 확인
+      const isLoginRequest = originalRequest.url?.includes('/auth/login');
+
+      if (isLoginRequest) {
+        console.log('🔐 로그인 요청에서 401 에러 - 기존 토큰 정리 후 에러 반환');
+        // 로그인 요청에서 401 에러가 발생한 경우, 기존 토큰들을 정리합니다
+        try {
+          await AsyncStorage.multiRemove(['token', 'refreshToken', 'tokenIssuedAt']);
+          console.log('🧹 기존 토큰 정리 완료');
+        } catch (cleanupError) {
+          console.error('❌ 토큰 정리 실패:', cleanupError);
+        }
+        return Promise.reject(error);
+      }
+
       // 재시도 플래그를 설정하여 무한 루프를 방지합니다
       originalRequest._retry = true;
 
@@ -113,8 +130,12 @@ apiClient.interceptors.response.use(
         const refreshToken = await AsyncStorage.getItem('refreshToken');
 
         // 리프레시 토큰이 없는 경우 로그인이 필요함을 알립니다
-        if (!refreshToken) throw new Error('리프레시 토큰이 없습니다.');
+        if (!refreshToken) {
+          console.log('❌ 리프레시 토큰이 없습니다');
+          throw new Error('리프레시 토큰이 없습니다.');
+        }
 
+        console.log('🔄 토큰 갱신 시작');
         // 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다
         const newAccessToken = await refreshAccessToken(refreshToken);
 
@@ -127,10 +148,21 @@ apiClient.interceptors.response.use(
           Authorization: `Bearer ${newAccessToken}`, // 새로운 토큰으로 Authorization 헤더 교체
         };
 
+        console.log('✅ 토큰 갱신 완료 - 원래 요청 재시도');
         // 새로운 토큰으로 원래 요청을 재시도합니다
         return apiClient(originalRequest);
       } catch (refreshError) {
         // 토큰 갱신에 실패한 경우 (리프레시 토큰도 만료되었거나 유효하지 않음)
+        console.error('❌ 토큰 갱신 실패:', refreshError);
+
+        // 토큰 갱신 실패 시 기존 토큰들을 정리합니다
+        try {
+          await AsyncStorage.multiRemove(['token', 'refreshToken', 'tokenIssuedAt']);
+          console.log('🧹 토큰 갱신 실패로 인한 기존 토큰 정리 완료');
+        } catch (cleanupError) {
+          console.error('❌ 토큰 정리 실패:', cleanupError);
+        }
+
         // 이 경우 사용자를 로그인 화면으로 리다이렉트하는 등의 추가 처리가 필요할 수 있습니다
         return Promise.reject(refreshError);
       }

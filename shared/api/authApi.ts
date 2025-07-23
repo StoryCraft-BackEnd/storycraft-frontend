@@ -218,6 +218,12 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
       // 이 토큰들은 향후 API 요청 시 자동으로 인증 헤더에 포함됩니다
       await AsyncStorage.setItem('token', access_token); // 액세스 토큰 저장
       await AsyncStorage.setItem('refreshToken', refresh_token); // 리프레시 토큰 저장
+
+      // 토큰 발급 시간을 저장합니다 (현재 시간)
+      const issuedAt = Date.now().toString();
+      await AsyncStorage.setItem('tokenIssuedAt', issuedAt);
+      console.log('📅 토큰 발급 시간 저장:', new Date(parseInt(issuedAt)).toLocaleString());
+
       console.log('✅ 토큰 저장 완료');
     } else {
       console.warn('⚠️ 토큰이 서버 응답에 포함되지 않았습니다:', {
@@ -246,15 +252,28 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
     // 에러 타입별로 적절한 메시지를 생성합니다
     if (error.response) {
       // 서버 응답이 있지만 에러 상태인 경우 (잘못된 인증 정보 등)
-      throw new Error(
-        `로그인 실패 (${error.response.status}): ${error.response.data?.message || '알 수 없는 오류'}`
-      );
+      const status = error.response.status;
+      const serverMessage = error.response.data?.message || '알 수 없는 오류';
+
+      // 개발용 로그에는 전체 정보 포함
+      console.log('🔍 서버 에러 응답:', { status, message: serverMessage });
+
+      // 사용자에게는 상태 코드 없이 간단한 메시지 전달
+      if (status === 401) {
+        throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else if (status === 400) {
+        throw new Error('입력 정보를 확인해주세요.');
+      } else if (status >= 500) {
+        throw new Error('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        throw new Error('로그인 중 문제가 발생했습니다.');
+      }
     } else if (error.request) {
       // 네트워크 연결 문제로 서버에 도달할 수 없는 경우
-      throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+      throw new Error('네트워크 연결을 확인해주세요.');
     } else {
       // 클라이언트 측에서 요청 설정 중 발생한 오류
-      throw new Error(`요청 설정 오류: ${error.message}`);
+      throw new Error('로그인 중 문제가 발생했습니다.');
     }
   }
 };
@@ -383,7 +402,7 @@ export const setToken = async (token: string): Promise<void> => {
 export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
   try {
     // 토큰 갱신 요청을 보낼 URL을 생성합니다
-    const url = `${apiClient.defaults.baseURL}/auth/refresh`;
+    const url = `${apiClient.defaults.baseURL}/auth/token/refresh`;
 
     // 토큰 갱신 요청 정보를 로깅합니다 (보안상 리프레시 토큰은 마스킹)
     console.log('🔄 토큰 갱신 요청:', {
@@ -393,15 +412,32 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
     });
 
     // 서버로 토큰 갱신 요청을 전송합니다
-    const response = await apiClient.post<{ data: { accessToken: string } }>('/auth/refresh', {
+    const response = await apiClient.post<{
+      status: number;
+      message: string;
+      data: {
+        accessToken: string;
+        refreshToken: string;
+      };
+    }>('/auth/token/refresh', {
       refreshToken, // 리프레시 토큰을 요청 본문에 포함
     });
 
     // 응답에서 새로운 액세스 토큰을 추출합니다
     const newAccessToken = response.data.data.accessToken;
 
+    // 새로운 리프레시 토큰도 함께 저장
+    if (response.data.data.refreshToken) {
+      await AsyncStorage.setItem('refreshToken', response.data.data.refreshToken);
+    }
+
     // 새로운 액세스 토큰을 로컬 스토리지에 저장합니다
     await AsyncStorage.setItem('token', newAccessToken);
+
+    // 토큰 발급 시간을 저장합니다 (현재 시간)
+    const issuedAt = Date.now().toString();
+    await AsyncStorage.setItem('tokenIssuedAt', issuedAt);
+    console.log('📅 토큰 발급 시간 저장:', new Date(parseInt(issuedAt)).toLocaleString());
 
     // 토큰 갱신 성공을 콘솔에 기록합니다
     console.log('✅ 토큰 갱신 성공');
@@ -413,4 +449,124 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
     console.error('❌ 토큰 갱신 실패:', error);
     throw error;
   }
+};
+
+/**
+ * 주기적인 토큰 갱신을 관리하는 클래스
+ *
+ * 액세스 토큰의 만료 시간을 추적하고, 만료 전에 자동으로 토큰을 갱신합니다.
+ * 앱이 백그라운드에 있거나 네트워크가 불안정할 때도 안정적으로 동작합니다.
+ */
+class TokenRefreshManager {
+  private refreshInterval: NodeJS.Timeout | null = null;
+  private readonly REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10분마다 갱신
+  private readonly REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000; // 만료 5분 전에 갱신
+
+  // 토큰 만료시간 설정 (밀리초 단위)
+  // 서버에서 설정한 토큰 만료시간에 맞춰 설정하세요
+  private readonly TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30분 (예시값)
+
+  // 토큰 발급 시간을 저장할 키
+  private readonly TOKEN_ISSUED_AT_KEY = 'tokenIssuedAt';
+
+  /**
+   * 토큰 갱신 매니저를 시작합니다
+   */
+  async startTokenRefresh(): Promise<void> {
+    try {
+      console.log('🔄 토큰 갱신 매니저 시작');
+
+      // 기존 인터벌이 있다면 정리
+      this.stopTokenRefresh();
+
+      // 즉시 첫 번째 갱신 시도
+      await this.refreshTokenIfNeeded();
+
+      // 주기적으로 토큰 갱신 체크
+      this.refreshInterval = setInterval(async () => {
+        await this.refreshTokenIfNeeded();
+      }, this.REFRESH_INTERVAL_MS);
+
+      console.log('✅ 토큰 갱신 매니저 시작 완료');
+    } catch (error) {
+      console.error('❌ 토큰 갱신 매니저 시작 실패:', error);
+    }
+  }
+
+  /**
+   * 토큰 갱신 매니저를 중지합니다
+   */
+  stopTokenRefresh(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+      console.log('🛑 토큰 갱신 매니저 중지');
+    }
+  }
+
+  /**
+   * 필요시 토큰을 갱신합니다
+   */
+  private async refreshTokenIfNeeded(): Promise<void> {
+    try {
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        console.log('⚠️ 리프레시 토큰이 없어 토큰 갱신을 건너뜁니다');
+        return;
+      }
+
+      // 현재 저장된 액세스 토큰 확인
+      const currentToken = await AsyncStorage.getItem('token');
+      if (!currentToken) {
+        console.log('⚠️ 액세스 토큰이 없어 토큰 갱신을 건너뜁니다');
+        return;
+      }
+
+      // 토큰 발급 시간 확인
+      const tokenIssuedAt = await AsyncStorage.getItem(this.TOKEN_ISSUED_AT_KEY);
+      if (!tokenIssuedAt) {
+        console.log('⚠️ 토큰 발급 시간이 없어 토큰 갱신을 건너뜁니다');
+        return;
+      }
+
+      // 토큰 만료 시간 계산
+      const issuedTime = parseInt(tokenIssuedAt);
+      const expiryTime = issuedTime + this.TOKEN_EXPIRY_MS;
+      const now = Date.now();
+
+      if (this.shouldRefreshToken(expiryTime, now)) {
+        console.log('🔄 토큰 만료 시간이 가까워 토큰을 갱신합니다');
+        await refreshAccessToken(refreshToken);
+      } else {
+        console.log('✅ 토큰이 아직 유효합니다');
+      }
+    } catch (error) {
+      console.error('❌ 토큰 갱신 체크 실패:', error);
+    }
+  }
+
+  /**
+   * 토큰을 갱신해야 하는지 확인합니다
+   */
+  private shouldRefreshToken(expiryTime: number, currentTime: number): boolean {
+    const timeUntilExpiry = expiryTime - currentTime;
+    return timeUntilExpiry <= this.REFRESH_BEFORE_EXPIRY_MS;
+  }
+}
+
+// 토큰 갱신 매니저 인스턴스 생성
+export const tokenRefreshManager = new TokenRefreshManager();
+
+/**
+ * 앱 시작 시 토큰 갱신 매니저를 시작합니다
+ */
+export const startTokenRefreshManager = async (): Promise<void> => {
+  await tokenRefreshManager.startTokenRefresh();
+};
+
+/**
+ * 앱 종료 시 토큰 갱신 매니저를 중지합니다
+ */
+export const stopTokenRefreshManager = (): void => {
+  tokenRefreshManager.stopTokenRefresh();
 };

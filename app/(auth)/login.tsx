@@ -20,13 +20,17 @@ import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
+import { login, startTokenRefreshManager } from '@/shared/api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { login } from '@/features/auth/authApi';
+import { Popup } from '@/components/ui/Popup';
 
 export default function LoginScreen() {
   //입력 필드 상태 관리
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // 테마 색상 가져오기
   const placeholderColor = useThemeColor('secondary');
@@ -54,6 +58,22 @@ export default function LoginScreen() {
 
   // 로그인 버튼 클릭 시 실행
   const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage('이메일과 비밀번호를 모두 입력해주세요.');
+      setShowErrorPopup(true);
+      return;
+    }
+
+    setIsLoading(true);
+
+    // 로그인 시도 전에 기존 토큰들을 정리합니다
+    try {
+      await AsyncStorage.multiRemove(['token', 'refreshToken', 'tokenIssuedAt']);
+      console.log('🧹 로그인 시도 전 기존 토큰 정리 완료');
+    } catch (cleanupError) {
+      console.error('❌ 토큰 정리 실패:', cleanupError);
+    }
+
     try {
       console.log('로그인 시작:', { email, password });
       const res = await login({ email, password });
@@ -62,32 +82,57 @@ export default function LoginScreen() {
       // 상세한 조건 확인 로그
       console.log('🔍 조건 확인:');
       console.log('  - res.status:', res.status);
-      console.log('  - res.data:', res.data);
-      console.log('  - res.data.data?.access_token:', res.data.data?.access_token);
-      console.log('  - 조건 만족 여부:', res.status === 200 && res.data.data?.access_token);
+      console.log('  - res.message:', res.message);
+      console.log('  - res.data.access_token:', res.data.access_token);
+      console.log('  - res.data.refresh_token:', res.data.refresh_token);
+      console.log('  - 조건 만족 여부:', res.status === 200 && res.data.access_token);
 
-      if (res.status === 200 && res.data.data?.access_token) {
-        console.log('✅ 조건 만족 - 토큰 저장 시작');
-        await AsyncStorage.setItem('token', res.data.data.access_token);
-        await AsyncStorage.setItem('refreshToken', res.data.data.refresh_token);
-        console.log('✅ 토큰 저장 완료');
+      if (res.status === 200 && res.data.access_token) {
+        console.log('✅ 조건 만족 - 토큰 저장');
+
+        // 토큰 갱신 매니저 시작
+        try {
+          await startTokenRefreshManager();
+          console.log('✅ 토큰 갱신 매니저 시작 완료');
+        } catch (error) {
+          console.error('❌ 토큰 갱신 매니저 시작 실패:', error);
+        }
 
         console.log('🔄 화면 전환 시작 - 프로필 선택 화면으로 이동');
-        // 네비게이션 스택을 정리하고 프로필 선택 화면으로 이동
         router.replace('/(profile)');
         console.log('✅ 화면 전환 명령 완료');
       } else {
         console.log('❌ 조건 불만족 - 로그인 실패');
         console.log('로그인 실패:', res);
-        Alert.alert('로그인 실패', res.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
+        setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
+        setShowErrorPopup(true);
       }
     } catch (error) {
       console.error('❌ 로그인 에러:', error);
+
+      // 사용자에게는 기술적인 에러 대신 이해하기 쉬운 메시지 표시
+      let userFriendlyMessage = '로그인 중 문제가 발생했습니다.';
+
       if (error instanceof Error) {
-        Alert.alert('로그인 실패', error.message);
-      } else {
-        Alert.alert('오류', '예상치 못한 문제가 발생했습니다.');
+        const errorMessage = error.message;
+
+        // 서버에서 반환하는 에러 메시지 중 사용자 친화적인 것만 사용
+        if (errorMessage.includes('이메일') || errorMessage.includes('비밀번호')) {
+          userFriendlyMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        } else if (errorMessage.includes('네트워크') || errorMessage.includes('연결')) {
+          userFriendlyMessage = '네트워크 연결을 확인해주세요.';
+        } else if (errorMessage.includes('서버')) {
+          userFriendlyMessage = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+        }
+
+        // 개발용 로그에는 원본 에러 메시지 유지
+        console.log('🔍 원본 에러 메시지:', errorMessage);
       }
+
+      setErrorMessage(userFriendlyMessage);
+      setShowErrorPopup(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -138,8 +183,11 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: primaryColor }]}
             onPress={handleLogin}
+            disabled={isLoading}
           >
-            <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>로그인</ThemedText>
+            <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>
+              {isLoading ? '로그인 중...' : '로그인'}
+            </ThemedText>
           </TouchableOpacity>
 
           <View style={styles.linkContainer}>
@@ -181,6 +229,15 @@ export default function LoginScreen() {
           개인정보처리방침에 동의하게 됩니다.
         </ThemedText>
       </View>
+
+      {/* 에러 팝업 */}
+      <Popup
+        visible={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title="로그인 실패"
+        message={errorMessage}
+        confirmText="확인"
+      />
     </ThemedView>
   );
 }

@@ -26,8 +26,10 @@ import {
   COLORS,
 } from '@/styles/StoryCreateScreen.styles'; // 이 화면 전용 스타일 시트
 import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
-import { API_CONFIG } from '@/shared/config/api'; // API 서버 주소 등 설정 값
-import type { CreateStoryRequest, CreateStoryResponse } from '@/features/storyCreate/types'; // API 요청/응답에 대한 타입 정의
+import { createStory } from '@/features/storyCreate/storyApi';
+import { addStoryToStorage, logProfileStructure } from '@/features/storyCreate/storyStorage';
+import { loadSelectedProfile } from '@/features/profile/profileStorage';
+import type { CreateStoryRequest, CreateStoryResponse, Story } from '@/features/storyCreate/types';
 
 // 배경 이미지 파일을 import 합니다.
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -111,39 +113,76 @@ const StoryCreateScreen = () => {
 
     setIsLoading(true); // API 요청 시작 전, 로딩 상태를 true로 설정합니다.
     try {
+      // 선택된 프로필 불러오기
+      const selectedProfile = await loadSelectedProfile();
+      if (!selectedProfile) {
+        showPopup('오류', '프로필을 먼저 선택해주세요.');
+        return;
+      }
+
       // 서버에 보낼 요청 데이터를 구성합니다.
       const requestData: CreateStoryRequest = {
-        prompt: keywords.join(', '), // 키워드 배열을 쉼표로 구분된 하나의 문자열로 합칩니다.
-        childId: '1', // TODO: 실제 자녀 프로필 ID로 교체해야 합니다.
+        keywords: keywords, // 키워드 배열 (API 스펙에 맞춤)
+        childId: selectedProfile.childId, // 선택된 프로필의 ID 사용
       };
 
-      // fetch 함수를 사용하여 서버에 POST 요청을 보냅니다.
-      const response = await fetch(`${API_CONFIG.BASE_URL}/stories`, {
-        method: 'POST', // HTTP 요청 메서드
-        headers: { 'Content-Type': 'application/json' }, // 요청 본문이 JSON 형식임을 알립니다.
-        body: JSON.stringify(requestData), // JavaScript 객체를 JSON 문자열로 변환하여 전송합니다.
-      });
+      // 새로운 API 함수를 사용하여 동화 생성 요청
+      const result: CreateStoryResponse = await createStory(requestData);
 
-      // 서버 응답이 성공적이지(ok: false) 않으면 에러를 발생시킵니다.
-      if (!response.ok) {
-        const errorData = await response.json(); // 에러 메시지를 담은 JSON 응답을 파싱합니다.
-        throw new Error(errorData.message || '동화 생성에 실패했습니다.');
-      }
+      // 서버 응답에서 실제 동화 데이터 추출
+      const storyData = result.data;
 
-      // 성공적인 응답을 JSON 형식으로 파싱합니다.
-      const result: CreateStoryResponse = await response.json();
+      // 생성된 동화를 로컬에 저장할 데이터 구성
+      const storyToSave: Story = {
+        ...storyData,
+        childId: selectedProfile.childId,
+        keywords: storyData.keywords || keywords, // 서버에서 받은 키워드 사용, 없으면 로컬 키워드 사용
+      };
 
-      // 서버에서 정의한 성공 상태 코드(201)이고 데이터가 있으면 성공 처리합니다.
-      if (result.status === 201 && result.data) {
-        showPopup('성공', result.message);
-        // 성공 팝업 닫힌 후 메인 화면으로 이동
-        setTimeout(() => {
-          router.push('/(main)');
-        }, 1500);
+      console.log('저장할 동화 데이터:', storyToSave);
+
+      // 삽화 이미지 URL 확인
+      if (!storyData.thumbnailUrl) {
+        console.log(`동화 ${storyData.storyId} 삽화 이미지 URL이 null입니다.`);
+        showPopup(
+          '알림',
+          `"${storyData.title}" 동화가 생성되었지만, 삽화 이미지를 받지 못했습니다.\n\n삽화는 영어 학습 화면에서 배경으로 사용됩니다.`
+        );
       } else {
-        // 그 외의 경우는 실패로 간주하고 에러를 발생시킵니다.
-        throw new Error(result.message || '동화 생성에 실패했습니다.');
+        console.log(`동화 ${storyData.storyId} 삽화 이미지 URL: ${storyData.thumbnailUrl}`);
       }
+
+      // 프로필별 폴더 구조에 동화 저장
+      await addStoryToStorage(storyToSave);
+
+      // 프로필 구조 로깅 (디버깅용)
+      await logProfileStructure(selectedProfile.childId);
+
+      // 삽화가 없는 경우와 있는 경우 다른 메시지 표시
+      if (!storyData.thumbnailUrl) {
+        showPopup(
+          '성공',
+          `"${storyData.title}" 동화가 생성되었습니다!\n\n삽화 이미지는 받지 못했지만, 동화 내용은 정상적으로 생성되었습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`
+        );
+      } else {
+        showPopup(
+          '성공',
+          `"${storyData.title}" 동화가 생성되었습니다!\n\n삽화 이미지도 함께 다운로드되었습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`
+        );
+      }
+
+      // 성공 팝업 닫힌 후 생성된 동화의 영어 학습 화면으로 이동
+      setTimeout(() => {
+        router.push({
+          pathname: '/(english-learning)',
+          params: {
+            storyId: storyData.storyId.toString(),
+            title: storyData.title,
+            content: storyData.content,
+            keywords: storyData.keywords?.join(',') || '',
+          },
+        });
+      }, 1500);
     } catch (error) {
       // try 블록에서 발생한 모든 에러를 여기서 처리합니다.
       console.error('Error creating story:', error); // 에러 로그를 콘솔에 출력합니다.
