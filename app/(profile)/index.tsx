@@ -26,6 +26,7 @@ import {
   saveSelectedProfile,
   clearSelectedProfile,
 } from '@/features/profile/profileStorage';
+import { clearAllProfileData } from '@/features/storyCreate/storyStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -185,6 +186,11 @@ export default function ProfileScreen() {
       await clearSelectedProfile();
       console.log('✅ 선택된 프로필 삭제 완료');
 
+      // 모든 프로필 데이터 삭제 (즐겨찾기, 동화 목록 등)
+      console.log('🧹 모든 프로필 데이터 삭제 시작');
+      await clearAllProfileData();
+      console.log('✅ 모든 프로필 데이터 삭제 완료');
+
       console.log('✅ 로그아웃 완료 - 로그인 화면으로 이동');
 
       // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
@@ -202,9 +208,10 @@ export default function ProfileScreen() {
           'selectedProfile',
         ]);
         await clearSelectedProfile();
-        console.log('✅ 오류 발생 후 강제 토큰 삭제 완료');
+        await clearAllProfileData();
+        console.log('✅ 오류 발생 후 강제 토큰 및 프로필 데이터 삭제 완료');
       } catch (cleanupError) {
-        console.error('❌ 강제 토큰 삭제도 실패:', cleanupError);
+        console.error('❌ 강제 토큰 및 프로필 데이터 삭제도 실패:', cleanupError);
       }
 
       // 화면 방향 변경에 실패하더라도 로그아웃은 진행
