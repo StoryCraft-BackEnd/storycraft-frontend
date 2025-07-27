@@ -64,7 +64,7 @@ export const API_CONFIG: ApiClientConfiguration = {
  * ```typescript
  * // 기본 설정으로 URL 생성
  * buildApiUrl('/users/123')
- * // 결과: "http://54.180.180.213:8080/api/users/123"
+ * // 결과: "https://dev.childstorycraft.com/api/users/123"
  *
  * // 커스텀 호스트와 포트로 URL 생성
  * buildApiUrl('/auth/login', 'localhost', 3000)
@@ -111,7 +111,7 @@ export const buildApiUrl = (
  * @example
  * ```typescript
  * console.log(getConfigSummary());
- * // 출력: "API Config - URL: http://54.180.180.213:8080/api, Timeout: 10000ms, Env: development"
+ * // 출력: "API Config - URL: https://dev.childstorycraft.com/api, Timeout: 10000ms, Env: development"
  * ```
  */
 export const getConfigSummary = (): string => {

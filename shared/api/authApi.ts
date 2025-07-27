@@ -12,6 +12,8 @@
 // ===== 외부 라이브러리 import 섹션 =====
 // Axios 기반 API 클라이언트를 가져옵니다 (HTTP 요청 처리용)
 import { apiClient } from './client';
+// Axios 라이브러리를 직접 import (인증 없는 요청용)
+import axios from 'axios';
 // React Native의 로컬 스토리지 라이브러리를 가져옵니다 (토큰 저장용)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -72,6 +74,27 @@ export interface LoginResponse {
     access_token: string; // JWT 액세스 토큰 (API 인증에 사용, 짧은 유효기간)
     refresh_token: string; // JWT 리프레시 토큰 (토큰 갱신에 사용, 긴 유효기간)
   };
+}
+
+/**
+ * 닉네임 중복 확인 요청 데이터 타입 정의
+ *
+ * 회원가입 시 닉네임의 중복 여부를 확인하기 위해 서버로 전송하는 데이터의 구조입니다.
+ */
+export interface NicknameCheckRequest {
+  nickname: string; // 확인할 닉네임
+}
+
+/**
+ * 닉네임 중복 확인 응답 데이터 타입 정의
+ *
+ * 서버에서 닉네임 중복 확인 요청을 처리한 후 반환하는 응답의 구조입니다.
+ * true: 사용 가능한 닉네임, false: 이미 사용 중인 닉네임
+ */
+export interface NicknameCheckResponse {
+  status: number; // HTTP 상태 코드
+  message: string; // 확인 결과 메시지
+  data: boolean; // 닉네임 사용 가능 여부 (true: 사용 가능, false: 사용 불가)
 }
 
 // ===== API 함수 정의 섹션 =====
@@ -171,6 +194,90 @@ export const signup = async (signupData: SignupRequest): Promise<SignupResponse>
     } else {
       // 요청을 설정하는 과정에서 발생한 에러 (클라이언트 측 문제)
       throw new Error(`요청 설정 오류: ${error.message}`);
+    }
+  }
+};
+
+/**
+ * 닉네임 중복 확인 API 함수
+ *
+ * 회원가입 시 닉네임의 중복 여부를 확인하기 위해 서버의 닉네임 확인 엔드포인트로 요청을 보냅니다.
+ * 사용 가능한 닉네임인지 확인하여 중복 가입을 방지합니다.
+ *
+ * @param nicknameData - 확인할 닉네임 정보 객체
+ * @returns Promise<NicknameCheckResponse> - 닉네임 확인 결과를 담은 Promise
+ * @throws Error - 네트워크 오류, 서버 오류, 또는 요청 데이터 오류 시 발생
+ *
+ * @example
+ * ```typescript
+ * const result = await checkNicknameExists({
+ *   nickname: "길동이"
+ * });
+ * if (result.data) {
+ *   console.log("사용 가능한 닉네임입니다.");
+ * } else {
+ *   console.log("이미 사용 중인 닉네임입니다.");
+ * }
+ * ```
+ */
+export const checkNicknameExists = async (
+  nicknameData: NicknameCheckRequest
+): Promise<NicknameCheckResponse> => {
+  try {
+    // 닉네임 확인 요청을 보낼 완전한 URL을 생성합니다
+    const url = `${apiClient.defaults.baseURL}/nickname/exists`;
+
+    // 요청 정보를 콘솔에 로깅합니다
+    console.log('🔍 닉네임 중복 확인 요청:', {
+      url, // 요청 대상 URL
+      method: 'POST', // HTTP 메서드
+      data: nicknameData, // 요청 데이터
+    });
+
+    // 외부 서버로 직접 POST 요청 전송 (인증 없이)
+    const response = await axios.post<NicknameCheckResponse>(url, nicknameData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+
+    // 성공 로그를 출력합니다
+    console.log('✅ 닉네임 중복 확인 성공:', {
+      status: response.data.status,
+      message: response.data.message,
+      isAvailable: response.data.data,
+    });
+
+    // 서버 응답 데이터를 그대로 반환합니다
+    return response.data;
+  } catch (error: any) {
+    // 닉네임 확인 실패 시 에러 정보를 로깅합니다
+    console.error('❌ 닉네임 중복 확인 실패:', error);
+
+    // 에러 타입별로 적절한 메시지를 생성합니다
+    if (error.response) {
+      // 서버 응답이 있지만 에러 상태인 경우
+      const status = error.response.status;
+      const serverMessage = error.response.data?.message || '알 수 없는 오류';
+
+      // 개발용 로그에는 전체 정보 포함
+      console.log('🔍 서버 에러 응답:', { status, message: serverMessage });
+
+      // 사용자에게는 상태 코드 없이 간단한 메시지 전달
+      if (status === 400) {
+        throw new Error('닉네임 형식이 올바르지 않습니다.');
+      } else if (status >= 500) {
+        throw new Error('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        throw new Error('닉네임 확인 중 문제가 발생했습니다.');
+      }
+    } else if (error.request) {
+      // 네트워크 연결 문제로 서버에 도달할 수 없는 경우
+      throw new Error('네트워크 연결을 확인해주세요.');
+    } else {
+      // 클라이언트 측에서 요청 설정 중 발생한 오류
+      throw new Error('닉네임 확인 중 문제가 발생했습니다.');
     }
   }
 };

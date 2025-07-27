@@ -40,11 +40,11 @@ export interface EnvironmentConfig {
  */
 const defaultConfig: EnvironmentConfig = {
   api: {
-    baseUrl: 'http://54.180.180.213:8080', // 개발 서버 전체 URL (Swagger 스펙에 맞춤)
-    host: '54.180.180.213', // 개발 서버 호스트
-    port: 8080, // 개발 서버 포트
-    protocol: 'http', // HTTP 프로토콜 사용
-    path: '', // API 기본 경로 없음 (Swagger에서 /api 경로 사용 안 함)
+    baseUrl: 'https://dev.childstorycraft.com', // 개발 서버 전체 URL (도메인 사용)
+    host: 'dev.childstorycraft.com', // 개발 서버 호스트
+    port: 443, // HTTPS 기본 포트
+    protocol: 'https', // HTTPS 프로토콜 사용
+    path: '', // API 기본 경로 없음
     timeout: 10000, // 10초 타임아웃
   },
   app: {

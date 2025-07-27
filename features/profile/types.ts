@@ -21,7 +21,7 @@ export interface ChildProfile {
 export interface ProfileResponse {
   status: number; // HTTP 상태 코드 (200: 성공, 400: 오류 등)
   message: string; // 서버에서 보내는 메시지
-  data: ChildProfile[]; // 실제 프로필 데이터 배열
+  data: ChildProfile[] | null; // 실제 프로필 데이터 배열 (null일 수 있음)
 }
 
 // 프로필 생성 응답 타입 (새 프로필 만들기 성공 시)

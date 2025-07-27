@@ -88,7 +88,7 @@ export default function ApiTestScreen() {
       </TouchableOpacity>
 
       <Text style={styles.title}>🧪 API 테스트 화면</Text>
-      <Text style={styles.subtitle}>서버: http://54.180.180.213:8080</Text>
+      <Text style={styles.subtitle}>서버: https://dev.childstorycraft.com</Text>
 
       {loading && (
         <View style={styles.loadingContainer}>

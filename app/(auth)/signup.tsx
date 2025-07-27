@@ -17,7 +17,8 @@ import { ThemedView } from '../../components/ui/ThemedView';
 import { ThemedText } from '../../components/ui/ThemedText';
 import { signupScreenStyles as styles } from '../../styles/SignupScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { signup, checkEmail, checkNickname } from '@/features/auth/authApi';
+import { signup, checkEmail } from '@/features/auth/authApi';
+import { checkNicknameExists } from '@/shared/api/authApi';
 import type { SignupRequest } from '@/features/auth/types';
 
 export default function SignupScreen() {
@@ -144,7 +145,7 @@ export default function SignupScreen() {
 
     try {
       console.log('🏷️ 닉네임 중복 확인 요청:', nickname);
-      const result = await checkNickname({ nickname });
+      const result = await checkNicknameExists({ nickname });
 
       if (result.data) {
         Alert.alert('사용 가능 ✅', '사용 가능한 닉네임입니다.');

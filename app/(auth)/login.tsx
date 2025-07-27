@@ -20,7 +20,8 @@ import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
-import { login, startTokenRefreshManager } from '@/shared/api/authApi';
+import { login, startTokenRefreshManager, refreshAccessToken } from '@/shared/api/authApi';
+import { signup } from '@/shared/api/authApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Popup } from '@/components/ui/Popup';
 
@@ -90,6 +91,21 @@ export default function LoginScreen() {
       if (res.status === 200 && res.data.access_token) {
         console.log('✅ 조건 만족 - 토큰 저장');
 
+        // 토큰 리프레시를 한 번 더 실행하여 새로운 토큰 발급
+        try {
+          console.log('🔄 토큰 리프레시 시작 (일반 로그인)');
+          const refreshToken = await AsyncStorage.getItem('refreshToken');
+          if (refreshToken) {
+            const newAccessToken = await refreshAccessToken(refreshToken);
+            await AsyncStorage.setItem('token', newAccessToken);
+            console.log('✅ 토큰 리프레시 완료 - 새로운 토큰 발급됨 (일반 로그인)');
+          } else {
+            console.log('⚠️ 리프레시 토큰이 없어 토큰 리프레시를 건너뜁니다 (일반 로그인)');
+          }
+        } catch (refreshError) {
+          console.error('❌ 토큰 리프레시 실패 (일반 로그인):', refreshError);
+        }
+
         // 토큰 갱신 매니저 시작
         try {
           await startTokenRefreshManager();
@@ -127,6 +143,156 @@ export default function LoginScreen() {
 
         // 개발용 로그에는 원본 에러 메시지 유지
         console.log('🔍 원본 에러 메시지:', errorMessage);
+      }
+
+      setErrorMessage(userFriendlyMessage);
+      setShowErrorPopup(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 고정된 ID/PW로 회원가입하는 함수
+  const handleQuickSignup = async () => {
+    setIsLoading(true);
+
+    try {
+      console.log('🚀 빠른 회원가입 시작');
+
+      // 고정된 회원가입 데이터
+      const signupData = {
+        email: 'testuser@naver.com',
+        password: 'password123',
+        name: '테스트 사용자',
+        nickname: '테스트',
+        role: 'user', // 'parent' 대신 'user'로 변경
+      };
+
+      console.log('📝 회원가입 요청 데이터:', signupData);
+
+      // 회원가입 API 호출
+      const result = await signup(signupData);
+      console.log('✅ 회원가입 완료:', result);
+
+      // 회원가입 성공 시 자동으로 로그인
+      console.log('🔄 자동 로그인 시작');
+      const loginResult = await login({ email: 'testuser@naver.com', password: 'password123' });
+
+      if (loginResult.status === 200 && loginResult.data.access_token) {
+        // 토큰 리프레시를 한 번 더 실행하여 새로운 토큰 발급
+        try {
+          console.log('🔄 토큰 리프레시 시작');
+          const refreshToken = await AsyncStorage.getItem('refreshToken');
+          if (refreshToken) {
+            const newAccessToken = await refreshAccessToken(refreshToken);
+            await AsyncStorage.setItem('token', newAccessToken);
+            console.log('✅ 토큰 리프레시 완료 - 새로운 토큰 발급됨');
+          } else {
+            console.log('⚠️ 리프레시 토큰이 없어 토큰 리프레시를 건너뜁니다');
+          }
+        } catch (refreshError) {
+          console.error('❌ 토큰 리프레시 실패:', refreshError);
+        }
+
+        // 토큰 갱신 매니저 시작
+        try {
+          await startTokenRefreshManager();
+          console.log('✅ 토큰 갱신 매니저 시작 완료');
+        } catch (error) {
+          console.error('❌ 토큰 갱신 매니저 시작 실패:', error);
+        }
+
+        console.log('🔄 화면 전환 시작 - 프로필 선택 화면으로 이동');
+        router.replace('/(profile)');
+        console.log('✅ 화면 전환 명령 완료');
+      }
+    } catch (error) {
+      console.error('❌ 빠른 회원가입 실패:', error);
+
+      let userFriendlyMessage = '회원가입 중 문제가 발생했습니다.';
+      let shouldTryLogin = false;
+
+      // Axios 에러인지 확인하고 상태 코드로 판단
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        const statusCode = axiosError.response?.status;
+
+        console.log('🔍 에러 상태 코드:', statusCode);
+
+        // 409 Conflict: 이미 사용 중인 이메일
+        if (statusCode === 409) {
+          userFriendlyMessage = '이미 가입된 계정입니다. 로그인을 시도합니다.';
+          shouldTryLogin = true;
+        } else if (statusCode === 500) {
+          userFriendlyMessage = '이미 가입된 계정입니다. 로그인을 시도합니다.';
+          shouldTryLogin = true;
+        } else if (statusCode >= 400 && statusCode < 500) {
+          userFriendlyMessage = `회원가입 실패 (${statusCode}): ${axiosError.response?.data?.message || '클라이언트 오류'}`;
+        } else if (statusCode >= 500) {
+          userFriendlyMessage = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+        }
+      } else if (error instanceof Error) {
+        const errorMessage = error.message;
+
+        // 문자열 기반 에러 메시지 처리 (기존 로직 유지)
+        if (errorMessage.includes('409') || errorMessage.includes('이미 사용 중인 이메일')) {
+          userFriendlyMessage = '이미 가입된 계정입니다. 로그인을 시도합니다.';
+          shouldTryLogin = true;
+        } else if (errorMessage.includes('500') || errorMessage.includes('서버 오류')) {
+          userFriendlyMessage = '이미 가입된 계정입니다. 로그인을 시도합니다.';
+          shouldTryLogin = true;
+        } else if (errorMessage.includes('이미 존재')) {
+          userFriendlyMessage = '이미 가입된 계정입니다. 로그인을 시도합니다.';
+          shouldTryLogin = true;
+        } else if (errorMessage.includes('네트워크') || errorMessage.includes('연결')) {
+          userFriendlyMessage = '네트워크 연결을 확인해주세요.';
+        } else if (errorMessage.includes('서버')) {
+          userFriendlyMessage = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+        }
+      }
+
+      // 이미 가입된 계정으로 판단되면 로그인 시도
+      if (shouldTryLogin) {
+        try {
+          console.log('🔄 이미 가입된 계정으로 로그인 시도');
+          const loginResult = await login({
+            email: 'testuser@naver.com',
+            password: 'password123',
+          });
+
+          if (loginResult.status === 200 && loginResult.data.access_token) {
+            // 토큰 리프레시를 한 번 더 실행하여 새로운 토큰 발급
+            try {
+              console.log('🔄 토큰 리프레시 시작 (자동 로그인)');
+              const refreshToken = await AsyncStorage.getItem('refreshToken');
+              if (refreshToken) {
+                const newAccessToken = await refreshAccessToken(refreshToken);
+                await AsyncStorage.setItem('token', newAccessToken);
+                console.log('✅ 토큰 리프레시 완료 - 새로운 토큰 발급됨 (자동 로그인)');
+              } else {
+                console.log('⚠️ 리프레시 토큰이 없어 토큰 리프레시를 건너뜁니다 (자동 로그인)');
+              }
+            } catch (refreshError) {
+              console.error('❌ 토큰 리프레시 실패 (자동 로그인):', refreshError);
+            }
+
+            // 토큰 갱신 매니저 시작
+            try {
+              await startTokenRefreshManager();
+              console.log('✅ 토큰 갱신 매니저 시작 완료');
+            } catch (tokenError) {
+              console.error('❌ 토큰 갱신 매니저 시작 실패:', tokenError);
+            }
+
+            console.log('🔄 화면 전환 시작 - 프로필 선택 화면으로 이동');
+            router.replace('/(profile)');
+            console.log('✅ 화면 전환 명령 완료');
+            return; // 성공적으로 로그인되면 팝업을 띄우지 않음
+          }
+        } catch (loginError) {
+          console.error('❌ 자동 로그인 실패:', loginError);
+          userFriendlyMessage = '이미 가입된 계정이지만 로그인에 실패했습니다.';
+        }
       }
 
       setErrorMessage(userFriendlyMessage);
@@ -187,6 +353,17 @@ export default function LoginScreen() {
           >
             <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>
               {isLoading ? '로그인 중...' : '로그인'}
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* 빠른 회원가입 버튼 (개발용) */}
+          <TouchableOpacity
+            style={[styles.loginButton, { backgroundColor: '#4CAF50', marginTop: 10 }]}
+            onPress={handleQuickSignup}
+            disabled={isLoading}
+          >
+            <ThemedText style={[styles.loginButtonText, { color: cardColor }]}>
+              {isLoading ? '처리 중...' : '🚀 빠른 회원가입 (testuser@naver.com)'}
             </ThemedText>
           </TouchableOpacity>
 

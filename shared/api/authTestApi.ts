@@ -20,7 +20,8 @@
 // 인증 관련 API 함수들을 가져옵니다
 import { signup, login, logout, getStoredToken } from './authApi';
 // 중복 확인 관련 API 함수들을 가져옵니다
-import { checkEmail, checkNickname } from '../../features/auth/authApi';
+import { checkEmail } from '../../features/auth/authApi';
+import { checkNicknameExists } from './authApi';
 
 // ===== 회원가입 테스트 함수 =====
 
@@ -239,7 +240,7 @@ export const testNicknameCheck = async () => {
     console.log(`   🔧 테스트 닉네임: ${existingNickname}`);
 
     try {
-      const existingResult = await checkNickname({ nickname: existingNickname });
+      const existingResult = await checkNicknameExists({ nickname: existingNickname });
       console.log('   📋 기존 닉네임 확인 결과:', existingResult);
 
       if (existingResult.data === false) {
@@ -258,7 +259,7 @@ export const testNicknameCheck = async () => {
 
     console.log(`   🔧 테스트 닉네임: ${newNickname}`);
 
-    const newResult = await checkNickname({ nickname: newNickname });
+    const newResult = await checkNicknameExists({ nickname: newNickname });
     console.log('   📋 새로운 닉네임 확인 결과:', newResult);
 
     if (newResult.data === true) {
@@ -274,7 +275,7 @@ export const testNicknameCheck = async () => {
     console.log(`   🔧 테스트 닉네임: ${shortNickname}`);
 
     try {
-      const shortResult = await checkNickname({ nickname: shortNickname });
+      const shortResult = await checkNicknameExists({ nickname: shortNickname });
       console.log('   📋 짧은 닉네임 결과:', shortResult);
     } catch (error) {
       console.log('   ✅ 예상 결과: 너무 짧은 닉네임으로 오류 발생함:', error.message);

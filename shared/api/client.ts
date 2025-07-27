@@ -39,7 +39,7 @@ import { refreshAccessToken } from '@/features/auth/authApi';
  * - headers: 기본 HTTP 헤더 (Content-Type 등)
  */
 export const apiClient = axios.create({
-  baseURL: API_CONFIG.BASE_URL, // API 서버의 기본 URL (예: http://54.180.180.213:8080)
+  baseURL: API_CONFIG.BASE_URL, // API 서버의 기본 URL (예: https://dev.childstorycraft.com)
   timeout: API_CONFIG.TIMEOUT, // 요청 타임아웃 설정 (기본값: 10초)
   headers: {
     'Content-Type': 'application/json', // 모든 요청의 기본 Content-Type을 JSON으로 설정
@@ -210,6 +210,15 @@ export const checkServerConnection = async (): Promise<boolean> => {
     console.log('🔗 서버 연결 테스트 요청:', {
       url, // 요청 대상 URL
       method: 'GET', // HTTP 메서드
+    });
+
+    // APK 빌드에서 네트워크 문제 디버깅을 위한 추가 정보
+    console.log('🔧 네트워크 설정 정보:', {
+      baseUrl: API_CONFIG.BASE_URL,
+      host: API_CONFIG.HOST,
+      port: API_CONFIG.PORT,
+      protocol: API_CONFIG.PROTOCOL,
+      timeout: API_CONFIG.TIMEOUT,
     });
 
     // === 간단한 서버 연결 테스트 ===

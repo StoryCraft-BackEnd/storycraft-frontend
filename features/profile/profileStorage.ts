@@ -5,9 +5,11 @@ const PROFILES_KEY = 'profiles';
 const SELECTED_PROFILE_KEY = 'selectedProfile';
 
 // 프로필 목록을 로컬 스토리지에 저장
-export const saveProfiles = async (profiles: ChildProfile[]): Promise<void> => {
+export const saveProfiles = async (profiles: ChildProfile[] | null): Promise<void> => {
   try {
-    await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    // null인 경우 빈 배열로 저장
+    const profilesToSave = profiles || [];
+    await AsyncStorage.setItem(PROFILES_KEY, JSON.stringify(profilesToSave));
   } catch (error) {
     console.error('프로필 저장 실패:', error);
   }

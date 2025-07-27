@@ -23,10 +23,10 @@ shared/api/
 ```typescript
 const defaultConfig: EnvironmentConfig = {
   api: {
-    baseUrl: 'http://54.180.180.213:8080', // API 서버 URL
-    host: '54.180.180.213', // API 서버 호스트
-    port: 8080, // API 서버 포트
-    protocol: 'http', // HTTP 프로토콜
+    baseUrl: 'https://dev.childstorycraft.com', // API 서버 URL
+    host: 'dev.childstorycraft.com', // API 서버 호스트
+    port: 443, // API 서버 포트
+    protocol: 'https', // HTTPS 프로토콜
     path: '', // API 기본 경로
     timeout: 10000, // 10초 타임아웃
   },

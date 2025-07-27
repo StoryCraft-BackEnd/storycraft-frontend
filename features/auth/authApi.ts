@@ -246,8 +246,17 @@ export const checkNickname = async (data: NicknameCheckRequest): Promise<Nicknam
       data: data,
     });
 
-    // apiClient를 사용하여 서버로 POST 요청 전송
-    const response = await apiClient.post<NicknameCheckResponse>('/nickname/exists', data);
+    // 외부 서버로 직접 POST 요청 전송 (인증 없이)
+    const response = await axios.post<NicknameCheckResponse>(
+      `${API_CONFIG.BASE_URL}/nickname/exists`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: API_CONFIG.TIMEOUT,
+      }
+    );
 
     // 성공적인 응답을 받았을 때 결과를 로깅
     console.log('✅ 닉네임 중복 확인 성공:', response.data);

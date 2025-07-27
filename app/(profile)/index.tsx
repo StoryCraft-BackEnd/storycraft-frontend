@@ -21,8 +21,13 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
 import { ChildProfile } from '@/features/profile/types';
 import { loadImage } from '@/features/main/imageLoader';
-import { saveProfiles, saveSelectedProfile } from '@/features/profile/profileStorage';
+import {
+  saveProfiles,
+  saveSelectedProfile,
+  clearSelectedProfile,
+} from '@/features/profile/profileStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
   const backgroundColor = useThemeColor('background');
@@ -83,12 +88,17 @@ export default function ProfileScreen() {
 
       // 서버에서 항상 최신 데이터를 불러옴
       const response = await getProfiles();
-      setProfiles(response.data);
-      await saveProfiles(response.data); // 로컬에 저장
+
+      // response.data가 null이거나 undefined인 경우 빈 배열로 설정
+      const profilesData = response.data || [];
+      setProfiles(profilesData);
+      await saveProfiles(profilesData); // 로컬에 저장
       setError(null);
     } catch (err) {
       setError('프로필을 불러오는데 실패했습니다.');
       console.error('프로필 로드 실패:', err);
+      // 에러 발생 시 빈 배열로 설정
+      setProfiles([]);
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +106,8 @@ export default function ProfileScreen() {
 
   const handleProfileSelect = async (profileId: number) => {
     try {
-      // 선택된 프로필 찾기
-      const selectedProfile = profiles.find((profile) => profile.childId === profileId);
+      // 선택된 프로필 찾기 (profiles가 null일 수 있으므로 안전하게 처리)
+      const selectedProfile = (profiles || []).find((profile) => profile.childId === profileId);
       if (selectedProfile) {
         // 선택된 프로필을 로컬 스토리지에 저장
         await saveSelectedProfile(selectedProfile);
@@ -154,15 +164,49 @@ export default function ProfileScreen() {
   // 로그아웃 버튼 클릭 시
   const handleLogout = async () => {
     try {
+      console.log('🚪 로그아웃 시작');
+
       // 화면 방향을 세로 모드로 변경
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-      // TODO: 인증 토큰 삭제 등 로그아웃 처리
-      console.log('로그아웃');
+      console.log('✅ 화면 방향 세로 모드로 변경 완료');
+
+      // 모든 토큰과 인증 관련 데이터 삭제
+      console.log('🧹 토큰 및 인증 데이터 삭제 시작');
+      await AsyncStorage.multiRemove([
+        'token',
+        'refreshToken',
+        'tokenIssuedAt',
+        'profiles',
+        'selectedProfile',
+      ]);
+      console.log('✅ 모든 토큰 및 인증 데이터 삭제 완료');
+
+      // 선택된 프로필도 명시적으로 삭제
+      await clearSelectedProfile();
+      console.log('✅ 선택된 프로필 삭제 완료');
+
+      console.log('✅ 로그아웃 완료 - 로그인 화면으로 이동');
 
       // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
       router.replace('/login');
     } catch (error) {
-      console.error('화면 방향 변경 실패:', error);
+      console.error('❌ 로그아웃 중 오류 발생:', error);
+
+      // 오류가 발생해도 토큰 삭제는 강제로 진행
+      try {
+        await AsyncStorage.multiRemove([
+          'token',
+          'refreshToken',
+          'tokenIssuedAt',
+          'profiles',
+          'selectedProfile',
+        ]);
+        await clearSelectedProfile();
+        console.log('✅ 오류 발생 후 강제 토큰 삭제 완료');
+      } catch (cleanupError) {
+        console.error('❌ 강제 토큰 삭제도 실패:', cleanupError);
+      }
+
       // 화면 방향 변경에 실패하더라도 로그아웃은 진행
       router.replace('/login');
     }
@@ -205,7 +249,7 @@ export default function ProfileScreen() {
               contentContainerStyle={{ flexGrow: 1 }}
             >
               <View style={styles.profileList}>
-                {profiles.map((profile) => (
+                {(profiles || []).map((profile) => (
                   <TouchableOpacity
                     key={profile.childId}
                     style={styles.profileCard}
@@ -234,7 +278,7 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 ))}
 
-                {profiles.length < 4 && (
+                {(profiles || []).length < 4 && (
                   <TouchableOpacity
                     style={[styles.profileCard, styles.addProfileCard]}
                     onPress={handleAddProfile}
