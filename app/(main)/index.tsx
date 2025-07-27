@@ -230,7 +230,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>즐겨찾기</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button3]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button3]}
+            onPress={() => router.push('/(main)/english-dictionary')}
+          >
             <Image source={dictionary} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>영어 사전</Text>
           </TouchableOpacity>
