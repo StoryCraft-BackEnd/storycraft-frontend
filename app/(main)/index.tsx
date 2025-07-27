@@ -238,7 +238,10 @@ export default function MainScreen() {
             <Text style={MainScreenStyles.buttonText}>영어 사전</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[MainScreenStyles.button, MainScreenStyles.button4]}>
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button4]}
+            onPress={() => router.push('/(main)/quiz-collection')}
+          >
             <Image source={quiz} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>영어 퀴즈</Text>
           </TouchableOpacity>
