@@ -3,7 +3,15 @@
  * 로그인 후 사용자가 보게 되는 메인 화면입니다.
  */
 import React, { useEffect, useState } from 'react';
-import { ImageBackground, TouchableOpacity, View, Image, Text, ScrollView } from 'react-native';
+import {
+  ImageBackground,
+  TouchableOpacity,
+  View,
+  Image,
+  Text,
+  ScrollView,
+  BackHandler,
+} from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { setStatusBarHidden } from 'expo-status-bar';
@@ -64,6 +72,12 @@ export default function MainScreen() {
     setStatusBarHidden(true);
     NavigationBar.setVisibilityAsync('hidden');
 
+    // 뒤로가기 버튼 비활성화
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // 뒤로가기 버튼을 눌렀을 때 아무것도 하지 않음 (true 반환으로 기본 동작 방지)
+      return true;
+    });
+
     // 선택된 프로필 불러오기
     const loadProfile = async () => {
       try {
@@ -100,6 +114,7 @@ export default function MainScreen() {
       ScreenOrientation.unlockAsync();
       setStatusBarHidden(false);
       NavigationBar.setVisibilityAsync('visible');
+      backHandler.remove(); // 뒤로가기 핸들러 제거
       // clearInterval(interval);
     };
   }, []);
