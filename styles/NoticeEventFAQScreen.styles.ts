@@ -1,78 +1,144 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+export const CARD_WIDTH = Math.min(300, SCREEN_WIDTH * 0.74);
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: 'transparent',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 4,
-    backgroundColor: 'transparent',
-    position: 'relative',
-    height: 56,
-  },
-  backButton: {
-    position: 'absolute',
-    left: 24,
-    zIndex: 2,
-    padding: 8,
-  },
-  backButtonText: {
-    color: '#B0B8D1',
-    fontSize: 24,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: -1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  tabContainer: {
+  tabRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 8,
-    marginTop: 4,
-    gap: 8,
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 18,
+    marginLeft: 18,
+    gap: 12,
   },
-  tab: {
+  tabBtn: {
     paddingVertical: 8,
-    paddingHorizontal: 32,
-    borderRadius: 24,
-    backgroundColor: 'transparent',
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: '#23284a',
+    marginRight: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  activeTab: {
-    backgroundColor: '#6C4DF6',
+  activeTabBtn: {
+    backgroundColor: '#6c63ff',
   },
   tabText: {
-    color: '#B0B8D1',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#b3b3ff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginLeft: 4,
   },
   activeTabText: {
     color: '#fff',
   },
-  scrollArea: {
-    flex: 1,
-    paddingHorizontal: 0,
+  cardList: {
+    paddingLeft: 50,
+    paddingRight: 8,
   },
-  contentInnerContainer: {
-    paddingHorizontal: 0,
-    paddingBottom: 16,
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: '#181f3a',
+    borderRadius: 18,
+    padding: 18,
+    marginRight: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    justifyContent: 'space-between',
   },
-  tabContainerInHeader: {
-    flex: 1,
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+    flex: 1,
+    marginRight: 8,
+  },
+  date: {
+    fontSize: 13,
+    color: '#b3b3ff',
+    marginBottom: 8,
+  },
+  content: {
+    fontSize: 14,
+    color: '#e0e0ff',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  readMoreBtn: {
+    backgroundColor: '#4f6cff',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'flex-start',
+    marginTop: 'auto',
+  },
+  readMoreText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  importantBadge: {
+    backgroundColor: '#ff6b6b',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  importantText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  statusBadge: {
+    backgroundColor: '#666',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  activeBadge: {
+    backgroundColor: '#4caf50',
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  activeStatusText: {
+    color: '#fff',
+  },
+  categoryBadge: {
+    backgroundColor: '#23284a',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  categoryText: {
+    color: '#b3b3ff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  disabledBtn: {
+    backgroundColor: '#666',
+  },
+  disabledText: {
+    color: '#ccc',
   },
 });
 
