@@ -24,7 +24,6 @@ import { getMyInfo, UserInfo } from '@/features/user/userApi';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
-  const [emailEnabled, setEmailEnabled] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {

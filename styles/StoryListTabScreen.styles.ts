@@ -111,6 +111,45 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 8,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyIcon: {
+    color: '#b3b3ff',
+    marginBottom: 16,
+  },
+  emptyText: {
+    color: '#b3b3ff',
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  statusIcons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  createButton: {
+    backgroundColor: '#4f6cff',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
 
 export default styles;
