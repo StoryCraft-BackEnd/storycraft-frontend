@@ -28,44 +28,54 @@ export default function MyPageStatsScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <BackButton />
         <ScrollView
+          horizontal
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
         >
-          <Text style={styles.title}>학습 통계</Text>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>총 생성한 동화</Text>
-              <Text style={styles.summaryValue}>25개</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>이번 주 학습 시간</Text>
-              <Text style={styles.summaryValue}>2시간 30분</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>연속 학습 일수</Text>
-              <Text style={styles.summaryValue}>7일</Text>
-            </View>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>주간 목표 달성</Text>
-              <Text style={styles.summaryValue}>70%</Text>
+          {/* 통합 요약 카드 */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>학습 요약</Text>
+            <View style={styles.summaryList}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>총 생성한 동화</Text>
+                <Text style={styles.summaryValue}>25개</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>이번 주 학습 시간</Text>
+                <Text style={styles.summaryValue}>2시간 30분</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>연속 학습 일수</Text>
+                <Text style={styles.summaryValue}>7일</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>주간 목표 달성</Text>
+                <Text style={styles.summaryValue}>70%</Text>
+              </View>
             </View>
           </View>
+
+          {/* 이번 주 학습 현황 */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>이번 주 학습 현황</Text>
-            {weekStats.map((stat) => (
-              <View key={stat.day} style={styles.weekRow}>
-                <Text style={styles.weekDayLabel}>{stat.day}</Text>
-                <Text style={styles.weekDay}>동화 {stat.count}개</Text>
-                <View style={styles.weekBarBg}>
-                  <View style={[styles.weekBar, { width: `${stat.minutes * 2}%` }]} />
+            <View style={styles.sectionContent}>
+              {weekStats.map((stat) => (
+                <View key={stat.day} style={styles.weekRow}>
+                  <Text style={styles.weekDayLabel}>{stat.day}</Text>
+                  <Text style={styles.weekDay}>동화 {stat.count}개</Text>
+                  <View style={styles.weekBarBg}>
+                    <View style={[styles.weekBar, { width: `${stat.minutes * 2}%` }]} />
+                  </View>
+                  <Text style={styles.weekMinutes}>{stat.minutes}분</Text>
                 </View>
-                <Text style={styles.weekMinutes}>{stat.minutes}분</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-          <View style={styles.bottomRow}>
-            <View style={styles.goalBox}>
-              <Text style={styles.goalTitle}>주간 목표</Text>
+
+          {/* 주간 목표 */}
+          <View style={styles.goalBox}>
+            <Text style={styles.goalTitle}>주간 목표</Text>
+            <View style={styles.goalContent}>
               <View style={styles.goalItem}>
                 <Text style={styles.goalLabel}>동화 읽기</Text>
                 <View style={styles.goalBarBg}>
@@ -88,8 +98,12 @@ export default function MyPageStatsScreen() {
                 <Text style={styles.goalValue}>7/7일</Text>
               </View>
             </View>
-            <View style={styles.keywordBox}>
-              <Text style={styles.keywordTitle}>자주 사용하는 키워드</Text>
+          </View>
+
+          {/* 자주 사용하는 키워드 */}
+          <View style={styles.keywordBox}>
+            <Text style={styles.keywordTitle}>자주 사용하는 키워드</Text>
+            <View style={styles.keywordContent}>
               {keywords.map((kw) => (
                 <View key={kw.word} style={styles.keywordRow}>
                   <View style={styles.keywordTag}>

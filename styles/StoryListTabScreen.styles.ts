@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   cardList: {
-    paddingLeft: 18,
+    paddingLeft: 50,
     paddingRight: 8,
   },
   card: {
