@@ -13,6 +13,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
 import { NotFoundScreen } from '@/components/ui/NotFoundScreen';
 import sleepcharacter from '@/assets/images/character/sleep.png';
+import { clearTermsAgreement, checkTermsAgreement } from '@/shared/utils/termsUtils';
 
 export default function HomeScreen() {
   // 상태 관리
@@ -30,6 +31,21 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        console.log('🔍 (auth)/index.tsx - 약관 동의 상태 확인 중...');
+
+        // 약관 동의 상태 확인
+        const termsAgreed = await checkTermsAgreement();
+        console.log('📋 (auth)/index.tsx - 약관 동의 상태:', termsAgreed);
+
+        // 약관에 동의하지 않은 경우 약관 동의 페이지로 리다이렉트
+        if (!termsAgreed) {
+          console.log('❌ (auth)/index.tsx - 약관 미동의, 약관 동의 페이지로 리다이렉트');
+          router.replace('/(auth)/terms-agreement');
+          return;
+        }
+
+        console.log('✅ (auth)/index.tsx - 약관 동의 완료, 서버 연결 확인 시작');
+
         // 서버 연결 확인
         const connected = await checkServerConnection();
         setIsConnected(connected);
@@ -101,6 +117,24 @@ export default function HomeScreen() {
     setTimeout(() => {
       setShowLoading(false);
     }, 1000);
+  };
+
+  /**
+   * 약관 동의 초기화 핸들러 (개발용)
+   *
+   * @function handleClearTerms
+   */
+  const handleClearTerms = async () => {
+    try {
+      await clearTermsAgreement();
+      Alert.alert(
+        '초기화 완료',
+        '약관 동의가 초기화되었습니다. 앱을 다시 시작하면 약관 동의 페이지가 표시됩니다.'
+      );
+    } catch (error) {
+      console.error('약관 동의 초기화 중 오류:', error);
+      Alert.alert('오류', '약관 동의 초기화 중 오류가 발생했습니다.');
+    }
   };
 
   // 초기 로딩 화면 표시
@@ -189,13 +223,13 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>팝업 테스트</ThemedText>
       </TouchableOpacity>
 
-      {/* API 테스트 버튼 */}
-      <TouchableOpacity
+      {/* API 테스트 버튼 - 개발용으로 주석처리 */}
+      {/* <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#FF5722' }]}
         onPress={() => router.push('./api-test')}
       >
         <ThemedText style={styles.buttonText}>🧪 API 테스트</ThemedText>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* 메인 화면으로 이동 버튼 */}
       <TouchableOpacity
@@ -211,6 +245,14 @@ export default function HomeScreen() {
         onPress={() => setShowTestScreen(false)}
       >
         <ThemedText style={styles.buttonText}>홈으로 돌아가기</ThemedText>
+      </TouchableOpacity>
+
+      {/* 약관 동의 초기화 버튼 (개발용) */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#FF9800' }]}
+        onPress={handleClearTerms}
+      >
+        <ThemedText style={styles.buttonText}>약관 동의 초기화</ThemedText>
       </TouchableOpacity>
 
       <Popup

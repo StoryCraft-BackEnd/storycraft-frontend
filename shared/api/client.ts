@@ -23,7 +23,7 @@ import { API_CONFIG } from '@/shared/config/api';
 // React Native 로컬 스토리지 (토큰 저장/읽기용)
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // 토큰 갱신 함수 (순환 참조 방지를 위해 별도 import)
-import { refreshAccessToken } from '@/features/auth/authApi';
+import { refreshAccessToken } from '@/shared/api/tokenManager';
 
 // ===== API 클라이언트 인스턴스 생성 =====
 
