@@ -20,13 +20,25 @@ import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 import nightBg from '../../../assets/images/background/night-bg.png';
 import BackButton from '../../../components/ui/BackButton';
+import { getMyInfo, UserInfo } from '@/features/user/userApi';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
-    loadPushEnabled().then(setPushEnabled);
+    const fetchData = async () => {
+      try {
+        const [pushSettings, userData] = await Promise.all([loadPushEnabled(), getMyInfo()]);
+        setPushEnabled(pushSettings);
+        setUserInfo(userData);
+      } catch (error) {
+        console.error('설정 데이터 로드 실패:', error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handlePushToggle = async (value: boolean) => {
@@ -69,10 +81,7 @@ const SettingsScreen = () => {
 
   const handleLogout = async () => {
     try {
-      const accessToken = await AsyncStorage.getItem('token');
-      if (accessToken) {
-        await logout(accessToken);
-      }
+      await logout();
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('refreshToken');
       router.replace('/login');
@@ -90,158 +99,143 @@ const SettingsScreen = () => {
         <BackButton />
         <View style={SettingsScreenStyles.landscapeWrapper}>
           <ScrollView
-            showsVerticalScrollIndicator={false}
+            horizontal
+            showsHorizontalScrollIndicator={false}
             style={{ flex: 1 }}
             contentContainerStyle={SettingsScreenStyles.scrollContent}
           >
-            <Text style={SettingsScreenStyles.sectionTitle}>설정</Text>
-            {/* 계정 정보 + 알림 설정 */}
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                gap: 24,
-                marginBottom: 0,
-                justifyContent: 'center',
-              }}
-            >
-              <View style={SettingsScreenStyles.settingsBox}>
-                <Text style={SettingsScreenStyles.categoryTitle}>계정 정보</Text>
-                <View style={SettingsScreenStyles.row}>
-                  <View style={SettingsScreenStyles.iconBox}>
-                    <MaterialIcons name="email" size={22} color="#b3b3ff" />
-                  </View>
-                  <View style={SettingsScreenStyles.infoBox}>
-                    <Text style={SettingsScreenStyles.label}>계정 이메일</Text>
-                    <Text style={SettingsScreenStyles.value}>user@example.com</Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={SettingsScreenStyles.row} onPress={handleLogout}>
-                  <View style={SettingsScreenStyles.iconBox}>
-                    <MaterialIcons name="logout" size={22} color="#ff4d4f" />
-                  </View>
-                  <Text style={SettingsScreenStyles.label}>로그아웃</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={SettingsScreenStyles.settingsBox}>
-                <Text style={SettingsScreenStyles.categoryTitle}>알림 설정</Text>
-                <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
-                  새로운 스토리와 학습 관련 알림을 받을 수 있습니다.
-                </Text>
-                <View style={SettingsScreenStyles.row}>
-                  <View style={SettingsScreenStyles.iconBox}>
-                    <Feather name="bell" size={22} color="#b3b3ff" />
-                  </View>
-                  <Text style={SettingsScreenStyles.label}>푸시 알림</Text>
-                  <View style={{ flex: 1 }} />
-                  <Switch value={pushEnabled} onValueChange={handlePushToggle} />
-                </View>
-              </View>
-            </View>
-            {/* 언어 설정 + 앱 정보 */}
-            <View
-              style={{
-                flexDirection: 'row',
-                flexWrap: 'wrap',
-                gap: 24,
-                marginBottom: 0,
-                justifyContent: 'center',
-              }}
-            >
-              <View style={SettingsScreenStyles.settingsBox}>
-                <Text style={SettingsScreenStyles.categoryTitle}>언어 설정</Text>
-                <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
-                  앱에서 사용할 언어를 선택합니다.
-                </Text>
-                <View style={SettingsScreenStyles.row}>
-                  <Text style={SettingsScreenStyles.label}>언어 선택</Text>
-                  <View style={{ flex: 1 }} />
-                  <Text style={SettingsScreenStyles.value}>한국어</Text>
-                </View>
-              </View>
-              <View style={SettingsScreenStyles.settingsBox}>
-                <Text style={SettingsScreenStyles.categoryTitle}>앱 정보</Text>
-                <View style={SettingsScreenStyles.row}>
-                  <Text style={SettingsScreenStyles.label}>앱 버전</Text>
-                  <View style={{ flex: 1 }} />
-                  <Text
-                    style={[
-                      SettingsScreenStyles.value,
-                      {
-                        backgroundColor: '#6c63ff',
-                        color: '#fff',
-                        borderRadius: 8,
-                        paddingHorizontal: 10,
-                        paddingVertical: 2,
-                        fontWeight: 'bold',
-                      },
-                    ]}
-                  >
-                    v1.2.0
-                  </Text>
-                </View>
-                <View style={SettingsScreenStyles.row}>
-                  <Text style={SettingsScreenStyles.label}>빌드 번호</Text>
-                  <View style={{ flex: 1 }} />
-                  <Text style={SettingsScreenStyles.value}>2025.07.07</Text>
-                </View>
-                <View style={SettingsScreenStyles.row}>
-                  <Text style={SettingsScreenStyles.label}>개발자</Text>
-                  <View style={{ flex: 1 }} />
-                  <Text style={SettingsScreenStyles.value}>Story Craft</Text>
-                </View>
-                <TouchableOpacity style={[SettingsScreenStyles.row, { marginTop: 8 }]}>
-                  <View style={SettingsScreenStyles.iconBox}>
-                    <Feather name="help-circle" size={22} color="#b3b3ff" />
-                  </View>
-                  <Text style={SettingsScreenStyles.label}>문의하기</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            {/* 개인정보 및 보안 */}
+            {/* 계정 정보 */}
             <View style={SettingsScreenStyles.settingsBox}>
-              <Text style={SettingsScreenStyles.categoryTitle}>개인정보 및 보안</Text>
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-                <TouchableOpacity
-                  style={[
-                    SettingsScreenStyles.row,
-                    { flex: 1, backgroundColor: '#23284a', justifyContent: 'center' },
-                  ]}
-                >
-                  <Text style={SettingsScreenStyles.label}>개인정보 처리방침</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    SettingsScreenStyles.row,
-                    { flex: 1, backgroundColor: '#23284a', justifyContent: 'center' },
-                  ]}
-                >
-                  <Text style={SettingsScreenStyles.label}>서비스 이용약관</Text>
-                </TouchableOpacity>
+              <Text style={SettingsScreenStyles.categoryTitle}>계정 정보</Text>
+              <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
+                계정 정보를 확인하고 관리할 수 있습니다.
+              </Text>
+              <View style={SettingsScreenStyles.row}>
+                <View style={SettingsScreenStyles.iconBox}>
+                  <MaterialIcons name="email" size={22} color="#b3b3ff" />
+                </View>
+                <View style={SettingsScreenStyles.infoBox}>
+                  <Text style={SettingsScreenStyles.label}>계정 이메일</Text>
+                  <Text style={SettingsScreenStyles.value}>{userInfo?.email || '로딩 중...'}</Text>
+                </View>
               </View>
+              <TouchableOpacity style={SettingsScreenStyles.row} onPress={handleLogout}>
+                <View style={SettingsScreenStyles.iconBox}>
+                  <MaterialIcons name="logout" size={22} color="#ff4d4f" />
+                </View>
+                <Text style={SettingsScreenStyles.label}>로그아웃</Text>
+              </TouchableOpacity>
+            </View>
 
+            {/* 알림 설정 */}
+            <View style={SettingsScreenStyles.settingsBox}>
+              <Text style={SettingsScreenStyles.categoryTitle}>알림 설정</Text>
+              <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
+                새로운 스토리와 학습 관련 알림을 받을 수 있습니다.
+              </Text>
+              <View style={SettingsScreenStyles.row}>
+                <View style={SettingsScreenStyles.iconBox}>
+                  <Feather name="bell" size={22} color="#b3b3ff" />
+                </View>
+                <Text style={SettingsScreenStyles.label}>푸시 알림</Text>
+                <View style={{ flex: 1 }} />
+                <Switch value={pushEnabled} onValueChange={handlePushToggle} />
+              </View>
+            </View>
+
+            {/* 언어 설정 */}
+            <View style={SettingsScreenStyles.settingsBox}>
+              <Text style={SettingsScreenStyles.categoryTitle}>언어 설정</Text>
+              <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
+                앱에서 사용할 언어를 선택합니다.
+              </Text>
+              <View style={SettingsScreenStyles.row}>
+                <Text style={SettingsScreenStyles.label}>언어 선택</Text>
+                <View style={{ flex: 1 }} />
+                <Text style={SettingsScreenStyles.value}>한국어</Text>
+              </View>
+            </View>
+
+            {/* 앱 정보 */}
+            <View style={SettingsScreenStyles.settingsBox}>
+              <Text style={SettingsScreenStyles.categoryTitle}>앱 정보</Text>
+              <View style={SettingsScreenStyles.row}>
+                <Text style={SettingsScreenStyles.label}>앱 버전</Text>
+                <View style={{ flex: 1 }} />
+                <Text
+                  style={[
+                    SettingsScreenStyles.value,
+                    {
+                      backgroundColor: '#6c63ff',
+                      color: '#fff',
+                      borderRadius: 8,
+                      paddingHorizontal: 10,
+                      paddingVertical: 2,
+                      fontWeight: 'bold',
+                    },
+                  ]}
+                >
+                  v1.2.0
+                </Text>
+              </View>
+              <View style={SettingsScreenStyles.row}>
+                <Text style={SettingsScreenStyles.label}>빌드 번호</Text>
+                <View style={{ flex: 1 }} />
+                <Text style={SettingsScreenStyles.value}>2025.07.07</Text>
+              </View>
+              <View style={SettingsScreenStyles.row}>
+                <Text style={SettingsScreenStyles.label}>개발자</Text>
+                <View style={{ flex: 1 }} />
+                <Text style={SettingsScreenStyles.value}>Story Craft</Text>
+              </View>
+            </View>
+
+            {/* 개인정보 처리방침 */}
+            <View style={SettingsScreenStyles.settingsBox}>
+              <Text style={SettingsScreenStyles.categoryTitle}>개인정보 처리방침</Text>
+              <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
+                개인정보 보호 및 서비스 이용에 관한 정책을 확인할 수 있습니다.
+              </Text>
+              <TouchableOpacity
+                style={[
+                  SettingsScreenStyles.row,
+                  { backgroundColor: '#23284a', justifyContent: 'center', marginBottom: 12 },
+                ]}
+              >
+                <Text style={SettingsScreenStyles.label}>개인정보 처리방침</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  SettingsScreenStyles.row,
+                  { backgroundColor: '#23284a', justifyContent: 'center' },
+                ]}
+              >
+                <Text style={SettingsScreenStyles.label}>서비스 이용약관</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 회원 탈퇴 */}
+            <View style={SettingsScreenStyles.settingsBox}>
+              <Text style={SettingsScreenStyles.categoryTitle}>회원 탈퇴</Text>
               <View
                 style={{
                   backgroundColor: 'rgba(255,77,79,0.08)',
                   borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 16,
+                  padding: 12,
+                  marginBottom: 8,
                 }}
               >
                 <Text style={{ color: '#ff4d4f', fontWeight: 'bold', marginBottom: 4 }}>
                   위험 구역
                 </Text>
-                <Text style={{ color: '#ffb3b3', fontSize: 13, marginBottom: 8 }}>
+                <Text style={{ color: '#ffb3b3', fontSize: 13, marginBottom: 4 }}>
                   계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
                 </Text>
                 <TouchableOpacity
                   style={SettingsScreenStyles.dangerButton}
                   onPress={async () => {
                     try {
-                      const accessToken = await AsyncStorage.getItem('token');
-                      if (accessToken) {
-                        await withdraw(accessToken);
-                      }
+                      await withdraw();
                       await AsyncStorage.removeItem('token');
                       await AsyncStorage.removeItem('refreshToken');
                       router.replace('/login');
