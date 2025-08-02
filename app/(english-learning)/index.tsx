@@ -42,11 +42,12 @@ export default function EnglishLearningScreen() {
             storyId: parseInt(params.storyId as string),
             title: params.title as string,
             content: params.content as string,
+            contentKr: (params.contentKr as string) || '', // 한국어 내용 (선택적)
             keywords: params.keywords ? (params.keywords as string).split(',') : [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            thumbnailUrl: '',
-            childId: 0, // 임시값
+            createdAt: (params.createdAt as string) || new Date().toISOString(),
+            updatedAt: (params.updatedAt as string) || new Date().toISOString(),
+            thumbnailUrl: undefined, // 추후 삭제 예정
+            childId: parseInt((params.childId as string) || '0'), // 프로필 ID
             isBookmarked: false,
             isLiked: false,
           };
@@ -56,6 +57,7 @@ export default function EnglishLearningScreen() {
             title: storyData.title,
             contentLength: storyData.content?.length || 0,
             hasContent: !!storyData.content,
+            childId: storyData.childId,
           });
 
           const learningStory = convertStoryToLearningStoryWithPages(storyData);
@@ -65,13 +67,23 @@ export default function EnglishLearningScreen() {
           setWordFavorites(new Array(learningStory.highlightedWords.length).fill(false));
           setWordClicked(new Array(learningStory.highlightedWords.length).fill(false));
 
-          // 삽화 이미지 로드
+          // 삽화 이미지 로드 (로컬 저장된 이미지 확인)
           try {
             console.log(`동화 ${storyData.storyId} 삽화 이미지 로드 시작...`);
+
+            // TODO: 추후 별도 API로 삽화 URL 받아오기
+            // const illustrationUrl = await getStoryIllustrationUrl(storyData.storyId);
+            // if (illustrationUrl) {
+            //   const localPath = await downloadStoryIllustration(illustrationUrl, storyData.storyId);
+            //   setBackgroundImage(localPath);
+            //   console.log(`동화 ${storyData.storyId} 삽화 다운로드 및 배경 설정:`, localPath);
+            // }
+
+            // 현재는 로컬 저장된 삽화 이미지만 확인
             const illustrationPath = await getStoryIllustrationPath(storyData.storyId);
             if (illustrationPath) {
               setBackgroundImage(illustrationPath);
-              console.log(`동화 ${storyData.storyId} 삽화 배경 설정 완료:`, illustrationPath);
+              console.log(`동화 ${storyData.storyId} 로컬 삽화 배경 설정:`, illustrationPath);
             } else {
               console.log(`동화 ${storyData.storyId} 삽화 이미지가 없습니다.`);
             }
@@ -83,6 +95,7 @@ export default function EnglishLearningScreen() {
             title: learningStory.title,
             contentLength: learningStory.content.length,
             highlightedWordsCount: learningStory.highlightedWords.length,
+            hasBackgroundImage: !!backgroundImage,
           });
         } else {
           // 기존 로직: 선택된 프로필의 최신 동화 사용
@@ -306,9 +319,9 @@ export default function EnglishLearningScreen() {
                   {currentStory.pages[currentPage - 1]}
                 </Text>
 
-                {currentStory.koreanTranslation && (
+                {currentStory.contentKr && (
                   <Text style={englishLearningStyles.koreanTranslation}>
-                    {currentStory.koreanTranslation}
+                    {currentStory.contentKr}
                   </Text>
                 )}
 
@@ -492,9 +505,9 @@ export default function EnglishLearningScreen() {
                   {currentStory.pages[currentPage - 1]}
                 </Text>
 
-                {currentStory.koreanTranslation && (
+                {currentStory.contentKr && (
                   <Text style={englishLearningStyles.koreanTranslation}>
-                    {currentStory.koreanTranslation}
+                    {currentStory.contentKr}
                   </Text>
                 )}
 

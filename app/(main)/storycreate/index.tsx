@@ -29,7 +29,8 @@ import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
 import { createStory } from '@/features/storyCreate/storyApi';
 import { addStoryToStorage, logProfileStructure } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
-import type { CreateStoryRequest, CreateStoryResponse, Story } from '@/features/storyCreate/types';
+import type { CreateStoryRequest, StoryData, Story } from '@/features/storyCreate/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 배경 이미지 파일을 import 합니다.
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -113,6 +114,19 @@ const StoryCreateScreen = () => {
 
     setIsLoading(true); // API 요청 시작 전, 로딩 상태를 true로 설정합니다.
     try {
+      // 로그인 상태 확인
+      console.log('🔐 로그인 상태 확인 중...');
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.log('❌ 로그인 토큰이 없습니다. 로그인 화면으로 이동합니다.');
+        showPopup('알림', '동화 생성을 위해 로그인이 필요합니다.');
+        setTimeout(() => {
+          router.push('/(auth)/login');
+        }, 1500);
+        return;
+      }
+      console.log('✅ 로그인 상태 확인 완료');
+
       // 선택된 프로필 불러오기
       const selectedProfile = await loadSelectedProfile();
       if (!selectedProfile) {
@@ -127,10 +141,10 @@ const StoryCreateScreen = () => {
       };
 
       // 새로운 API 함수를 사용하여 동화 생성 요청
-      const result: CreateStoryResponse = await createStory(requestData);
+      const result: StoryData = await createStory(requestData);
 
-      // 서버 응답에서 실제 동화 데이터 추출
-      const storyData = result.data;
+      // 서버 응답에서 실제 동화 데이터 추출 (API 스펙에 따라 직접 객체 반환)
+      const storyData = result;
 
       // 생성된 동화를 로컬에 저장할 데이터 구성
       const storyToSave: Story = {
@@ -141,35 +155,17 @@ const StoryCreateScreen = () => {
 
       console.log('저장할 동화 데이터:', storyToSave);
 
-      // 삽화 이미지 URL 확인
-      if (!storyData.thumbnailUrl) {
-        console.log(`동화 ${storyData.storyId} 삽화 이미지 URL이 null입니다.`);
-        showPopup(
-          '알림',
-          `"${storyData.title}" 동화가 생성되었지만, 삽화 이미지를 받지 못했습니다.\n\n삽화는 영어 학습 화면에서 배경으로 사용됩니다.`
-        );
-      } else {
-        console.log(`동화 ${storyData.storyId} 삽화 이미지 URL: ${storyData.thumbnailUrl}`);
-      }
-
       // 프로필별 폴더 구조에 동화 저장
       await addStoryToStorage(storyToSave);
 
       // 프로필 구조 로깅 (디버깅용)
       await logProfileStructure(selectedProfile.childId);
 
-      // 삽화가 없는 경우와 있는 경우 다른 메시지 표시
-      if (!storyData.thumbnailUrl) {
-        showPopup(
-          '성공',
-          `"${storyData.title}" 동화가 생성되었습니다!\n\n삽화 이미지는 받지 못했지만, 동화 내용은 정상적으로 생성되었습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`
-        );
-      } else {
-        showPopup(
-          '성공',
-          `"${storyData.title}" 동화가 생성되었습니다!\n\n삽화 이미지도 함께 다운로드되었습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`
-        );
-      }
+      // 성공 메시지 표시
+      showPopup(
+        '성공',
+        `"${storyData.title}" 동화가 생성되었습니다!\n\n잠시 후 영어 학습 화면으로 이동합니다.`
+      );
 
       // 성공 팝업 닫힌 후 생성된 동화의 영어 학습 화면으로 이동
       setTimeout(() => {
@@ -179,7 +175,11 @@ const StoryCreateScreen = () => {
             storyId: storyData.storyId.toString(),
             title: storyData.title,
             content: storyData.content,
+            contentKr: storyData.contentKr || '',
             keywords: storyData.keywords?.join(',') || '',
+            createdAt: storyData.createdAt,
+            updatedAt: storyData.updatedAt,
+            childId: selectedProfile.childId.toString(),
           },
         });
       }, 1500);

@@ -151,6 +151,9 @@ export const getChildren = async (): Promise<Child[]> => {
       method: 'GET', // HTTP 메서드 (데이터 조회용)
     });
 
+    // 전체 URL을 별도로 로깅
+    console.log('🌐 프로필 목록 조회 전체 URL:', url);
+
     // 서버로 GET 요청을 전송하여 프로필 목록을 가져옵니다
     // 응답 타입을 { data: Child[] }로 지정하여 타입 안전성을 보장합니다
     const response = await apiClient.get<{ data: Child[] }>('/children');

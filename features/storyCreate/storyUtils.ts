@@ -106,12 +106,12 @@ export const convertStoryToLearningStory = (story: Story): LearningStory => {
     storyId: story.storyId,
     title: story.title || '제목 없음',
     content: story.content || '내용이 없습니다.',
-    thumbnailUrl: story.thumbnailUrl,
+    contentKr: story.contentKr || '한국어 내용이 없습니다.',
+    thumbnailUrl: story.thumbnailUrl, // 선택적 필드
     childId: story.childId,
     keywords: story.keywords || [],
     totalPages: 1, // 현재는 1페이지로 설정 (추후 페이지 분할 기능 구현)
     highlightedWords: highlightedWords,
-    koreanTranslation: '', // 추후 AI 번역 API 연동 예정
   };
 };
 
@@ -195,12 +195,12 @@ export function convertStoryToLearningStoryWithPages(
     storyId: story.storyId,
     title: story.title,
     content: story.content || '',
-    thumbnailUrl: story.thumbnailUrl,
+    contentKr: story.contentKr || '',
+    thumbnailUrl: story.thumbnailUrl, // 선택적 필드
     childId: story.childId,
     keywords: story.keywords || [],
     totalPages: pages.length,
     highlightedWords: [], // 아직 단어 기능 없음
-    koreanTranslation: '', // 아직 번역 기능 없음
     pages: pages,
   };
 }

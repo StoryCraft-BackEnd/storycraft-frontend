@@ -1,11 +1,12 @@
+import { apiClient } from '@/shared/api/client';
 import {
   ProfileResponse,
-  ChildProfile,
   CreateProfileResponse,
-  DeleteProfileResponse,
   UpdateProfileResponse,
+  DeleteProfileResponse,
+  ChildProfile,
 } from './types';
-import { apiClient } from '@/shared/api/client';
+import { clearStoriesFromStorage } from '@/features/storyCreate/storyStorage';
 
 /**
  * 자녀 프로필 목록을 조회합니다.
@@ -29,6 +30,10 @@ export const getProfiles = async (): Promise<ProfileResponse> => {
     console.log('🏷️ 자녀 프로필 목록 조회 시작...');
     console.log(`   🌐 요청 URL: /children`);
     console.log(`   🔧 Method: GET`);
+
+    // 전체 URL 로깅 추가
+    const fullUrl = `${apiClient.defaults.baseURL}/children`;
+    console.log(`   🌐 전체 URL: ${fullUrl}`);
 
     // apiClient를 사용하여 자동으로 토큰이 헤더에 추가됨
     const response = await apiClient.get('/children');
@@ -176,7 +181,49 @@ export const deleteProfile = async (childId: number): Promise<DeleteProfileRespo
     console.log(`   🌐 요청 URL: /children/${childId}`);
     console.log(`   🔧 Method: DELETE`);
 
-    // apiClient를 사용하여 자동으로 토큰이 헤더에 추가됨
+    // 삭제 전 연결된 동화 데이터 확인 및 삭제
+    try {
+      console.log(`   🔍 프로필 ${childId}의 연결된 동화 데이터 확인 중...`);
+      const storiesResponse = await apiClient.get(`/stories/lists?id=${childId}`);
+      const storiesArray = storiesResponse.data?.data;
+      const storiesCount = storiesArray?.length || 0;
+      console.log(`   📊 연결된 동화 개수: ${storiesCount}개`);
+
+      if (storiesCount > 0) {
+        console.log(`   🗑️ 연결된 동화 ${storiesCount}개 삭제 시작...`);
+
+        // 각 동화를 개별적으로 삭제
+        for (const story of storiesArray) {
+          try {
+            console.log(`   🗑️ 동화 삭제 중: ${story.storyId} - ${story.title}`);
+            await apiClient.delete(`/stories/${story.storyId}`);
+            console.log(`   ✅ 동화 삭제 완료: ${story.storyId}`);
+          } catch (storyDeleteError: any) {
+            console.error(
+              `   ❌ 동화 ${story.storyId} 삭제 실패:`,
+              storyDeleteError.response?.data || storyDeleteError.message
+            );
+            // 개별 동화 삭제 실패는 전체 프로필 삭제를 중단하지 않음
+          }
+        }
+
+        console.log(`   ✅ 연결된 동화 ${storiesCount}개 삭제 완료`);
+      }
+    } catch (storiesError) {
+      console.log(`   ℹ️ 동화 데이터 확인/삭제 실패 (무시됨):`, storiesError.message);
+    }
+
+    // 로컬 데이터 정리
+    try {
+      console.log(`   🧹 프로필 ${childId} 로컬 데이터 정리 중...`);
+      await clearStoriesFromStorage(childId);
+      console.log(`   ✅ 프로필 ${childId} 로컬 데이터 정리 완료`);
+    } catch (localCleanupError) {
+      console.error(`   ❌ 로컬 데이터 정리 실패:`, localCleanupError);
+      // 로컬 정리 실패는 전체 프로필 삭제를 중단하지 않음
+    }
+
+    // 프로필 삭제 요청
     const response = await apiClient.delete(`/children/${childId}`);
 
     console.log(`   📊 응답 상태: ${response.status} ${response.statusText}`);
@@ -188,8 +235,21 @@ export const deleteProfile = async (childId: number): Promise<DeleteProfileRespo
     return data;
   } catch (error: any) {
     console.error('❌ 자녀 프로필 삭제 실패:', error);
+
+    // 500 에러에 대한 상세 정보 로깅
+    if (error.response?.status === 500) {
+      console.error('🔍 500 에러 상세 정보:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers,
+      });
+    }
+
     if (error.response?.data) {
-      throw new Error(`프로필 삭제 실패 (${error.response.status}): ${error.response.data}`);
+      throw new Error(
+        `프로필 삭제 실패 (${error.response.status}): ${JSON.stringify(error.response.data)}`
+      );
     }
     throw error;
   }

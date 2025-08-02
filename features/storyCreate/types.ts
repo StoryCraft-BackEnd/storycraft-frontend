@@ -8,14 +8,15 @@ export interface CreateStoryRequest {
 export interface StoryData {
   storyId: number; // 생성된 동화의 고유 ID
   title: string; // 동화 제목
-  content: string; // 동화 내용
-  thumbnailUrl: string | null; // 동화 썸네일 이미지 URL (null일 수 있음)
+  content: string; // 동화 내용 (영어)
+  contentKr: string; // 동화 내용 (한국어)
+  thumbnailUrl?: string; // 동화 썸네일 이미지 URL (선택적, 나중에 제거 예정)
   keywords: string[]; // 생성에 사용된 키워드들 (API 스펙에 맞춤)
   createdAt: string; // 생성 시간 (ISO 8601 형식)
   updatedAt: string; // 수정 시간 (ISO 8601 형식)
 }
 
-// 동화 생성 응답 타입 (서버 응답 구조)
+// 동화 생성 응답 타입 (API 스펙에 맞춤)
 export interface CreateStoryResponse {
   status: number;
   message: string;
@@ -26,8 +27,9 @@ export interface CreateStoryResponse {
 export interface Story {
   storyId: number; // 동화 ID
   title: string; // 동화 제목
-  content: string; // 동화 내용
-  thumbnailUrl: string; // 썸네일 URL
+  content: string; // 동화 내용 (영어)
+  contentKr: string; // 동화 내용 (한국어)
+  thumbnailUrl?: string; // 썸네일 URL (선택적, 나중에 제거 예정)
   createdAt: string; // 생성 시간
   updatedAt: string; // 수정 시간
   childId: number; // 어떤 아이의 동화인지 (로컬 저장용)
@@ -47,14 +49,14 @@ export interface StoryCreationState {
 export interface LearningStory {
   storyId: number; // 동화 ID
   title: string; // 동화 제목
-  content: string; // 동화 내용
-  thumbnailUrl: string | null; // 썸네일 URL (null일 수 있음)
+  content: string; // 동화 내용 (영어)
+  contentKr: string; // 동화 내용 (한국어)
+  thumbnailUrl?: string; // 썸네일 URL (선택적, 나중에 제거 예정)
   childId: number; // 아이 ID
   keywords: string[]; // 생성 키워드들
   // 영어 학습에 필요한 추가 데이터
   totalPages: number; // 총 페이지 수 (추후 구현)
   highlightedWords: HighlightedWord[]; // 강조된 단어들
-  koreanTranslation?: string; // 한국어 번역 (추후 구현)
 }
 
 // 강조된 단어 타입

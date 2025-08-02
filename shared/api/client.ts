@@ -225,7 +225,7 @@ export const checkServerConnection = async (): Promise<boolean> => {
     // 실제 API 호출 대신 서버 응답 가능 여부만 확인
     // 403 에러가 발생하더라도 서버가 응답한다는 것은 서버가 실행 중임을 의미
     try {
-      await apiClient.get('/auth/signup', { timeout: 3000 });
+      await apiClient.get('/', { timeout: 3000 });
       console.log('✅ 서버 연결 성공: 서버가 정상적으로 응답합니다');
       return true;
     } catch (apiError: any) {
