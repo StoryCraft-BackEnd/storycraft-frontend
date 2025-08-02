@@ -193,14 +193,17 @@ export default function MainScreen() {
             {selectedProfile?.name || '프로필을 선택해주세요'}
           </Text>
         </View>
-        <View style={MainScreenStyles.pointContainer}>
+        <TouchableOpacity
+          style={MainScreenStyles.pointContainer}
+          onPress={() => router.push('./daily-mission')}
+        >
           <View style={MainScreenStyles.achieveContainer}>
             <Image source={achieveIcon} style={MainScreenStyles.pointImage} />
             <Text style={MainScreenStyles.pointText}>5</Text>
           </View>
           <Image source={pointImage} style={MainScreenStyles.pointImage} />
           <Text style={MainScreenStyles.pointText}>1,000</Text>
-        </View>
+        </TouchableOpacity>
         <View style={MainScreenStyles.storyContainer}>
           <TouchableOpacity
             style={MainScreenStyles.viewAllButton}
