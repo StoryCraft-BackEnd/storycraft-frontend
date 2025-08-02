@@ -11,28 +11,16 @@ import {
   Image,
   Alert,
   ImageBackground,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ThemedText } from '@/components/ui/ThemedText';
 import { RewardHistoryScreenStyles as styles } from '../../../styles/RewardHistoryScreen.styles';
 import { Ionicons } from '@expo/vector-icons';
 import nightBg from '@/assets/images/background/night-bg.png';
 import pointImage from '@/assets/images/rewards/point_icon.png';
 import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
+import { rewardsApi, RewardHistoryItem } from '@/shared/api/rewardsApi';
 
-const { width: screenWidth } = Dimensions.get('window');
-
-// 타입 정의
-interface RewardHistoryItem {
-  date: string;
-  type: 'POINT' | 'BADGE';
-  rewardType?: string;
-  context?: string;
-  value?: number;
-  badgeCode?: string;
-  badgeName?: string;
-}
+// 타입 정의는 rewardsApi에서 import
 
 interface FilterState {
   type: 'all' | 'point' | 'badge';
@@ -49,6 +37,10 @@ export default function RewardHistoryScreen() {
     toDate: '2025-12-31',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [monthlyStats, setMonthlyStats] = useState({
+    totalPoints: 0,
+    totalBadges: 0,
+  });
 
   // 보상 타입별 아이콘 및 색상
   const getRewardIcon = (type: string) => {
@@ -106,57 +98,47 @@ export default function RewardHistoryScreen() {
 
   // API 호출 - 보상 히스토리 조회
   const fetchRewardHistory = async () => {
+    console.warn('🌐 보상 히스토리 API 호출 시작!');
     setIsLoading(true);
     try {
-      // TODO: 실제 API 호출
-      // const response = await fetch(`/rewards/history?childId=1&from=${filter.fromDate}&to=${filter.toDate}&type=${filter.type}`);
+      // 실제 API 호출
+      const data = await rewardsApi.getHistory(
+        1, // childId - 실제로는 사용자 ID를 사용해야 함
+        filter.fromDate,
+        filter.toDate,
+        filter.type === 'all' ? undefined : filter.type
+      );
 
-      // 임시 데이터
-      const mockData: RewardHistoryItem[] = [
-        {
-          date: '2025-01-15',
-          type: 'POINT',
-          rewardType: 'POINT_STORY_READ',
-          context: 'STORY_READ',
-          value: 30,
-        },
-        {
-          date: '2025-01-15',
-          type: 'POINT',
-          rewardType: 'POINT_WORD_CLICK',
-          context: 'WORD_CLICK',
-          value: 5,
-        },
-        {
-          date: '2025-01-14',
-          type: 'BADGE',
-          badgeCode: 'BADGE_STORY_10',
-          badgeName: '동화 마스터 10편',
-        },
-        {
-          date: '2025-01-13',
-          type: 'POINT',
-          rewardType: 'POINT_QUIZ_CORRECT',
-          context: 'QUIZ_CORRECT',
-          value: 10,
-        },
-        {
-          date: '2025-01-12',
-          type: 'POINT',
-          rewardType: 'POINT_DAILY_MISSION',
-          context: 'DAILY_MISSION_COMPLETED',
-          value: 100,
-        },
-        {
-          date: '2025-01-11',
-          type: 'BADGE',
-          badgeCode: 'BADGE_STREAK_3',
-          badgeName: '3일 연속 학습',
-        },
-      ];
+      console.warn('✅ 보상 히스토리 API 성공:', data);
+      setRewardHistory(data);
 
-      setRewardHistory(mockData);
+      // 이번 달 통계 계산
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const monthlyData = data.filter((item) => {
+        const itemDate = new Date(item.date);
+        return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+      });
+
+      const totalPoints = monthlyData
+        .filter((item) => item.type === 'POINT')
+        .reduce((sum, item) => sum + (item.value || 0), 0);
+
+      const totalBadges = monthlyData.filter((item) => item.type === 'BADGE').length;
+
+      console.warn('📊 이번 달 통계 계산:', {
+        totalPoints,
+        totalBadges,
+        monthlyDataCount: monthlyData.length,
+      });
+
+      setMonthlyStats({
+        totalPoints,
+        totalBadges,
+      });
     } catch (error) {
+      console.error('❌ 보상 히스토리 API 실패:', error);
       Alert.alert('오류', '보상 내역을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
@@ -239,16 +221,16 @@ export default function RewardHistoryScreen() {
           <View style={styles.scrollContainer}>
             {/* 통계 카드 */}
             <View style={styles.statsCard}>
-              <Text style={styles.statsTitle}>이번 달 획득</Text>
+              <Text style={styles.statsTitle}>총 획득</Text>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Image source={pointImage} style={styles.statIcon} />
-                  <Text style={styles.statValue}>1,250</Text>
+                  <Text style={styles.statValue}>{monthlyStats.totalPoints.toLocaleString()}</Text>
                   <Text style={styles.statLabel}>포인트</Text>
                 </View>
                 <View style={styles.statItem}>
                   <Image source={achieveIcon} style={styles.statIcon} />
-                  <Text style={styles.statValue}>3</Text>
+                  <Text style={styles.statValue}>{monthlyStats.totalBadges}</Text>
                   <Text style={styles.statLabel}>배지</Text>
                 </View>
               </View>

@@ -11,7 +11,6 @@ import {
   Image,
   Alert,
   ImageBackground,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
@@ -24,8 +23,14 @@ import bookIcon from '@/assets/images/icons/book.png';
 import quizIcon from '@/assets/images/icons/quiz.png';
 import dictionaryIcon from '@/assets/images/icons/dictionary.png';
 import heartIcon from '@/assets/images/icons/heart.png';
+import {
+  rewardsApi,
+  RewardProfile,
+  DailyMission as ApiDailyMission,
+} from '@/shared/api/rewardsApi';
+import { checkDailyMission } from '@/shared/utils/rewardUtils';
 
-const { width: screenWidth } = Dimensions.get('window');
+// screenWidth는 현재 사용되지 않으므로 제거
 
 // 타입 정의
 interface DailyMission {
@@ -60,14 +65,20 @@ interface UserStats {
 export default function DailyMissionScreen() {
   // 상태 관리
   const [userStats, setUserStats] = useState<UserStats>({
-    points: 1250,
-    level: 3,
-    achievements: 8,
-    streakDays: 5,
-    totalStories: 12,
-    totalWords: 45,
-    totalQuizzes: 23,
+    points: 0,
+    level: 1,
+    achievements: 0,
+    streakDays: 0,
+    totalStories: 0,
+    totalWords: 0,
+    totalQuizzes: 0,
   });
+  // rewardProfile은 API 응답을 저장하지만 UI에서 직접 사용하지 않음
+  const [, setRewardProfile] = useState<RewardProfile | null>(null);
+  // apiDailyMissions는 디버깅용으로만 사용
+  const [, setApiDailyMissions] = useState<ApiDailyMission[]>([]);
+  // isLoading은 현재 UI에서 사용하지 않음
+  // const [, setIsLoading] = useState(false);
 
   const [dailyMissions, setDailyMissions] = useState<DailyMission[]>([
     {
@@ -75,9 +86,9 @@ export default function DailyMissionScreen() {
       title: '동화 읽기',
       description: '동화 1편 읽기',
       reward: 30,
-      isCompleted: true,
+      isCompleted: false,
       type: 'story',
-      progress: 1,
+      progress: 0,
       target: 1,
     },
     {
@@ -85,9 +96,9 @@ export default function DailyMissionScreen() {
       title: '단어 학습',
       description: '단어 10개 클릭',
       reward: 50,
-      isCompleted: true,
+      isCompleted: false,
       type: 'dictionary',
-      progress: 10,
+      progress: 0,
       target: 10,
     },
     {
@@ -95,14 +106,15 @@ export default function DailyMissionScreen() {
       title: '퀴즈 도전',
       description: '퀴즈 10개 정답',
       reward: 100,
-      isCompleted: true,
+      isCompleted: false,
       type: 'quiz',
-      progress: 10,
+      progress: 0,
       target: 10,
     },
   ]);
 
-  const [badges, setBadges] = useState<Badge[]>([
+  // setBadges는 현재 사용하지 않음 (하드코딩된 배지 데이터)
+  const [badges] = useState<Badge[]>([
     // 기본 학습 배지 (6개)
     {
       badgeCode: 'BADGE_STORY_1',
@@ -236,8 +248,8 @@ export default function DailyMissionScreen() {
   const totalMissions = dailyMissions.length;
   const missionProgress = (completedMissions / totalMissions) * 100;
 
-  // 데일리 미션 완료 시 보상
-  const dailyMissionReward = 100;
+  // dailyMissionReward는 현재 사용하지 않음 (API에서 보상 금액을 받아옴)
+  // const dailyMissionReward = 100;
 
   // 미션 아이콘 가져오기
   const getMissionIcon = (type: string) => {
@@ -274,75 +286,150 @@ export default function DailyMissionScreen() {
     }
   };
 
-  // 데일리 미션 완료 체크
-  const checkDailyMissionCompletion = () => {
-    const allCompleted = dailyMissions.every((mission) => mission.isCompleted);
-    if (allCompleted) {
-      Alert.alert(
-        '데일리 미션 완료! 🎉',
-        `모든 미션을 완료했습니다!\n+${dailyMissionReward} 포인트를 획득했습니다!`,
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              setUserStats((prev) => ({
-                ...prev,
-                points: prev.points + dailyMissionReward,
-              }));
-              // TODO: API 호출 - /rewards/check-daily-mission
-            },
-          },
-        ]
-      );
+  // checkDailyMissionCompletion은 현재 사용하지 않음 (보상 받기 버튼에서 직접 처리)
+  // const checkDailyMissionCompletion = async () => {
+  //   const allCompleted = dailyMissions.every((mission) => mission.isCompleted);
+  //   if (allCompleted) {
+  //     try {
+  //       const response = await checkDailyMission(1); // childId: 1
+
+  //       if (response.rewardedPoint > 0) {
+  //         // 포인트 업데이트
+  //         setUserStats((prev) => ({
+  //           ...prev,
+  //           points: prev.points + response.rewardedPoint,
+  //         }));
+
+  //         // 보상 현황 다시 조회
+  //         fetchRewardProfile();
+  //       }
+  //     } catch (error) {
+  //       console.error('데일리 미션 완료 체크 실패:', error);
+  //     }
+  //   }
+  // };
+
+  // API 호출 함수들
+  const fetchRewardProfile = async () => {
+    console.warn('🌐 보상 현황 API 호출 시작!');
+    try {
+      const profile = await rewardsApi.getProfile(1); // childId: 1
+      console.warn('✅ 보상 현황 API 성공:', profile);
+      setRewardProfile(profile);
+
+      // userStats 업데이트
+      setUserStats((prev) => ({
+        ...prev,
+        points: profile.points,
+        level: profile.level,
+        streakDays: profile.streakDays,
+        achievements: profile.badges.length, // 배지 개수로 업데이트
+      }));
+    } catch (error) {
+      console.error('❌ 보상 현황 API 실패:', error);
+    }
+  };
+
+  const fetchDailyMissions = async () => {
+    console.warn('🌐 데일리 미션 API 호출 시작!');
+    try {
+      const missions = await rewardsApi.getDailyMission(1); // childId: 1
+      console.warn('✅ 데일리 미션 API 성공:', missions);
+      setApiDailyMissions(missions);
+
+      // API 데이터로 dailyMissions 업데이트
+      const updatedMissions = dailyMissions.map((mission) => {
+        let missionCode = '';
+
+        // 미션 타입에 따른 코드 매핑
+        switch (mission.type) {
+          case 'story':
+            missionCode = 'DAILY_STORY_READ';
+            break;
+          case 'dictionary':
+            missionCode = 'DAILY_WORD_CLICK';
+            break;
+          case 'quiz':
+            missionCode = 'DAILY_QUIZ_PASS';
+            break;
+          default:
+            missionCode = '';
+        }
+
+        console.warn(`🔍 미션 매핑: ${mission.title} -> ${missionCode}`);
+
+        const apiMission = missions.find((m) => m.missionCode === missionCode);
+        console.warn(`📊 API 미션 찾기 결과:`, apiMission);
+
+        if (apiMission) {
+          console.warn(
+            `✅ 미션 업데이트: ${mission.title} - 진행도: ${apiMission.progressCount}/${mission.target}, 완료: ${apiMission.completed}`
+          );
+          return {
+            ...mission,
+            isCompleted: apiMission.completed,
+            progress: apiMission.progressCount,
+          };
+        } else {
+          console.warn(`❌ API 미션을 찾을 수 없음: ${missionCode}`);
+        }
+        return mission;
+      });
+
+      console.warn('🔄 업데이트된 미션 데이터:', updatedMissions);
+      setDailyMissions(updatedMissions);
+    } catch (error) {
+      console.error('❌ 데일리 미션 API 실패:', error);
     }
   };
 
   // 컴포넌트 마운트 시 API 호출
   useEffect(() => {
-    // TODO: API 호출들
-    // 1. /rewards/profiles - 사용자 보상 현황 조회
-    // 2. /rewards/daily-mission - 데일리 미션 상태 조회
-    // 3. /rewards/badges/available - 배지 목록 조회
+    console.warn(' 데일리 미션 화면 로드됨!');
+    console.warn(' API 호출 시작!');
+
+    fetchRewardProfile();
+    fetchDailyMissions();
   }, []);
 
-  // 원형 진행률 컴포넌트
-  const CircularProgress = ({ progress, size = 80, strokeWidth = 8, color = '#4CAF50' }) => {
-    const radius = (size - strokeWidth) / 2;
-    const circumference = radius * 2 * Math.PI;
-    const strokeDashoffset = circumference - (progress / 100) * circumference;
+  // CircularProgress 컴포넌트는 현재 사용하지 않음
+  // const CircularProgress = ({ progress, size = 80, strokeWidth = 8, color = '#4CAF50' }) => {
+  //   const radius = (size - strokeWidth) / 2;
+  //   const circumference = radius * 2 * Math.PI;
+  //   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-    return (
-      <View style={styles.circularProgressContainer}>
-        <View style={[styles.circularProgress, { width: size, height: size }]}>
-          <View
-            style={[
-              styles.circularProgressTrack,
-              {
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                borderWidth: strokeWidth,
-              },
-            ]}
-          />
-          <View
-            style={[
-              styles.circularProgressFill,
-              {
-                width: size,
-                height: size,
-                borderRadius: size / 2,
-                borderWidth: strokeWidth,
-                borderColor: color,
-                transform: [{ rotate: '-90deg' }],
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.circularProgressText}>{Math.round(progress)}%</Text>
-      </View>
-    );
-  };
+  //   return (
+  //     <View style={styles.circularProgressContainer}>
+  //       <View style={[styles.circularProgress, { width: size, height: size }]}>
+  //         <View
+  //           style={[
+  //             styles.circularProgressTrack,
+  //             {
+  //               width: size,
+  //               height: size,
+  //               borderRadius: size / 2,
+  //               borderWidth: strokeWidth,
+  //             },
+  //           ]}
+  //         />
+  //         <View
+  //           style={[
+  //             styles.circularProgressFill,
+  //             {
+  //               width: size,
+  //               height: size,
+  //               borderRadius: size / 2,
+  //               borderWidth: strokeWidth,
+  //               borderColor: color,
+  //               transform: [{ rotate: '-90deg' }],
+  //             },
+  //           ]}
+  //         />
+  //       </View>
+  //       <Text style={styles.circularProgressText}>{Math.round(progress)}%</Text>
+  //     </View>
+  //   );
+  // };
 
   return (
     <ImageBackground source={nightBg} style={styles.backgroundImage} resizeMode="cover">
@@ -415,11 +502,17 @@ export default function DailyMissionScreen() {
                     <View
                       style={[
                         styles.achievementBarFill,
-                        { width: '100%', backgroundColor: '#4CAF50' },
+                        {
+                          width: `${((dailyMissions.find((m) => m.type === 'story')?.progress || 0) / (dailyMissions.find((m) => m.type === 'story')?.target || 1)) * 100}%`,
+                          backgroundColor: '#4CAF50',
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.achievementBarText}>3/3</Text>
+                  <Text style={styles.achievementBarText}>
+                    {dailyMissions.find((m) => m.type === 'story')?.progress || 0}/
+                    {dailyMissions.find((m) => m.type === 'story')?.target || 1}
+                  </Text>
                 </View>
 
                 <View style={styles.achievementBar}>
@@ -428,11 +521,17 @@ export default function DailyMissionScreen() {
                     <View
                       style={[
                         styles.achievementBarFill,
-                        { width: '40%', backgroundColor: '#9C27B0' },
+                        {
+                          width: `${((dailyMissions.find((m) => m.type === 'dictionary')?.progress || 0) / (dailyMissions.find((m) => m.type === 'dictionary')?.target || 10)) * 100}%`,
+                          backgroundColor: '#9C27B0',
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.achievementBarText}>2/5</Text>
+                  <Text style={styles.achievementBarText}>
+                    {dailyMissions.find((m) => m.type === 'dictionary')?.progress || 0}/
+                    {dailyMissions.find((m) => m.type === 'dictionary')?.target || 10}
+                  </Text>
                 </View>
 
                 <View style={styles.achievementBar}>
@@ -441,34 +540,63 @@ export default function DailyMissionScreen() {
                     <View
                       style={[
                         styles.achievementBarFill,
-                        { width: '100%', backgroundColor: '#2196F3' },
+                        {
+                          width: `${((dailyMissions.find((m) => m.type === 'quiz')?.progress || 0) / (dailyMissions.find((m) => m.type === 'quiz')?.target || 10)) * 100}%`,
+                          backgroundColor: '#2196F3',
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.achievementBarText}>4/4</Text>
+                  <Text style={styles.achievementBarText}>
+                    {dailyMissions.find((m) => m.type === 'quiz')?.progress || 0}/
+                    {dailyMissions.find((m) => m.type === 'quiz')?.target || 10}
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.totalProgressContainer}>
-                <Text style={styles.totalProgressText}>총 진행률 75%</Text>
+                <Text style={styles.totalProgressText}>
+                  총 진행률 {Math.round(missionProgress)}%
+                </Text>
                 <View style={styles.totalProgressBar}>
-                  <View style={[styles.totalProgressFill, { width: '75%' }]} />
+                  <View style={[styles.totalProgressFill, { width: `${missionProgress}%` }]} />
                 </View>
                 {completedMissions === totalMissions && (
                   <TouchableOpacity
                     style={styles.claimRewardButton}
-                    onPress={() => {
-                      // TODO: API 호출 - /rewards/daily-mission/check-daily-mission
-                      Alert.alert('보상 받기', '데일리 미션 완료 보상을 받으시겠습니까?', [
-                        { text: '취소', style: 'cancel' },
-                        {
-                          text: '보상 받기',
-                          onPress: () => {
-                            Alert.alert('보상 지급 완료!', '+100 포인트를 획득했습니다! 🎉');
-                            // TODO: 실제 API 호출 및 포인트 업데이트
-                          },
-                        },
-                      ]);
+                    onPress={async () => {
+                      console.warn('🎯 데일리 미션 보상 받기 버튼 클릭!');
+                      try {
+                        const response = await checkDailyMission(1);
+                        console.warn('✅ 데일리 미션 보상 API 성공:', response);
+
+                        if (response.alreadyClaimed) {
+                          Alert.alert(
+                            '이미 받은 보상',
+                            '오늘의 데일리 미션 보상을 이미 받았습니다.'
+                          );
+                        } else if (response.rewardedPoint > 0) {
+                          Alert.alert(
+                            '보상 지급 완료!',
+                            `+${response.rewardedPoint} 포인트를 획득했습니다! 🎉`
+                          );
+                          // 포인트 업데이트
+                          setUserStats((prev) => ({
+                            ...prev,
+                            points: prev.points + response.rewardedPoint,
+                          }));
+                          // 보상 현황 다시 조회
+                          fetchRewardProfile();
+                        } else {
+                          Alert.alert(
+                            '미션 미완료',
+                            '모든 데일리 미션을 완료해야 보상을 받을 수 있습니다.'
+                          );
+                        }
+                      } catch (error) {
+                        console.error('❌ 데일리 미션 보상 API 실패:', error);
+                        Alert.alert('오류', '보상 지급에 실패했습니다.');
+                      }
                     }}
                   >
                     <Text style={styles.claimRewardButtonText}>보상 받기</Text>
@@ -478,15 +606,14 @@ export default function DailyMissionScreen() {
             </View>
 
             {/* 미션 섹션들 - 다양한 스타일 */}
-            {dailyMissions.map((mission, index) => (
+            {dailyMissions.map((mission) => (
               <TouchableOpacity
                 key={mission.id}
                 style={[
                   styles.missionItem,
                   mission.isCompleted && styles.completedMissionItem,
                   {
-                    backgroundColor:
-                      index % 2 === 0 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   },
                 ]}
                 onPress={() => handleMissionPress(mission)}
@@ -529,7 +656,7 @@ export default function DailyMissionScreen() {
                 {badges
                   .filter((badge) => badge.isEarned)
                   .slice(0, 3)
-                  .map((badge, index) => (
+                  .map((badge) => (
                     <View key={badge.badgeCode} style={styles.badgeVerticalSlot}>
                       <View style={styles.badgeItem}>
                         <View style={styles.badgeIconContainer}>
