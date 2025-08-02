@@ -38,6 +38,8 @@ export const DailyMissionScreenStyles = StyleSheet.create({
   },
   scrollContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingHorizontal: wp('2%'),
     paddingLeft: wp('6%'), // 뒤로가기 버튼과 겹치지 않도록 여백 추가
   },
@@ -147,6 +149,21 @@ export const DailyMissionScreenStyles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFD700',
     marginBottom: hp('2%'),
+  },
+  rewardHistoryButton: {
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('4%'),
+    borderRadius: wp('2%'),
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    marginTop: hp('1%'),
+  },
+  rewardHistoryButtonText: {
+    fontSize: wp('2.5%'),
+    fontWeight: 'bold',
+    color: '#FFD700',
+    textAlign: 'center',
   },
 
   // 레벨 카드
@@ -269,6 +286,21 @@ export const DailyMissionScreenStyles = StyleSheet.create({
     backgroundColor: '#FFD700',
     borderRadius: hp('1%'),
   },
+  claimRewardButton: {
+    backgroundColor: '#FFD700',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2%'),
+    marginTop: hp('2%'),
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFA000',
+  },
+  claimRewardButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: wp('2.5%'),
+  },
 
   // 미션 아이템
   missionItem: {
@@ -354,50 +386,39 @@ export const DailyMissionScreenStyles = StyleSheet.create({
     width: wp('25%'),
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: wp('3%'),
-    padding: wp('3%'),
+    padding: wp('2%'),
     marginRight: wp('3%'),
     justifyContent: 'center',
-    minHeight: hp('30%'),
+    minHeight: hp('25%'),
   },
   badgeTitle: {
     fontSize: wp('3%'),
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
-    marginBottom: hp('2%'),
-  },
-  badgeGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: hp('2%'),
+    marginBottom: hp('1%'),
   },
   badgeVerticalGrid: {
     flexDirection: 'column',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: hp('2%'),
-  },
-  badgeSlot: {
-    alignItems: 'center',
+    marginBottom: hp('1%'),
   },
   badgeVerticalSlot: {
     alignItems: 'center',
-    marginBottom: hp('1%'),
+    marginBottom: hp('0.5%'),
   },
   badgeItem: {
     alignItems: 'center',
   },
-  badgeVerticalItem: {
-    alignItems: 'center',
-  },
   badgeIconContainer: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
     backgroundColor: 'rgba(255, 215, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: hp('1%'),
+    marginBottom: hp('0.5%'),
     borderWidth: 1,
     borderColor: '#FFD700',
   },
@@ -406,32 +427,31 @@ export const DailyMissionScreenStyles = StyleSheet.create({
     height: wp('6%'),
   },
   badgeName: {
-    fontSize: wp('1.5%'),
+    fontSize: wp('1.8%'),
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
-  },
-  emptyBadgeSlot: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderStyle: 'dashed',
-  },
-  plusIcon: {
-    fontSize: wp('3%'),
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: 'bold',
   },
   badgeCount: {
     fontSize: wp('2.5%'),
     color: '#FFD700',
     textAlign: 'center',
     fontWeight: 'bold',
+    marginBottom: hp('1%'),
+  },
+  viewAllBadgesButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2%'),
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  viewAllBadgesButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: wp('2.5%'),
   },
 
   // 개발용 도구 섹션

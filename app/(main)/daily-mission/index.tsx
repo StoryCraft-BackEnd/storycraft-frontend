@@ -75,9 +75,9 @@ export default function DailyMissionScreen() {
       title: '동화 읽기',
       description: '동화 1편 읽기',
       reward: 30,
-      isCompleted: false,
+      isCompleted: true,
       type: 'story',
-      progress: 0,
+      progress: 1,
       target: 1,
     },
     {
@@ -85,9 +85,9 @@ export default function DailyMissionScreen() {
       title: '단어 학습',
       description: '단어 10개 클릭',
       reward: 50,
-      isCompleted: false,
+      isCompleted: true,
       type: 'dictionary',
-      progress: 3,
+      progress: 10,
       target: 10,
     },
     {
@@ -95,15 +95,15 @@ export default function DailyMissionScreen() {
       title: '퀴즈 도전',
       description: '퀴즈 10개 정답',
       reward: 100,
-      isCompleted: false,
+      isCompleted: true,
       type: 'quiz',
-      progress: 7,
+      progress: 10,
       target: 10,
     },
   ]);
 
   const [badges, setBadges] = useState<Badge[]>([
-    // 기본 학습 배지
+    // 기본 학습 배지 (6개)
     {
       badgeCode: 'BADGE_STORY_1',
       badgeName: '첫 번째 동화 읽기',
@@ -139,8 +139,15 @@ export default function DailyMissionScreen() {
       description: '레벨 5 도달',
       category: 'basic',
     },
+    {
+      badgeCode: 'BADGE_LEVEL_10',
+      badgeName: '레벨 10 달성!',
+      isEarned: false,
+      description: '레벨 10 도달',
+      category: 'basic',
+    },
 
-    // 누적 활동 배지
+    // 누적 활동 배지 (6개)
     {
       badgeCode: 'BADGE_STORY_10',
       badgeName: '동화 마스터 10편',
@@ -163,14 +170,28 @@ export default function DailyMissionScreen() {
       category: 'milestone',
     },
     {
+      badgeCode: 'BADGE_WORD_500',
+      badgeName: '단어 탐험가',
+      isEarned: false,
+      description: '단어 500개 클릭',
+      category: 'milestone',
+    },
+    {
       badgeCode: 'BADGE_QUIZ_10',
       badgeName: '퀴즈 도전자',
       isEarned: true,
       description: '퀴즈 정답 10회',
       category: 'milestone',
     },
+    {
+      badgeCode: 'BADGE_QUIZ_50',
+      badgeName: '퀴즈 마스터',
+      isEarned: false,
+      description: '퀴즈 정답 50회',
+      category: 'milestone',
+    },
 
-    // 연속 학습 배지
+    // 연속 학습 배지 (4개)
     {
       badgeCode: 'BADGE_STREAK_3',
       badgeName: '3일 연속 학습',
@@ -191,6 +212,22 @@ export default function DailyMissionScreen() {
       isEarned: false,
       description: '14일 연속 학습',
       category: 'streak',
+    },
+    {
+      badgeCode: 'BADGE_STREAK_30',
+      badgeName: '공부 습관왕',
+      isEarned: false,
+      description: '30일 연속 학습',
+      category: 'streak',
+    },
+
+    // 특별 챌린지 배지 (1개)
+    {
+      badgeCode: 'BADGE_DAILY_7',
+      badgeName: '데일리 마스터 7일 연속',
+      isEarned: false,
+      description: '데일리 미션 7일 연속 수행',
+      category: 'special',
     },
   ]);
 
@@ -260,36 +297,6 @@ export default function DailyMissionScreen() {
     }
   };
 
-  // 개발용 미션 완료 버튼
-  const completeRandomMission = () => {
-    const incompleteMissions = dailyMissions.filter((m) => !m.isCompleted);
-    if (incompleteMissions.length > 0) {
-      const randomMission =
-        incompleteMissions[Math.floor(Math.random() * incompleteMissions.length)];
-      setDailyMissions((prev) =>
-        prev.map((mission) =>
-          mission.id === randomMission.id
-            ? { ...mission, isCompleted: true, progress: mission.target }
-            : mission
-        )
-      );
-
-      // 포인트 지급
-      setUserStats((prev) => ({
-        ...prev,
-        points: prev.points + randomMission.reward,
-      }));
-
-      Alert.alert(
-        '미션 완료!',
-        `${randomMission.title} 완료!\n+${randomMission.reward} 포인트 획득!`
-      );
-
-      // 데일리 미션 완료 체크
-      setTimeout(checkDailyMissionCompletion, 500);
-    }
-  };
-
   // 컴포넌트 마운트 시 API 호출
   useEffect(() => {
     // TODO: API 호출들
@@ -349,185 +356,198 @@ export default function DailyMissionScreen() {
 
         <ScrollView
           style={styles.contentContainer}
-          contentContainerStyle={styles.scrollContainer}
-          showsHorizontalScrollIndicator={false}
           horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled={false}
         >
-          {/* 연속 학습 섹션 - 원형 진행률 */}
-          <View style={styles.streakSection}>
-            <View style={styles.streakCircle}>
-              <Text style={styles.fireIcon}>🔥</Text>
-              <Text style={styles.streakNumber}>{userStats.streakDays}</Text>
-              <Text style={styles.streakLabel}>일 연속</Text>
-            </View>
-            <Text style={styles.streakTitle}>연속 학습 중!</Text>
-            <Text style={styles.streakSubtitle}>화력 상승!</Text>
-          </View>
-
-          {/* 포인트 섹션 - 단일 색상으로 통일 */}
-          <View style={styles.pointsSection}>
-            <View style={styles.pointsHeader}>
-              <Image source={pointImage} style={styles.pointsIcon} />
-              <Text style={styles.pointsTitle}>포인트</Text>
-            </View>
-            <Text style={styles.pointsValue}>{userStats.points.toLocaleString()}</Text>
-          </View>
-
-          {/* 레벨 섹션 - 카드 스타일 */}
-          <View style={styles.levelCard}>
-            <Text style={styles.levelTitle}>Level {userStats.level}</Text>
-            <Text style={styles.levelSubtitle}>마법사 견습생</Text>
-            <View style={styles.levelProgressContainer}>
-              <View style={styles.levelProgressBar}>
-                <View style={[styles.levelProgressFill, { width: '67%' }]} />
+          <View style={styles.scrollContainer}>
+            {/* 연속 학습 섹션 - 원형 진행률 */}
+            <View style={styles.streakSection}>
+              <View style={styles.streakCircle}>
+                <Text style={styles.fireIcon}>🔥</Text>
+                <Text style={styles.streakNumber}>{userStats.streakDays}</Text>
+                <Text style={styles.streakLabel}>일 연속</Text>
               </View>
-              <Text style={styles.levelProgressText}>67% to Level 4</Text>
+              <Text style={styles.streakTitle}>연속 학습 중!</Text>
+              <Text style={styles.streakSubtitle}>화력 상승!</Text>
             </View>
-          </View>
 
-          {/* 오늘의 달성도 섹션 - 세로 진행률 바 */}
-          <View style={styles.achievementSection}>
-            <Text style={styles.achievementTitle}>오늘의 달성도</Text>
-            <Text style={styles.achievementCount}>
-              {completedMissions}/{totalMissions}
-            </Text>
-
-            <View style={styles.achievementBars}>
-              <View style={styles.achievementBar}>
-                <Text style={styles.achievementBarLabel}>동화</Text>
-                <View style={styles.achievementBarContainer}>
-                  <View
-                    style={[
-                      styles.achievementBarFill,
-                      { width: '100%', backgroundColor: '#4CAF50' },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.achievementBarText}>3/3</Text>
+            {/* 포인트 섹션 - 단일 색상으로 통일 */}
+            <View style={styles.pointsSection}>
+              <View style={styles.pointsHeader}>
+                <Image source={pointImage} style={styles.pointsIcon} />
+                <Text style={styles.pointsTitle}>포인트</Text>
               </View>
+              <Text style={styles.pointsValue}>{userStats.points.toLocaleString()}</Text>
+              <TouchableOpacity
+                style={styles.rewardHistoryButton}
+                onPress={() => {
+                  router.push('/(main)/daily-mission/reward-history');
+                }}
+              >
+                <Text style={styles.rewardHistoryButtonText}>보상 내역</Text>
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.achievementBar}>
-                <Text style={styles.achievementBarLabel}>단어</Text>
-                <View style={styles.achievementBarContainer}>
-                  <View
-                    style={[
-                      styles.achievementBarFill,
-                      { width: '40%', backgroundColor: '#9C27B0' },
-                    ]}
-                  />
+            {/* 레벨 섹션 - 카드 스타일 */}
+            <View style={styles.levelCard}>
+              <Text style={styles.levelTitle}>Level {userStats.level}</Text>
+              <Text style={styles.levelSubtitle}>마법사 견습생</Text>
+              <View style={styles.levelProgressContainer}>
+                <View style={styles.levelProgressBar}>
+                  <View style={[styles.levelProgressFill, { width: '67%' }]} />
                 </View>
-                <Text style={styles.achievementBarText}>2/5</Text>
-              </View>
-
-              <View style={styles.achievementBar}>
-                <Text style={styles.achievementBarLabel}>퀴즈</Text>
-                <View style={styles.achievementBarContainer}>
-                  <View
-                    style={[
-                      styles.achievementBarFill,
-                      { width: '100%', backgroundColor: '#2196F3' },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.achievementBarText}>4/4</Text>
+                <Text style={styles.levelProgressText}>67% to Level 4</Text>
               </View>
             </View>
 
-            <View style={styles.totalProgressContainer}>
-              <Text style={styles.totalProgressText}>총 진행률 75%</Text>
-              <View style={styles.totalProgressBar}>
-                <View style={[styles.totalProgressFill, { width: '75%' }]} />
+            {/* 오늘의 달성도 섹션 - 세로 진행률 바 */}
+            <View style={styles.achievementSection}>
+              <Text style={styles.achievementTitle}>오늘의 달성도</Text>
+              <Text style={styles.achievementCount}>
+                {completedMissions}/{totalMissions}
+              </Text>
+
+              <View style={styles.achievementBars}>
+                <View style={styles.achievementBar}>
+                  <Text style={styles.achievementBarLabel}>동화</Text>
+                  <View style={styles.achievementBarContainer}>
+                    <View
+                      style={[
+                        styles.achievementBarFill,
+                        { width: '100%', backgroundColor: '#4CAF50' },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.achievementBarText}>3/3</Text>
+                </View>
+
+                <View style={styles.achievementBar}>
+                  <Text style={styles.achievementBarLabel}>단어</Text>
+                  <View style={styles.achievementBarContainer}>
+                    <View
+                      style={[
+                        styles.achievementBarFill,
+                        { width: '40%', backgroundColor: '#9C27B0' },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.achievementBarText}>2/5</Text>
+                </View>
+
+                <View style={styles.achievementBar}>
+                  <Text style={styles.achievementBarLabel}>퀴즈</Text>
+                  <View style={styles.achievementBarContainer}>
+                    <View
+                      style={[
+                        styles.achievementBarFill,
+                        { width: '100%', backgroundColor: '#2196F3' },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.achievementBarText}>4/4</Text>
+                </View>
+              </View>
+
+              <View style={styles.totalProgressContainer}>
+                <Text style={styles.totalProgressText}>총 진행률 75%</Text>
+                <View style={styles.totalProgressBar}>
+                  <View style={[styles.totalProgressFill, { width: '75%' }]} />
+                </View>
+                {completedMissions === totalMissions && (
+                  <TouchableOpacity
+                    style={styles.claimRewardButton}
+                    onPress={() => {
+                      // TODO: API 호출 - /rewards/daily-mission/check-daily-mission
+                      Alert.alert('보상 받기', '데일리 미션 완료 보상을 받으시겠습니까?', [
+                        { text: '취소', style: 'cancel' },
+                        {
+                          text: '보상 받기',
+                          onPress: () => {
+                            Alert.alert('보상 지급 완료!', '+100 포인트를 획득했습니다! 🎉');
+                            // TODO: 실제 API 호출 및 포인트 업데이트
+                          },
+                        },
+                      ]);
+                    }}
+                  >
+                    <Text style={styles.claimRewardButtonText}>보상 받기</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
-          </View>
 
-          {/* 미션 섹션들 - 다양한 스타일 */}
-          {dailyMissions.map((mission, index) => (
-            <TouchableOpacity
-              key={mission.id}
-              style={[
-                styles.missionItem,
-                mission.isCompleted && styles.completedMissionItem,
-                {
-                  backgroundColor:
-                    index % 2 === 0 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)',
-                },
-              ]}
-              onPress={() => handleMissionPress(mission)}
-            >
-              <View style={styles.missionHeader}>
-                <Image source={getMissionIcon(mission.type)} style={styles.missionIcon} />
-                <Text style={styles.missionTitle}>{mission.title}</Text>
-              </View>
-
-              <View style={styles.missionProgressContainer}>
-                <Text style={styles.missionProgressText}>
-                  {mission.progress}/{mission.target} 완료
-                </Text>
-                <View style={styles.missionProgressBar}>
-                  <View
-                    style={[
-                      styles.missionProgressFill,
-                      { width: `${(mission.progress / mission.target) * 100}%` },
-                    ]}
-                  />
+            {/* 미션 섹션들 - 다양한 스타일 */}
+            {dailyMissions.map((mission, index) => (
+              <TouchableOpacity
+                key={mission.id}
+                style={[
+                  styles.missionItem,
+                  mission.isCompleted && styles.completedMissionItem,
+                  {
+                    backgroundColor:
+                      index % 2 === 0 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.1)',
+                  },
+                ]}
+                onPress={() => handleMissionPress(mission)}
+              >
+                <View style={styles.missionHeader}>
+                  <Image source={getMissionIcon(mission.type)} style={styles.missionIcon} />
+                  <Text style={styles.missionTitle}>{mission.title}</Text>
                 </View>
-              </View>
 
-              <View style={styles.missionReward}>
-                <Text style={styles.missionRewardText}>+{mission.reward}P</Text>
-              </View>
-
-              {mission.isCompleted && (
-                <View style={styles.completedOverlay}>
-                  <Text style={styles.completedText}>✓ 완료</Text>
+                <View style={styles.missionProgressContainer}>
+                  <Text style={styles.missionProgressText}>
+                    {mission.progress}/{mission.target} 완료
+                  </Text>
+                  <View style={styles.missionProgressBar}>
+                    <View
+                      style={[
+                        styles.missionProgressFill,
+                        { width: `${(mission.progress / mission.target) * 100}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
-              )}
-            </TouchableOpacity>
-          ))}
 
-          {/* 배지 섹션 - 세로 배치로 개선 */}
-          <View style={styles.badgeSection}>
-            <Text style={styles.badgeTitle}>획득 배지</Text>
-            <View style={styles.badgeVerticalGrid}>
-              {badges
-                .filter((badge) => badge.isEarned)
-                .slice(0, 3)
-                .map((badge, index) => (
-                  <View key={badge.badgeCode} style={styles.badgeVerticalSlot}>
-                    {index === 0 ? (
-                      <View style={styles.badgeVerticalItem}>
+                <View style={styles.missionReward}>
+                  <Text style={styles.missionRewardText}>+{mission.reward}P</Text>
+                </View>
+
+                {mission.isCompleted && (
+                  <View style={styles.completedOverlay}>
+                    <Text style={styles.completedText}>✓ 완료</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {/* 배지 섹션 - 획득한 배지 세로 배치 + 전체보기 버튼 */}
+            <View style={styles.badgeSection}>
+              <Text style={styles.badgeTitle}>획득 배지</Text>
+              <View style={styles.badgeVerticalGrid}>
+                {badges
+                  .filter((badge) => badge.isEarned)
+                  .slice(0, 3)
+                  .map((badge, index) => (
+                    <View key={badge.badgeCode} style={styles.badgeVerticalSlot}>
+                      <View style={styles.badgeItem}>
                         <View style={styles.badgeIconContainer}>
                           <Image source={achieveIcon} style={styles.badgeIcon} />
                         </View>
                         <Text style={styles.badgeName}>{badge.badgeName}</Text>
                       </View>
-                    ) : (
-                      <View style={styles.emptyBadgeSlot}>
-                        <Text style={styles.plusIcon}>+</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
+                    </View>
+                  ))}
+              </View>
+              <Text style={styles.badgeCount}>총 {userStats.achievements}개 획득!</Text>
+              <TouchableOpacity
+                style={styles.viewAllBadgesButton}
+                onPress={() => router.push('./badges')}
+              >
+                <Text style={styles.viewAllBadgesButtonText}>전체 보기</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.badgeCount}>총 {userStats.achievements}개 획득!</Text>
-          </View>
-
-          {/* 개발용 도구 섹션 - 버튼 스타일 */}
-          <View style={styles.devSection}>
-            <Text style={styles.devTitle}>개발용 도구</Text>
-            <TouchableOpacity style={styles.devButton} onPress={completeRandomMission}>
-              <Text style={styles.devButtonText}>랜덤 미션 완료</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.devButton}
-              onPress={() => {
-                // TODO: API 호출 - /rewards/check-streak
-                Alert.alert('스트릭 체크', '연속 학습 조건을 확인합니다.');
-              }}
-            >
-              <Text style={styles.devButtonText}>스트릭 체크</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
