@@ -28,7 +28,7 @@ import {
   RewardProfile,
   DailyMission as ApiDailyMission,
 } from '@/shared/api/rewardsApi';
-import { checkDailyMission } from '@/shared/utils/rewardUtils';
+import { checkDailyMission, checkStreak } from '@/shared/utils/rewardUtils';
 
 // screenWidth는 현재 사용되지 않으므로 제거
 
@@ -330,6 +330,53 @@ export default function DailyMissionScreen() {
     }
   };
 
+  // 연속 학습 체크 API 추가
+  const fetchStreakStatus = async () => {
+    console.warn('🔥 연속 학습 체크 API 호출 시작!');
+    try {
+      const response = await rewardsApi.checkStreak(1); // childId: 1
+      console.warn('✅ 연속 학습 체크 API 응답 전체:', response);
+      console.warn('📊 연속 학습 데이터:', {
+        currentStreak: response.currentStreak,
+        streakRewarded: response.streakRewarded,
+        rewardedPoint: response.rewardedPoint,
+      });
+
+      // streakDays 업데이트
+      setUserStats((prev) => {
+        const newStats = {
+          ...prev,
+          streakDays: response.currentStreak,
+        };
+        console.warn(
+          `🔥 연속 학습 일수 업데이트: ${prev.streakDays} → ${response.currentStreak}일`
+        );
+        return newStats;
+      });
+
+      // 보상이 지급된 경우 알림
+      if (response.streakRewarded && response.rewardedPoint > 0) {
+        Alert.alert(
+          '연속 학습 보상! 🔥',
+          `${response.currentStreak}일 연속 학습! ${response.rewardedPoint}포인트를 획득했습니다!`,
+          [{ text: '확인' }]
+        );
+      }
+    } catch (error) {
+      console.error('❌ 연속 학습 체크 API 실패:', error);
+      if (error.response) {
+        console.error('❌ 서버 응답 에러:', {
+          status: error.response.status,
+          data: error.response.data,
+        });
+      } else if (error.request) {
+        console.error('❌ 네트워크 에러:', error.request);
+      } else {
+        console.error('❌ 기타 에러:', error.message);
+      }
+    }
+  };
+
   const fetchDailyMissions = async () => {
     console.warn('🌐 데일리 미션 API 호출 시작!');
     try {
@@ -385,11 +432,30 @@ export default function DailyMissionScreen() {
 
   // 컴포넌트 마운트 시 API 호출
   useEffect(() => {
-    console.warn(' 데일리 미션 화면 로드됨!');
-    console.warn(' API 호출 시작!');
+    console.warn('🚀 데일리 미션 화면 로드됨!');
+    console.warn('�� API 호출 시작!');
 
-    fetchRewardProfile();
-    fetchDailyMissions();
+    const initializeData = async () => {
+      try {
+        // 1. 연속 학습 체크 (가장 중요한 데이터)
+        console.warn('🔥 1단계: 연속 학습 체크 시작');
+        await fetchStreakStatus();
+
+        // 2. 보상 현황 조회
+        console.warn('💰 2단계: 보상 현황 조회 시작');
+        await fetchRewardProfile();
+
+        // 3. 데일리 미션 조회
+        console.warn('📋 3단계: 데일리 미션 조회 시작');
+        await fetchDailyMissions();
+
+        console.warn('✅ 모든 API 호출 완료!');
+      } catch (error) {
+        console.error('❌ 초기화 중 에러 발생:', error);
+      }
+    };
+
+    initializeData();
   }, []);
 
   // CircularProgress 컴포넌트는 현재 사용하지 않음

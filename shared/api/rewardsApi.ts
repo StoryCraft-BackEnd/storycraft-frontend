@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 타입 정의
 export interface RewardProfile {
@@ -102,9 +103,12 @@ export const rewardsApi = {
     streakRewarded: boolean;
     rewardedPoint: number;
   }> => {
+    console.warn('🔥 checkStreak API 호출:', { childId });
     const response = await apiClient.post('/rewards/check-streak', {
       childId,
     });
+    console.warn('🔥 checkStreak API 응답 전체:', response.data);
+    console.warn('🔥 checkStreak API data 필드:', response.data.data);
     return response.data.data;
   },
 
@@ -140,8 +144,52 @@ export const rewardsApi = {
 
   // GET /rewards/badge/available - 시스템에서 제공하는 모든 배지 목록 조회 API
   getAvailableBadges: async (): Promise<AvailableBadge[]> => {
-    const response = await apiClient.get('/rewards/badge/available');
-    return response.data.data;
+    console.warn('🏆 getAvailableBadges API 호출 시작');
+    console.warn('🌐 요청 URL:', '/rewards/badge/available');
+    console.warn('🔧 API 클라이언트 설정:', {
+      baseURL: apiClient.defaults.baseURL,
+      timeout: apiClient.defaults.timeout,
+    });
+
+    // 인증 토큰 상태 확인
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.warn('🔐 인증 토큰 상태:', token ? '토큰 있음' : '토큰 없음');
+      if (token) {
+        console.warn('🔐 토큰 일부:', token.substring(0, 20) + '...');
+      }
+    } catch (error) {
+      console.warn('🔐 토큰 확인 실패:', error);
+    }
+
+    try {
+      // 요청 전 헤더 확인
+      const requestConfig = {
+        headers: {
+          Authorization: `Bearer ${await AsyncStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+      };
+      console.warn('📋 요청 헤더:', requestConfig.headers);
+
+      const response = await apiClient.get('/rewards/badge/available', requestConfig);
+      console.warn('✅ getAvailableBadges API 응답 전체:', response.data);
+      console.warn('📊 getAvailableBadges API data 필드:', response.data.data);
+      return response.data.data;
+    } catch (error) {
+      console.error('❌ getAvailableBadges API 에러:', error);
+      if (error.response) {
+        console.error('❌ 서버 응답 에러:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+        // 요청 헤더도 확인
+        console.error('📤 실제 전송된 요청 헤더:', error.response.config?.headers);
+      }
+      throw error;
+    }
   },
 
   // GET /rewards/history - 보상 히스토리 조회 API
