@@ -305,14 +305,63 @@ export async function getIllustrationPathById(illustrationId: number): Promise<s
     const fileName = `illustration_${illustrationId}.jpg`;
     const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
 
+    console.log(`삽화 ${illustrationId} 경로 확인:`, {
+      fileName,
+      fileUri,
+      documentDirectory: FileSystem.documentDirectory,
+    });
+
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    console.log(`삽화 ${illustrationId} 파일 정보:`, {
+      exists: fileInfo.exists,
+      size: 'size' in fileInfo ? fileInfo.size : 'N/A',
+      uri: fileInfo.uri,
+    });
+
     if (fileInfo.exists) {
+      console.log(`삽화 ${illustrationId} 파일 발견:`, fileUri);
       return fileUri;
+    } else {
+      console.log(`삽화 ${illustrationId} 파일이 존재하지 않음:`, fileUri);
+      return null;
     }
+  } catch (error) {
+    console.error(`삽화 ${illustrationId} 경로 확인 실패:`, error);
+    return null;
+  }
+}
+
+/**
+ * illustrationId와 imageUrl을 받아서 로컬 파일 경로 또는 원본 URL 반환
+ * @param illustrationId 삽화 ID
+ * @param imageUrl 원본 이미지 URL (fallback용)
+ * @returns 로컬 파일 경로 또는 원본 URL
+ */
+export async function getIllustrationPathOrUrl(
+  illustrationId: number,
+  imageUrl?: string
+): Promise<string | null> {
+  try {
+    console.log(`삽화 ${illustrationId} 경로/URL 확인 시작...`);
+
+    // 1. 먼저 로컬 파일 확인 (illustrationId 기반)
+    const localPath = await getIllustrationPathById(illustrationId);
+    if (localPath) {
+      console.log(`삽화 ${illustrationId} 로컬 파일 사용:`, localPath);
+      return localPath;
+    }
+
+    // 2. 로컬 파일이 없으면 원본 URL 반환
+    if (imageUrl) {
+      console.log(`삽화 ${illustrationId} 원본 URL 사용:`, imageUrl);
+      return imageUrl;
+    }
+
+    console.log(`삽화 ${illustrationId} 경로/URL 없음`);
     return null;
   } catch (error) {
-    console.error('삽화 경로 확인 실패:', error);
-    return null;
+    console.error(`삽화 ${illustrationId} 경로/URL 확인 실패:`, error);
+    return imageUrl || null; // 에러 시 원본 URL 반환
   }
 }
 
@@ -323,9 +372,24 @@ export async function getIllustrationPathById(illustrationId: number): Promise<s
  */
 export async function getStoryIllustrationPathFromStory(story: any): Promise<string | null> {
   try {
+    console.log(`동화 ${story.storyId} 삽화 경로 확인 시작...`);
+    console.log('Story 객체:', {
+      storyId: story.storyId,
+      title: story.title,
+      hasIllustrations: !!story.illustrations,
+      illustrationsCount: story.illustrations?.length || 0,
+    });
+
     // Story 객체에 illustrations 배열이 있고 첫 번째 삽화가 있는 경우
     if (story.illustrations && story.illustrations.length > 0) {
       const firstIllustration = story.illustrations[0];
+      console.log('첫 번째 삽화 정보:', {
+        illustrationId: firstIllustration.illustrationId,
+        storyId: firstIllustration.storyId,
+        imageUrl: firstIllustration.imageUrl,
+      });
+
+      // illustrationId 기반으로 삽화 경로 확인
       const illustrationPath = await getIllustrationPathById(firstIllustration.illustrationId);
       if (illustrationPath) {
         console.log(
@@ -333,11 +397,27 @@ export async function getStoryIllustrationPathFromStory(story: any): Promise<str
           illustrationPath
         );
         return illustrationPath;
+      } else {
+        console.log(`동화 ${story.storyId}의 삽화 ${firstIllustration.illustrationId} 파일이 없음`);
+        // illustrationId 기반 파일이 없으면 원본 URL 반환
+        if (firstIllustration.imageUrl) {
+          console.log(`동화 ${story.storyId} 원본 URL 사용:`, firstIllustration.imageUrl);
+          return firstIllustration.imageUrl;
+        }
       }
+    } else {
+      console.log(`동화 ${story.storyId}에 illustrations 정보가 없음`);
     }
 
-    // 기존 방식으로 fallback (storyId 기반)
-    return await getStoryIllustrationPath(story.storyId);
+    // illustrations 정보가 없는 경우 기존 방식으로 fallback (storyId 기반)
+    console.log(`동화 ${story.storyId} 기존 방식으로 삽화 경로 확인...`);
+    const fallbackPath = await getStoryIllustrationPath(story.storyId);
+    if (fallbackPath) {
+      console.log(`동화 ${story.storyId} 기존 방식으로 삽화 발견:`, fallbackPath);
+    } else {
+      console.log(`동화 ${story.storyId} 기존 방식으로도 삽화 없음`);
+    }
+    return fallbackPath;
   } catch (error) {
     console.error('Story에서 삽화 경로 확인 실패:', error);
     return null;

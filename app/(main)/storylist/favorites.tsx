@@ -1,97 +1,246 @@
 /**
  * @description
- * StoryCraft 즐겨찾기 페이지
- * 사용자가 즐겨찾기한 단어들을 표시하는 화면입니다.
+ * StoryCraft 즐겨찾기 페이지 (동화 북마크)
+ * 사용자가 북마크한 동화들을 표시하는 화면입니다.
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, FlatList, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ImageBackground,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 // --- 내부 모듈 및 스타일 ---
 import styles from '@/styles/StoryListScreen.styles';
+import {
+  loadStoriesFromStorage,
+  toggleStoryBookmark,
+  toggleStoryLike,
+  removeStoryFromStorage,
+  addStoryToStorage,
+} from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
-import { loadFavoriteWords, removeFavoriteWord } from '@/features/storyCreate/storyStorage';
+import {
+  deleteStory,
+  fetchStoryList,
+  fetchIllustrationList,
+  downloadStoryIllustrations,
+} from '@/features/storyCreate/storyApi';
+import { Story } from '@/features/storyCreate/types';
+import { Popup } from '@/components/ui/Popup';
 
 // --- 이미지 및 리소스 ---
 import backgroundImage from '@/assets/images/background/night-bg.png';
 
+// 탭 네비게이션 데이터
+const TABS = [
+  { key: 'all', label: '전체 동화', iconName: 'book-outline' as const },
+  { key: 'bookmark', label: '북마크', iconName: 'star-outline' as const },
+  { key: 'like', label: '좋아요', iconName: 'heart-outline' as const },
+];
+
 /**
- * 즐겨찾기 화면의 메인 컴포넌트
- * 사용자가 즐겨찾기한 단어들을 표시합니다.
+ * 즐겨찾기 화면의 메인 컴포넌트 (동화 북마크)
+ * 사용자가 북마크한 동화들을 표시합니다.
  */
 export default function FavoritesScreen() {
-  const [favoriteWords, setFavoriteWords] = useState<string[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState('bookmark'); // 기본값을 북마크로 설정
+  const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [deletePopupVisible, setDeletePopupVisible] = useState(false);
+  const [storyToDelete, setStoryToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [isLoadingIllustrations, setIsLoadingIllustrations] = useState(false);
+  const [illustrationLoadingProgress, setIllustrationLoadingProgress] = useState<string>('');
 
-  // 즐겨찾기 단어 목록 로드
+  // 컴포넌트 마운트 시 프로필별 동화 목록 로드
   useEffect(() => {
-    loadFavoriteWordsData();
+    const loadStories = async () => {
+      try {
+        setIsLoading(true);
+
+        // 선택된 프로필 불러오기
+        const profile = await loadSelectedProfile();
+        if (!profile) {
+          console.log('선택된 프로필이 없습니다.');
+          setStories([]);
+          return;
+        }
+
+        setSelectedProfile(profile);
+
+        // 로컬에서 동화 목록 가져오기 (서버 동기화는 백그라운드에서만)
+        console.log(`프로필 ${profile.name}의 동화 목록 로컬에서 가져오기 시작...`);
+        const localStories = await loadStoriesFromStorage(profile.childId);
+        console.log(`프로필 ${profile.name}의 동화 ${localStories.length}개 로컬에서 로드 완료`);
+
+        // UI 호환성을 위해 기본값 설정
+        const storiesWithDefaults = localStories.map((story) => ({
+          ...story,
+          isBookmarked: story.isBookmarked || false,
+          isLiked: story.isLiked || false,
+        }));
+
+        setStories(storiesWithDefaults);
+
+        // 백그라운드에서 서버 동기화 시도 (UI 블로킹 없이)
+        try {
+          // 서버에서 동화 목록 조회
+          const storyDataList = await fetchStoryList(profile.childId);
+          const serverStories: Story[] = storyDataList.map((storyData) => ({
+            ...storyData,
+            childId: profile.childId,
+            isBookmarked: false,
+            isLiked: false,
+          }));
+
+          // 서버 데이터로 업데이트
+          setStories(serverStories);
+
+          // 로컬에 저장
+          await Promise.all(serverStories.map((story) => addStoryToStorage(story)));
+
+          // 백그라운드에서 삽화 동기화 시도
+          if (serverStories.length > 0) {
+            const illustrations = await fetchIllustrationList();
+            await downloadStoryIllustrations(
+              serverStories,
+              illustrations,
+              (message, current, total) => {
+                console.log('삽화 동기화 진행:', message, current, total);
+              }
+            );
+          }
+        } catch (serverError) {
+          console.error('백그라운드 서버 동기화 실패:', serverError);
+        }
+      } catch (error) {
+        console.error('동화 목록 로드 실패:', error);
+        setStories([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStories();
   }, []);
 
-  const loadFavoriteWordsData = async () => {
+  const toggleBookmark = async (storyId: number) => {
+    if (!selectedProfile) return;
+
     try {
-      setIsLoading(true);
-
-      // 선택된 프로필 가져오기
-      const profile = await loadSelectedProfile();
-      if (!profile) {
-        console.log('선택된 프로필이 없습니다.');
-        setFavoriteWords([]);
-        return;
-      }
-
-      setSelectedProfile(profile);
-
-      // 즐겨찾기 단어 목록 가져오기
-      const words = await loadFavoriteWords(profile.childId);
-      setFavoriteWords(words);
-
-      console.log(`즐겨찾기 단어 ${words.length}개 로드 완료`);
+      await toggleStoryBookmark(selectedProfile.childId, storyId);
+      setStories((prevStories) =>
+        prevStories.map((story) =>
+          story.storyId === storyId ? { ...story, isBookmarked: !story.isBookmarked } : story
+        )
+      );
+      console.log('북마크 토글 완료:', storyId);
     } catch (error) {
-      console.error('즐겨찾기 단어 로드 실패:', error);
-      setFavoriteWords([]);
-    } finally {
-      setIsLoading(false);
+      console.error('북마크 토글 실패:', error);
     }
   };
 
-  // 즐겨찾기 단어 삭제
-  const removeWord = async (word: string) => {
+  const toggleLike = async (storyId: number) => {
     if (!selectedProfile) return;
 
-    Alert.alert('즐겨찾기 삭제', `"${word}" 단어를 즐겨찾기에서 삭제하시겠습니까?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await removeFavoriteWord(selectedProfile.childId, word);
-            setFavoriteWords((prev) => prev.filter((w) => w !== word));
-            console.log(`즐겨찾기 단어 "${word}" 삭제 완료`);
-          } catch (error) {
-            console.error('즐겨찾기 단어 삭제 실패:', error);
-            Alert.alert('오류', '즐겨찾기 삭제에 실패했습니다.');
-          }
-        },
-      },
-    ]);
+    try {
+      await toggleStoryLike(selectedProfile.childId, storyId);
+      setStories((prevStories) =>
+        prevStories.map((story) =>
+          story.storyId === storyId ? { ...story, isLiked: !story.isLiked } : story
+        )
+      );
+      console.log('좋아요 토글 완료:', storyId);
+    } catch (error) {
+      console.error('좋아요 토글 실패:', error);
+    }
   };
+
+  const handleDeleteStory = async (storyId: number, storyTitle: string) => {
+    if (!selectedProfile) return;
+
+    // 삭제할 동화 정보 저장
+    setStoryToDelete({ id: storyId, title: storyTitle });
+    setDeletePopupVisible(true);
+  };
+
+  const confirmDeleteStory = async () => {
+    if (!selectedProfile || !storyToDelete) return;
+
+    try {
+      // 서버에서 동화 삭제 (삽화도 함께 삭제됨)
+      await deleteStory(selectedProfile.childId, storyToDelete.id);
+
+      // 로컬 스토리지에서도 동화 삭제
+      await removeStoryFromStorage(selectedProfile.childId, storyToDelete.id);
+
+      // UI에서 제거
+      setStories((prevStories) =>
+        prevStories.filter((story) => story.storyId !== storyToDelete.id)
+      );
+
+      console.log('동화 삭제 완료:', storyToDelete.id);
+    } catch (error) {
+      console.error('동화 삭제 실패:', error);
+      Alert.alert('삭제 실패', '동화 삭제 중 오류가 발생했습니다. 다시 시도해주세요.', [
+        { text: '확인' },
+      ]);
+    } finally {
+      setDeletePopupVisible(false);
+      setStoryToDelete(null);
+    }
+  };
+
+  const cancelDeleteStory = () => {
+    setDeletePopupVisible(false);
+    setStoryToDelete(null);
+  };
+
+  // 탭에 따른 필터링된 스토리
+  const getFilteredStories = () => {
+    switch (activeTab) {
+      case 'bookmark':
+        return stories.filter((story) => story.isBookmarked);
+      case 'like':
+        return stories.filter((story) => story.isLiked);
+      default:
+        return stories;
+    }
+  };
+
+  // 탭별 개수 계산
+  const getTabCount = (tabKey: string) => {
+    switch (tabKey) {
+      case 'bookmark':
+        return stories.filter((story) => story.isBookmarked).length;
+      case 'like':
+        return stories.filter((story) => story.isLiked).length;
+      default:
+        return stories.length;
+    }
+  };
+
+  const filteredStories = getFilteredStories();
 
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
       {/* 뒤로가기 버튼 */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={20} color="#fff" />
+        <Ionicons name="arrow-back" size={20} color={styles.backButtonText.color} />
       </TouchableOpacity>
 
       {/* 헤더 제목 */}
       <View style={styles.headerContainer}>
         <View style={styles.headerTitleRow}>
           <Ionicons name="star" size={24} color="#FFD700" />
-          <Text style={styles.headerTitle}>즐겨찾기 단어</Text>
+          <Text style={styles.headerTitle}>즐겨찾기</Text>
           <Ionicons name="star" size={24} color="#FFD700" />
         </View>
         {selectedProfile && (
@@ -101,48 +250,157 @@ export default function FavoritesScreen() {
         )}
       </View>
 
-      {/* 즐겨찾기 단어 목록 */}
+      {/* 탭 네비게이션 */}
+      <View style={styles.tabContainer}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = getTabCount(tab.key);
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabButton, isActive && styles.activeTabButton]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Ionicons
+                name={tab.iconName}
+                size={18}
+                color={isActive ? styles.activeTabText.color : styles.tabText.color}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+                {tab.label} ({count})
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* 동화 목록 */}
       {isLoading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#fff', fontSize: 16 }}>즐겨찾기 단어를 불러오는 중...</Text>
+          <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
+          <Text style={{ color: '#fff', fontSize: 16 }}>동화를 불러오는 중...</Text>
         </View>
-      ) : favoriteWords.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Ionicons name="star-outline" size={64} color="#B6AFFF" style={{ marginBottom: 16 }} />
-          <Text style={{ color: '#fff', fontSize: 18, textAlign: 'center', marginBottom: 8 }}>
-            즐겨찾기한 단어가 없습니다
+      ) : isLoadingIllustrations ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
+          <Text style={{ color: '#fff', fontSize: 16 }}>{illustrationLoadingProgress}</Text>
+        </View>
+      ) : filteredStories.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="star-outline" size={64} style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>
+            {activeTab === 'all'
+              ? '아직 생성된 동화가 없습니다.\n새로운 동화를 만들어보세요!'
+              : `${TABS.find((tab) => tab.key === activeTab)?.label}한 동화가 없습니다.`}
           </Text>
-          <Text style={{ color: '#B6AFFF', fontSize: 14, textAlign: 'center' }}>
-            영어 학습 화면에서 단어를 즐겨찾기에 추가해보세요
-          </Text>
+          {activeTab === 'all' && (
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => router.push('/(main)/storycreate')}
+            >
+              <Text style={styles.createButtonText}>동화 만들기</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
-          data={favoriteWords}
-          keyExtractor={(item) => item}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 16 }}
+          data={filteredStories}
+          keyExtractor={(item) => item.storyId.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cardListContainer}
           renderItem={({ item }) => (
-            <View style={[styles.card, { marginBottom: 12, padding: 16 }]}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardTitle, { fontSize: 18, marginBottom: 4 }]}>{item}</Text>
-                  <Text style={{ color: '#B6AFFF', fontSize: 14 }}>즐겨찾기한 단어</Text>
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <View style={styles.statusIcons}>
+                  <TouchableOpacity
+                    onPress={() => toggleBookmark(item.storyId)}
+                    style={styles.iconButton}
+                  >
+                    <Ionicons
+                      name={item.isBookmarked ? 'star' : 'star-outline'}
+                      size={16}
+                      style={
+                        item.isBookmarked ? styles.bookmarkIconActive : styles.bookmarkIconInactive
+                      }
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => toggleLike(item.storyId)}
+                    style={styles.iconButton}
+                  >
+                    <Ionicons
+                      name={item.isLiked ? 'heart' : 'heart-outline'}
+                      size={16}
+                      style={item.isLiked ? styles.likeIconActive : styles.likeIconInactive}
+                    />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => removeWord(item)} style={{ padding: 8 }}>
-                  <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+              </View>
+
+              <Text style={styles.cardDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+
+              <View style={styles.tagRow}>
+                {item.keywords?.slice(0, 3).map((keyword) => (
+                  <View key={keyword} style={styles.tag}>
+                    <Text style={styles.tagText}>{keyword}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Text style={styles.cardSummary} numberOfLines={3}>
+                {item.content}
+              </Text>
+
+              {/* 버튼들을 카드 최하단에 배치 */}
+              <View style={styles.actionButtonRow}>
+                <TouchableOpacity
+                  style={styles.readButton}
+                  onPress={() => {
+                    // 영어 학습 화면으로 동화 데이터와 함께 이동
+                    router.push({
+                      pathname: '/(english-learning)',
+                      params: {
+                        storyId: item.storyId.toString(),
+                        title: item.title,
+                        content: item.content,
+                        contentKr: item.contentKr || '',
+                        keywords: item.keywords?.join(',') || '',
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="book-outline" size={18} color="#fff" />
+                  <Text style={styles.readButtonText}>읽기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton}>
+                  <Ionicons name="share-social-outline" size={22} style={styles.actionIcon} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => handleDeleteStory(item.storyId, item.title)}
+                >
+                  <Ionicons name="trash-outline" size={22} style={styles.actionIcon} />
                 </TouchableOpacity>
               </View>
             </View>
           )}
         />
       )}
+
+      {/* 삭제 확인 팝업 */}
+      <Popup
+        visible={deletePopupVisible}
+        onClose={cancelDeleteStory}
+        title="동화 삭제"
+        message={`"${storyToDelete?.title}" 동화를 정말 삭제하시겠습니까?\n\n삭제된 동화는 복구할 수 없습니다.`}
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={confirmDeleteStory}
+        onCancel={cancelDeleteStory}
+      />
     </ImageBackground>
   );
 }

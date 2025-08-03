@@ -304,30 +304,90 @@ export const checkNickname = async (data: NicknameCheckRequest): Promise<Nicknam
  * 이메일 인증 코드 전송 API 호출 함수
  * @param data 이메일 인증 코드 전송 요청 데이터
  * @returns 이메일 인증 코드 전송 응답 데이터
+ *
+ * API 스펙:
+ * - Method: POST
+ * - Endpoint: /auth/request-reset-code
+ * - Request: { email: string }
+ * - Response: { status: 200, message: string, data: {} }
  */
 export const sendEmailVerificationCode = async (
   data: EmailVerificationSendRequest
 ): Promise<EmailVerificationSendResponse> => {
-  const response = await apiClient.post<EmailVerificationSendResponse>(
-    '/auth/request-reset-code',
-    data
-  );
-  return response.data;
+  try {
+    console.log('📧 이메일 인증 코드 전송 요청:', {
+      url: '/auth/request-reset-code',
+      method: 'POST',
+      data: data,
+    });
+
+    const response = await apiClient.post<EmailVerificationSendResponse>(
+      '/auth/request-reset-code',
+      data
+    );
+
+    console.log('✅ 이메일 인증 코드 전송 성공:', {
+      status: response.status,
+      data: response.data,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ 이메일 인증 코드 전송 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+    });
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '이메일 인증 코드 전송에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
 };
 
 /**
  * 이메일 인증번호 확인 API 호출 함수
  * @param data 이메일 인증번호 확인 요청 데이터
  * @returns 이메일 인증번호 확인 응답 데이터
+ *
+ * API 스펙:
+ * - Method: POST
+ * - Endpoint: /auth/verify-reset-code
+ * - Request: { email: string, code: string }
+ * - Response: { status: 200, message: string, data: {} }
  */
 export const verifyEmailCode = async (
   data: EmailVerificationCheckRequest
 ): Promise<EmailVerificationCheckResponse> => {
-  const response = await apiClient.post<EmailVerificationCheckResponse>(
-    '/auth/verify-reset-code',
-    data
-  );
-  return response.data;
+  try {
+    console.log('🔐 이메일 인증코드 검증 요청:', {
+      url: '/auth/verify-reset-code',
+      method: 'POST',
+      data: { ...data, code: '***' }, // 보안상 코드는 마스킹
+    });
+
+    const response = await apiClient.post<EmailVerificationCheckResponse>(
+      '/auth/verify-reset-code',
+      data
+    );
+
+    console.log('✅ 이메일 인증코드 검증 성공:', {
+      status: response.status,
+      data: response.data,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ 이메일 인증코드 검증 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+    });
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '이메일 인증코드 검증에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
 };
 
 /**
@@ -336,8 +396,32 @@ export const verifyEmailCode = async (
  * @returns 비밀번호 재설정 응답 데이터
  */
 export const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-  const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', data);
-  return response.data;
+  try {
+    console.log('🔐 비밀번호 재설정 요청:', {
+      url: '/auth/reset-password',
+      method: 'POST',
+      data: { ...data, newPassword: '***' }, // 보안상 비밀번호는 마스킹
+    });
+
+    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', data);
+
+    console.log('✅ 비밀번호 재설정 성공:', {
+      status: response.status,
+      data: response.data,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ 비밀번호 재설정 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+    });
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '비밀번호 재설정에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
 };
 
 // 토큰 갱신 함수는 tokenManager.ts에서 import

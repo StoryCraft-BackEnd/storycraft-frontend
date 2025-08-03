@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
+import { LoadingPopup } from '@/components/ui/LoadingPopup';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createProfileScreenStyles } from '@/styles/ProfileScreen.styles';
@@ -38,6 +39,8 @@ export default function ProfileScreen() {
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('프로필을 불러오는 중...');
 
   // 화면이 포커스될 때마다 프로필 목록을 새로고침
   useFocusEffect(
@@ -107,18 +110,25 @@ export default function ProfileScreen() {
 
   const handleProfileSelect = async (profileId: number) => {
     try {
+      // 로딩 팝업 표시
+      setIsProfileLoading(true);
+      setLoadingMessage('프로필을 선택하는 중...');
+      
       // 선택된 프로필 찾기 (profiles가 null일 수 있으므로 안전하게 처리)
       const selectedProfile = (profiles || []).find((profile) => profile.childId === profileId);
       if (selectedProfile) {
         // 선택된 프로필을 로컬 스토리지에 저장
+        setLoadingMessage('프로필 정보를 저장하는 중...');
         await saveSelectedProfile(selectedProfile);
         console.log('선택된 프로필 저장:', selectedProfile.name);
       }
 
+      setLoadingMessage('메인 화면으로 이동하는 중...');
       // 메인 화면으로 이동 (화면 방향은 이미 가로 모드로 고정되어 있음)
       router.replace('/(main)');
     } catch (error) {
       console.error('프로필 선택 실패:', error);
+      setIsProfileLoading(false);
       // 오류가 발생해도 메인 화면으로 이동
       router.replace('/(main)');
     }
@@ -229,6 +239,14 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
+      
+      {/* 프로필 선택 로딩 팝업 */}
+      <LoadingPopup
+        visible={isProfileLoading}
+        title="프로필 선택"
+        message={loadingMessage}
+      />
+      
       {/* 헤더 */}
       <View style={styles.header}>
         <View style={{ flex: 1, alignItems: 'center' }}>

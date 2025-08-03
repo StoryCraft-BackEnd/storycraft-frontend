@@ -86,14 +86,14 @@ export interface EmailVerificationCheckResponse {
   status: number;
   message: string;
   data: {
-    reset_token: string;
+    resetToken: string;
   };
 }
 
 // 비밀번호 재설정 요청/응답 타입
 export interface ResetPasswordRequest {
-  token: string;
-  new_password: string;
+  resetToken: string;
+  newPassword: string;
 }
 export interface ResetPasswordResponse {
   status: number;

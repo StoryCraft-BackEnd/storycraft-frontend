@@ -4,7 +4,15 @@
  * 사용자가 생성한 모든 동화를 가로 스크롤 카드 형태로 표시하는 화면입니다.
  */
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, FlatList, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ImageBackground,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,11 +23,16 @@ import {
   toggleStoryBookmark,
   toggleStoryLike,
   removeStoryFromStorage,
-  saveStories,
+  addStoryToStorage,
 } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
-import { deleteStory, deleteIllustration, fetchUserStories } from '@/features/storyCreate/storyApi';
-import { Story } from '@/features/storyCreate/types';
+import {
+  deleteStory,
+  fetchStoryList,
+  fetchIllustrationList,
+  downloadStoryIllustrations,
+} from '@/features/storyCreate/storyApi';
+import { Story, StoryData } from '@/features/storyCreate/types';
 import { Popup } from '@/components/ui/Popup';
 
 // --- 이미지 및 리소스 ---
@@ -43,6 +56,8 @@ export default function StoryListScreen() {
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [deletePopupVisible, setDeletePopupVisible] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<{ id: number; title: string } | null>(null);
+  const [isLoadingIllustrations, setIsLoadingIllustrations] = useState(false);
+  const [illustrationLoadingProgress, setIllustrationLoadingProgress] = useState<string>('');
 
   // 컴포넌트 마운트 시 프로필별 동화 목록 로드
   useEffect(() => {
@@ -75,9 +90,36 @@ export default function StoryListScreen() {
         setStories(storiesWithDefaults);
 
         // 백그라운드에서 서버 동기화 시도 (UI 블로킹 없이)
-        fetchUserStories(profile.childId).catch((serverError) => {
+        try {
+          // 서버에서 동화 목록 조회
+          const storyDataList = await fetchStoryList(profile.childId);
+          const serverStories: Story[] = storyDataList.map((storyData) => ({
+            ...storyData,
+            childId: profile.childId,
+            isBookmarked: false,
+            isLiked: false,
+          }));
+
+          // 서버 데이터로 업데이트
+          setStories(serverStories);
+
+          // 로컬에 저장
+          await Promise.all(serverStories.map((story) => addStoryToStorage(story)));
+
+          // 백그라운드에서 삽화 동기화 시도
+          if (serverStories.length > 0) {
+            const illustrations = await fetchIllustrationList();
+            await downloadStoryIllustrations(
+              serverStories,
+              illustrations,
+              (message, current, total) => {
+                console.log('삽화 동기화 진행:', message, current, total);
+              }
+            );
+          }
+        } catch (serverError) {
           console.error('백그라운드 서버 동기화 실패:', serverError);
-        });
+        }
       } catch (error) {
         console.error('동화 목록 로드 실패:', error);
         setStories([]);
@@ -135,6 +177,9 @@ export default function StoryListScreen() {
     try {
       // 서버에서 동화 삭제 (삽화도 함께 삭제됨)
       await deleteStory(selectedProfile.childId, storyToDelete.id);
+
+      // 로컬 스토리지에서도 동화 삭제
+      await removeStoryFromStorage(selectedProfile.childId, storyToDelete.id);
 
       // UI에서 제거
       setStories((prevStories) =>
@@ -226,7 +271,17 @@ export default function StoryListScreen() {
       </View>
 
       {/* 동화 목록 */}
-      {filteredStories.length === 0 ? (
+      {isLoading ? (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
+          <Text style={styles.emptyText}>동화를 불러오는 중...</Text>
+        </View>
+      ) : isLoadingIllustrations ? (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
+          <Text style={styles.emptyText}>{illustrationLoadingProgress}</Text>
+        </View>
+      ) : filteredStories.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="book-outline" size={64} style={styles.emptyIcon} />
           <Text style={styles.emptyText}>

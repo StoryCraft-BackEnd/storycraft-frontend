@@ -309,12 +309,18 @@ export const fetchIllustrations = async (): Promise<Illustration[]> => {
 /**
  * 삽화 목록을 확인하고 누락된 삽화를 다시 다운로드
  * @param userStoryIds - 사용자가 보유한 동화 ID 목록
+ * @param onProgress - 진행 상황 콜백 함수 (선택사항)
  * @returns Promise<void>
  */
-export const syncMissingIllustrations = async (userStoryIds: number[]): Promise<void> => {
+export const syncMissingIllustrations = async (
+  userStoryIds: number[],
+  onProgress?: (message: string, current?: number, total?: number) => void
+): Promise<void> => {
   try {
     console.log('누락된 삽화 동기화 시작...');
     console.log('사용자 동화 ID 목록:', userStoryIds);
+
+    onProgress?.('삽화 목록을 확인하는 중...');
 
     // 서버에서 삽화 목록 조회
     const serverIllustrations = await fetchIllustrations();
@@ -326,8 +332,16 @@ export const syncMissingIllustrations = async (userStoryIds: number[]): Promise<
     );
     console.log(`사용자 동화에 해당하는 삽화 ${userIllustrations.length}개 발견`);
 
+    if (userIllustrations.length === 0) {
+      onProgress?.('삽화가 없습니다.');
+      return;
+    }
+
+    onProgress?.('삽화를 다운로드하는 중...', 0, userIllustrations.length);
+
     // 각 삽화에 대해 로컬 파일 존재 여부 확인 및 다운로드
-    for (const illustration of userIllustrations) {
+    for (let i = 0; i < userIllustrations.length; i++) {
+      const illustration = userIllustrations[i];
       try {
         const fileName = `illustration_${illustration.illustrationId}.jpg`;
         const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
@@ -336,19 +350,31 @@ export const syncMissingIllustrations = async (userStoryIds: number[]): Promise<
 
         if (!fileInfo.exists) {
           console.log(`삽화 ${illustration.illustrationId} 로컬 파일 없음, 다운로드 시작...`);
+          onProgress?.(
+            `삽화 ${i + 1}/${userIllustrations.length} 다운로드 중...`,
+            i + 1,
+            userIllustrations.length
+          );
           await downloadIllustration(illustration);
           console.log(`삽화 ${illustration.illustrationId} 다운로드 완료`);
         } else {
           console.log(`삽화 ${illustration.illustrationId} 이미 존재함`);
+          onProgress?.(
+            `삽화 ${i + 1}/${userIllustrations.length} 확인 중...`,
+            i + 1,
+            userIllustrations.length
+          );
         }
       } catch (downloadError) {
         console.error(`삽화 ${illustration.illustrationId} 다운로드 실패:`, downloadError);
       }
     }
 
+    onProgress?.('삽화 동기화 완료');
     console.log('누락된 삽화 동기화 완료');
   } catch (error) {
     console.error('누락된 삽화 동기화 실패:', error);
+    onProgress?.('삽화 동기화 실패');
     throw error;
   }
 };
@@ -740,6 +766,175 @@ export const fetchUserStories = async (childId: number): Promise<any[]> => {
       console.error('로컬 동화 목록 조회 실패:', localError);
       return [];
     }
+  }
+};
+
+/**
+ * 동화 목록 조회 API
+ * GET /stories/lists
+ *
+ * @param childId 자녀 ID
+ * @returns 동화 목록
+ */
+export const fetchStoryList = async (childId: number): Promise<StoryData[]> => {
+  try {
+    console.log('📚 동화 목록 조회 요청:', {
+      url: `/stories/lists?id=${childId}`,
+      method: 'GET',
+      childId,
+    });
+
+    const response = await apiClient.get(`/stories/lists?id=${childId}`);
+
+    console.log('✅ 동화 목록 조회 성공:', {
+      status: response.status,
+      count: response.data.data?.length || 0,
+    });
+
+    return response.data.data || [];
+  } catch (error: any) {
+    console.error('❌ 동화 목록 조회 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+    });
+    const errorMessage =
+      error.response?.data?.message || error.message || '동화 목록 조회에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * 삽화 목록 조회 API
+ * GET /illustrations
+ *
+ * @returns 삽화 목록
+ */
+export const fetchIllustrationList = async (): Promise<Illustration[]> => {
+  try {
+    console.log('🎨 삽화 목록 조회 요청:', {
+      url: '/illustrations',
+      method: 'GET',
+    });
+
+    const response = await apiClient.get('/illustrations');
+
+    console.log('✅ 삽화 목록 조회 성공:', {
+      status: response.status,
+      count: response.data.data?.length || 0,
+    });
+
+    return response.data.data || [];
+  } catch (error: any) {
+    console.error('❌ 삽화 목록 조회 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+    });
+    const errorMessage =
+      error.response?.data?.message || error.message || '삽화 목록 조회에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * 동화에 해당하는 삽화만 필터링하여 다운로드
+ *
+ * @param stories 동화 목록
+ * @param illustrations 삽화 목록
+ * @param onProgress 진행 상황 콜백
+ */
+export const downloadStoryIllustrations = async (
+  stories: StoryData[],
+  illustrations: Illustration[],
+  onProgress?: (message: string, current?: number, total?: number) => void
+): Promise<void> => {
+  try {
+    console.log('🎨 동화 삽화 다운로드 시작...');
+
+    // 동화 ID 목록
+    const storyIds = stories.map((story) => story.storyId);
+    console.log('동화 ID 목록:', storyIds);
+
+    // 동화에 해당하는 삽화만 필터링
+    const storyIllustrations = illustrations.filter((illustration) =>
+      storyIds.includes(illustration.storyId)
+    );
+    console.log(`동화에 해당하는 삽화 ${storyIllustrations.length}개 필터링 완료`);
+
+    if (storyIllustrations.length === 0) {
+      console.log('다운로드할 삽화가 없습니다.');
+      onProgress?.('다운로드할 삽화가 없습니다.');
+      return;
+    }
+
+    // 삽화 디렉토리 생성
+    const illustrationsDir = `${FileSystem.documentDirectory}illustrations/`;
+    const dirInfo = await FileSystem.getInfoAsync(illustrationsDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(illustrationsDir, { intermediates: true });
+      console.log('삽화 디렉토리 생성 완료:', illustrationsDir);
+    }
+
+    // 실제 다운로드할 삽화 개수 계산 (이미 존재하는 파일 제외)
+    let downloadCount = 0;
+    let existingCount = 0;
+
+    for (const illustration of storyIllustrations) {
+      const localPath = `${illustrationsDir}illustration_${illustration.illustrationId}.jpg`;
+      const fileInfo = await FileSystem.getInfoAsync(localPath);
+      if (fileInfo.exists) {
+        existingCount++;
+      } else {
+        downloadCount++;
+      }
+    }
+
+    console.log(`삽화 상태: ${existingCount}개 이미 존재, ${downloadCount}개 다운로드 필요`);
+
+    if (downloadCount === 0) {
+      console.log('모든 삽화가 이미 다운로드되어 있습니다.');
+      onProgress?.('모든 삽화가 이미 다운로드되어 있습니다.');
+      return;
+    }
+
+    onProgress?.('삽화를 다운로드하는 중...', 0, downloadCount);
+
+    // 각 삽화 다운로드
+    let downloadedCount = 0;
+    for (let i = 0; i < storyIllustrations.length; i++) {
+      const illustration = storyIllustrations[i];
+      const localPath = `${illustrationsDir}illustration_${illustration.illustrationId}.jpg`;
+
+      try {
+        // 파일이 이미 존재하는지 확인
+        const fileInfo = await FileSystem.getInfoAsync(localPath);
+        if (fileInfo.exists) {
+          console.log(`삽화 ${illustration.illustrationId} 이미 존재:`, localPath);
+          continue;
+        }
+
+        // 삽화 다운로드
+        downloadedCount++;
+        onProgress?.(
+          `삽화 ${downloadedCount}/${downloadCount} 다운로드 중...`,
+          downloadedCount,
+          downloadCount
+        );
+
+        console.log(`삽화 ${illustration.illustrationId} 다운로드 시작:`, illustration.imageUrl);
+        await FileSystem.downloadAsync(illustration.imageUrl, localPath);
+        console.log(`삽화 ${illustration.illustrationId} 다운로드 완료:`, localPath);
+      } catch (downloadError) {
+        console.error(`삽화 ${illustration.illustrationId} 다운로드 실패:`, downloadError);
+        // 개별 삽화 다운로드 실패는 전체 프로세스를 중단하지 않음
+      }
+    }
+
+    onProgress?.('삽화 다운로드 완료');
+    console.log('🎨 동화 삽화 다운로드 완료');
+  } catch (error) {
+    console.error('❌ 동화 삽화 다운로드 실패:', error);
+    onProgress?.('삽화 다운로드 실패');
+    throw error;
   }
 };
 
