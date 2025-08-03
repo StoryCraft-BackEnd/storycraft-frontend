@@ -14,7 +14,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
-export const englishLearningStyles = StyleSheet.create({
+const englishLearningStyles = StyleSheet.create({
   // ===================================================================
   // 🏠 기본 컨테이너 및 배경 스타일
   // ===================================================================
@@ -51,7 +51,8 @@ export const englishLearningStyles = StyleSheet.create({
     flex: 1, // 전체 화면 차지
     backgroundColor: 'rgba(0, 0, 0, 0.3)', // 반투명 검정 오버레이
     paddingHorizontal: wp(5), // 좌우 여백 5% (반응형)
-    paddingVertical: hp(5), // 상하 여백 5% (반응형)
+    paddingTop: hp(2), // 상단 여백 2% (반응형) - 상단 요소들을 위한 공간
+    paddingBottom: hp(5), // 하단 여백 5% (반응형)
   },
 
   // ===================================================================
@@ -77,7 +78,7 @@ export const englishLearningStyles = StyleSheet.create({
    */
   backButton: {
     position: 'absolute', // 절대 위치
-    top: hp(4), // 상단에서 4% (반응형)
+    top: hp(2), // 상단에서 2% (반응형) - 기존 4%에서 2%로 변경
     left: wp(5), // 좌측에서 5% (반응형)
     backgroundColor: 'rgba(255, 255, 255, 0.2)', // 반투명 흰색 배경
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
@@ -157,7 +158,7 @@ export const englishLearningStyles = StyleSheet.create({
    */
   topControls: {
     position: 'absolute', // 절대 위치
-    top: hp(4), // 상단에서 4% (반응형)
+    top: hp(2), // 상단에서 2% (반응형) - 기존 4%에서 2%로 변경
     right: wp(5), // 우측에서 5% (반응형)
     flexDirection: 'row', // 가로 방향 정렬
     zIndex: 10, // 다른 요소 위에 표시
@@ -223,8 +224,8 @@ export const englishLearningStyles = StyleSheet.create({
    */
   titleSection: {
     alignItems: 'center', // 중앙 정렬
-    marginTop: hp(0), // 상단에서 10% 여백 (상단 버튼들과 충돌 방지, 반응형)
-    marginBottom: hp(2.5), // 하단 여백 2.5% (반응형)
+    marginTop: hp(0), // 상단에서 0% 여백
+    marginBottom: hp(10), // 하단 여백 10% (반응형)
   },
 
   /**
@@ -280,7 +281,8 @@ export const englishLearningStyles = StyleSheet.create({
     flex: 1, // 남은 공간 모두 차지
     flexDirection: 'row', // 가로 방향 배치
     justifyContent: 'space-between', // 양쪽 끝 정렬
-    alignItems: 'center', // 수직 중앙 정렬
+    alignItems: 'flex-start', // 상단 정렬로 변경
+    marginTop: hp(-9), // 상단 여백 -9% (반응형) - 제목과의 간격 최소화
   },
 
   /**
@@ -468,16 +470,17 @@ export const englishLearningStyles = StyleSheet.create({
   /**
    * 📚 단어 학습 패널
    * 우측에 위치한 즐겨찾기 단어 표시 영역
-   * 전체 너비의 30%를 차지하는 보조 영역
+   * 세로 높이만 스토리 콘텐츠와 동일하게 설정
    */
   vocabularyPanel: {
-    flex: 0.3, // 전체 너비의 30%
+    flex: 0.3, // 원래 크기로 복원 (30%)
     backgroundColor: 'rgba(255, 255, 255, 0.9)', // 반투명 흰색 배경
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
-    padding: wp(5), // 내부 여백 5% (반응형)
+    padding: wp(5), // 내부 여백 5% (반응형) - 원래 값으로 복원
     alignItems: 'center', // 중앙 정렬
-    justifyContent: 'center', // 수직 중앙 정렬
-    minHeight: hp(25), // 최소 높이 25% (반응형)
+    // justifyContent: 'center', // 수직 중앙 정렬
+    minHeight: hp(37), // 최소 높이 25% (반응형) - 스토리 콘텐츠와 동일한 세로 높이
+    alignSelf: 'stretch', // 세로 높이를 부모 컨테이너에 맞춤
   },
 
   /**
@@ -767,7 +770,90 @@ export const englishLearningStyles = StyleSheet.create({
     fontSize: wp(3), // 작은 글자 크기 3% (반응형)
     textAlign: 'center', // 중앙 정렬
   },
+
+  // ===================================================================
+  // 🧭 하단 네비게이션 섹션
+  // ===================================================================
+
+  /**
+   * 🧭 네비게이션 섹션 컨테이너
+   * 하단에 위치한 이전/다음 버튼과 즐겨찾기 버튼을 포함하는 컨테이너
+   * 가로 방향으로 균등하게 배치
+   */
+  navigationSection: {
+    flexDirection: 'row', // 가로 방향 배치
+    justifyContent: 'space-between', // 양쪽 끝 정렬
+    alignItems: 'center', // 수직 중앙 정렬
+    marginTop: hp(2), // 상단 여백 2% (반응형)
+    paddingHorizontal: wp(2), // 좌우 내부 여백 2% (반응형)
+  },
+
+  /**
+   * ⬅️➡️ 네비게이션 버튼
+   * 이전/다음 페이지 이동 버튼
+   * 황금색 배경과 테두리로 시각적 강조
+   */
+  navButton: {
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1.5), // 상하 내부 여백 1.5% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    borderWidth: 1, // 테두리 두께
+    borderColor: '#ffd700', // 황금색 테두리
+    minWidth: wp(20), // 최소 너비 20% (반응형)
+    alignItems: 'center', // 중앙 정렬
+  },
+
+  /**
+   * 🚫 비활성화된 네비게이션 버튼
+   * 첫 페이지/마지막 페이지에서 사용할 수 없는 버튼
+   * 더 투명한 배경으로 비활성 상태 표시
+   */
+  navButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // 반투명 흰색 배경
+    borderColor: 'rgba(255, 255, 255, 0.3)', // 투명한 테두리
+  },
+
+  /**
+   * ⬅️➡️ 네비게이션 버튼 텍스트
+   * 이전/다음 버튼 내부의 텍스트
+   * 어두운 색상으로 명확한 가독성
+   */
+  navButtonText: {
+    color: '#333', // 어두운 회색 텍스트
+    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontWeight: '600', // 중간 굵기
+  },
+
+  /**
+   * ⭐ 즐겨찾기 페이지 버튼
+   * 즐겨찾기된 단어들을 보기 위한 버튼
+   * 중앙에 위치하여 균형잡힌 레이아웃 구성
+   */
+  favoritePageButton: {
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1.5), // 상하 내부 여백 1.5% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    borderWidth: 1, // 테두리 두께
+    borderColor: '#ffd700', // 황금색 테두리
+    minWidth: wp(25), // 최소 너비 25% (반응형)
+    alignItems: 'center', // 중앙 정렬
+  },
+
+  /**
+   * ⭐ 즐겨찾기 페이지 버튼 텍스트
+   * 즐겨찾기 버튼 내부의 텍스트
+   * 별표 이모지와 함께 직관적인 기능 표시
+   */
+  favoritePageButtonText: {
+    color: '#333', // 어두운 회색 텍스트
+    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontWeight: '600', // 중간 굵기
+  },
 });
+
+export default englishLearningStyles;
 
 /**
  * ===================================================================

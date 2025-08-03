@@ -15,10 +15,12 @@ import {
   toggleStoryBookmark,
   toggleStoryLike,
   removeStoryFromStorage,
+  saveStories,
 } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
-import { deleteStory, fetchUserStories } from '@/features/storyCreate/storyApi';
+import { deleteStory, deleteIllustration, fetchUserStories } from '@/features/storyCreate/storyApi';
 import { Story } from '@/features/storyCreate/types';
+import { Popup } from '@/components/ui/Popup';
 
 // --- 이미지 및 리소스 ---
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -39,6 +41,8 @@ export default function StoryListScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [deletePopupVisible, setDeletePopupVisible] = useState(false);
+  const [storyToDelete, setStoryToDelete] = useState<{ id: number; title: string } | null>(null);
 
   // 컴포넌트 마운트 시 프로필별 동화 목록 로드
   useEffect(() => {
@@ -56,40 +60,24 @@ export default function StoryListScreen() {
 
         setSelectedProfile(profile);
 
-        // 서버에서 동화 목록 가져오기 (서버-로컬 동기화)
-        console.log(`프로필 ${profile.name}의 동화 목록 서버에서 가져오기 시작...`);
-        try {
-          const serverStories = await fetchUserStories(profile.childId);
-          console.log(
-            `프로필 ${profile.name}의 동화 ${serverStories.length}개 서버에서 가져오기 완료`
-          );
+        // 로컬에서 동화 목록 가져오기 (서버 동기화는 백그라운드에서만)
+        console.log(`프로필 ${profile.name}의 동화 목록 로컬에서 가져오기 시작...`);
+        const localStories = await loadStoriesFromStorage(profile.childId);
+        console.log(`프로필 ${profile.name}의 동화 ${localStories.length}개 로컬에서 로드 완료`);
 
-          // UI 호환성을 위해 기본값 설정
-          const storiesWithDefaults = serverStories.map((story) => ({
-            ...story,
-            isBookmarked: story.isBookmarked || false,
-            isLiked: story.isLiked || false,
-          }));
+        // UI 호환성을 위해 기본값 설정
+        const storiesWithDefaults = localStories.map((story) => ({
+          ...story,
+          isBookmarked: story.isBookmarked || false,
+          isLiked: story.isLiked || false,
+        }));
 
-          setStories(storiesWithDefaults);
-        } catch (serverError) {
-          console.error('서버에서 동화 목록 가져오기 실패, 로컬 데이터 사용:', serverError);
+        setStories(storiesWithDefaults);
 
-          // 서버 실패 시 로컬에서 가져오기
-          const profileStories = await loadStoriesFromStorage(profile.childId);
-          console.log(
-            `프로필 ${profile.name}의 동화 ${profileStories.length}개 로컬에서 로드 완료`
-          );
-
-          // UI 호환성을 위해 기본값 설정
-          const storiesWithDefaults = profileStories.map((story) => ({
-            ...story,
-            isBookmarked: story.isBookmarked || false,
-            isLiked: story.isLiked || false,
-          }));
-
-          setStories(storiesWithDefaults);
-        }
+        // 백그라운드에서 서버 동기화 시도 (UI 블로킹 없이)
+        fetchUserStories(profile.childId).catch((serverError) => {
+          console.error('백그라운드 서버 동기화 실패:', serverError);
+        });
       } catch (error) {
         console.error('동화 목록 로드 실패:', error);
         setStories([]);
@@ -101,81 +89,73 @@ export default function StoryListScreen() {
     loadStories();
   }, []);
 
-  // 북마크 토글 함수
   const toggleBookmark = async (storyId: number) => {
     if (!selectedProfile) return;
 
     try {
-      // 로컬 저장소 업데이트
       await toggleStoryBookmark(selectedProfile.childId, storyId);
-
-      // UI 상태 업데이트
       setStories((prevStories) =>
         prevStories.map((story) =>
           story.storyId === storyId ? { ...story, isBookmarked: !story.isBookmarked } : story
         )
       );
+      console.log('북마크 토글 완료:', storyId);
     } catch (error) {
       console.error('북마크 토글 실패:', error);
     }
   };
 
-  // 좋아요 토글 함수
   const toggleLike = async (storyId: number) => {
     if (!selectedProfile) return;
 
     try {
-      // 로컬 저장소 업데이트
       await toggleStoryLike(selectedProfile.childId, storyId);
-
-      // UI 상태 업데이트
       setStories((prevStories) =>
         prevStories.map((story) =>
           story.storyId === storyId ? { ...story, isLiked: !story.isLiked } : story
         )
       );
+      console.log('좋아요 토글 완료:', storyId);
     } catch (error) {
       console.error('좋아요 토글 실패:', error);
     }
   };
 
-  // 동화 삭제 함수
   const handleDeleteStory = async (storyId: number, storyTitle: string) => {
     if (!selectedProfile) return;
 
-    Alert.alert(
-      '동화 삭제',
-      `"${storyTitle}" 동화를 정말 삭제하시겠습니까?\n\n삭제된 동화는 복구할 수 없습니다.`,
-      [
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // 서버에서 삭제
-              await deleteStory(selectedProfile.childId, storyId);
+    // 삭제할 동화 정보 저장
+    setStoryToDelete({ id: storyId, title: storyTitle });
+    setDeletePopupVisible(true);
+  };
 
-              // 로컬에서도 삭제
-              await removeStoryFromStorage(selectedProfile.childId, storyId);
+  const confirmDeleteStory = async () => {
+    if (!selectedProfile || !storyToDelete) return;
 
-              // UI에서 제거
-              setStories((prevStories) => prevStories.filter((story) => story.storyId !== storyId));
+    try {
+      // 서버에서 동화 삭제 (삽화도 함께 삭제됨)
+      await deleteStory(selectedProfile.childId, storyToDelete.id);
 
-              console.log('동화 삭제 완료:', storyId);
-            } catch (error) {
-              console.error('동화 삭제 실패:', error);
-              Alert.alert('삭제 실패', '동화 삭제 중 오류가 발생했습니다. 다시 시도해주세요.', [
-                { text: '확인' },
-              ]);
-            }
-          },
-        },
-      ]
-    );
+      // UI에서 제거
+      setStories((prevStories) =>
+        prevStories.filter((story) => story.storyId !== storyToDelete.id)
+      );
+
+      console.log('동화 삭제 완료:', storyToDelete.id);
+    } catch (error) {
+      console.error('동화 삭제 실패:', error);
+      Alert.alert('삭제 실패', '동화 삭제 중 오류가 발생했습니다. 다시 시도해주세요.', [
+        { text: '확인' },
+      ]);
+    } finally {
+      setDeletePopupVisible(false);
+      setStoryToDelete(null);
+    }
+  };
+
+  const cancelDeleteStory = () => {
+    setDeletePopupVisible(false);
+    setStoryToDelete(null);
   };
 
   // 탭에 따른 필터링된 스토리
@@ -245,12 +225,8 @@ export default function StoryListScreen() {
         })}
       </View>
 
-      {/* 동화 카드 목록 */}
-      {isLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={styles.loadingText}>동화 목록을 불러오는 중...</Text>
-        </View>
-      ) : filteredStories.length === 0 ? (
+      {/* 동화 목록 */}
+      {filteredStories.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="book-outline" size={64} style={styles.emptyIcon} />
           <Text style={styles.emptyText}>
@@ -353,6 +329,18 @@ export default function StoryListScreen() {
           )}
         />
       )}
+
+      {/* 삭제 확인 팝업 */}
+      <Popup
+        visible={deletePopupVisible}
+        onClose={cancelDeleteStory}
+        title="동화 삭제"
+        message={`"${storyToDelete?.title}" 동화를 정말 삭제하시겠습니까?\n\n삭제된 동화는 복구할 수 없습니다.`}
+        confirmText="삭제"
+        cancelText="취소"
+        onConfirm={confirmDeleteStory}
+        onCancel={cancelDeleteStory}
+      />
     </ImageBackground>
   );
 }

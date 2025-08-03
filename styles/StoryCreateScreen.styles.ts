@@ -30,6 +30,7 @@ export const COLORS = {
   headerIcon: '#fff',
   voiceButton: '#ccc',
   voiceButtonActive: '#FF6B6B',
+  disabled: '#666', // 비활성화된 요소의 색상
 };
 
 export const useStoryCreateScreenStyles = () => {
@@ -67,6 +68,16 @@ export const useStoryCreateScreenStyles = () => {
       fontSize: wp('4.5%'),
       marginLeft: wp('1.5%'),
       fontWeight: '600',
+    },
+
+    // 비활성화된 뒤로가기 버튼 스타일
+    disabledBackButton: {
+      opacity: 0.5,
+    },
+
+    // 비활성화된 뒤로가기 버튼 텍스트 스타일
+    disabledBackButtonText: {
+      color: '#666',
     },
 
     // --- 컨테이너 ---

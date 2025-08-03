@@ -23,6 +23,16 @@ export interface CreateStoryResponse {
   data: StoryData;
 }
 
+// 로컬에 저장할 삽화 정보 타입
+export interface LocalIllustration {
+  illustrationId: number; // 서버의 삽화 ID
+  storyId: number; // 동화 ID
+  localPath: string; // 로컬 파일 경로
+  imageUrl: string; // 원본 URL
+  description: string; // 삽화 설명
+  createdAt: string; // 생성 시간
+}
+
 // 로컬에 저장할 동화 데이터 타입
 export interface Story {
   storyId: number; // 동화 ID
@@ -36,6 +46,7 @@ export interface Story {
   keywords: string[]; // 생성에 사용된 키워드들 (로컬 저장용)
   isBookmarked?: boolean; // 북마크 여부 (선택적)
   isLiked?: boolean; // 좋아요 여부 (선택적)
+  illustrations?: LocalIllustration[]; // 해당 동화의 삽화 목록
 }
 
 // 동화 생성 상태 타입
@@ -71,4 +82,92 @@ export interface ApiResponse<T> {
   status: number;
   message: string;
   data?: T;
+}
+
+// 동화 단락 데이터 타입
+export interface StorySection {
+  sectionId: number; // 단락 ID
+  orderIndex: number; // 단락 순서
+  paragraphText: string; // 영어 단락 텍스트
+  paragraphTextKr: string; // 한국어 단락 텍스트
+  storyId: number; // 동화 ID
+}
+
+// 동화 단락 조회 응답 타입
+export interface StorySectionsResponse {
+  status: number;
+  message: string;
+  data: StorySection[];
+}
+
+// API 단락을 사용하는 학습용 동화 데이터 타입
+export interface LearningStoryWithSections {
+  storyId: number; // 동화 ID
+  title: string; // 동화 제목
+  content: string; // 동화 내용 (영어) - 전체 내용
+  contentKr: string; // 동화 내용 (한국어) - 전체 내용
+  thumbnailUrl?: string; // 썸네일 URL (선택적)
+  childId: number; // 아이 ID
+  keywords: string[]; // 생성 키워드들
+  totalPages: number; // 총 페이지 수 (단락 수)
+  highlightedWords: HighlightedWord[]; // 강조된 단어들
+  sections: StorySection[]; // API에서 받아온 단락들
+}
+
+// 삽화 생성 요청 타입
+export interface CreateIllustrationRequest {
+  storyId: number;
+  sectionId: number;
+}
+
+// 삽화 생성 응답 타입
+export interface CreateIllustrationResponse {
+  status: number;
+  message: string;
+  data: {
+    illustrationId: number;
+    storyId: number;
+    orderIndex: number;
+    imageUrl: string;
+    description: string;
+    createdAt: string;
+  };
+}
+
+// 삽화 데이터 타입
+export interface Illustration {
+  illustrationId: number;
+  storyId: number;
+  orderIndex: number;
+  imageUrl: string;
+  description: string;
+  createdAt: string;
+}
+
+// TTS 요청 타입
+export interface TTSRequest {
+  storyId: number;
+  sectionId: number;
+  voiceId: string;
+  speechRate: number;
+}
+
+// TTS 응답 타입
+export interface TTSResponse {
+  ttsId: number;
+  storyId: number;
+  sectionId: number;
+  voiceId: string;
+  speechRate: number;
+  language: string;
+  ttsUrl: string;
+  createdAt: string;
+}
+
+// TTS 오디오 파일 정보 타입
+export interface TTSAudioInfo {
+  storyId: number;
+  sectionId: number;
+  audioPath: string;
+  ttsUrl: string;
 }

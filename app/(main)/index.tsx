@@ -16,9 +16,8 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { setStatusBarHidden } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
-import { router } from 'expo-router';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { ThemedText } from '@/components/ui/ThemedText';
+import { router, useFocusEffect } from 'expo-router';
+
 import nightBg from '@/assets/images/background/night-bg.png';
 import boxplus from '@/assets/images/icons/boxplus.png';
 import bookmark from '@/assets/images/icons/bookmark.png';
@@ -45,24 +44,25 @@ import { MainScreenStyles } from '@/styles/MainScreen';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import { ChildProfile } from '@/features/profile/types';
+import { loadStoriesFromStorage, addStoryToStorage } from '@/features/storyCreate/storyStorage';
+import { Story } from '@/features/storyCreate/types';
+import { getStoryIllustrationPathFromStory } from '@/features/storyCreate/storyUtils';
+import {
+  fetchUserStories,
+  fetchIllustrations,
+  downloadIllustration,
+  syncMissingIllustrations,
+} from '@/features/storyCreate/storyApi';
+import * as FileSystem from 'expo-file-system';
 
-// 임시 동화 데이터
-const stories = [
-  { id: 1, title: '동화 1', image: story1 },
-  { id: 2, title: '동화 2', image: story2 },
-  { id: 3, title: '동화 3', image: story3 },
-  { id: 4, title: '동화 4', image: story4 },
-  { id: 5, title: '동화 5', image: story5 },
-  { id: 6, title: '동화 6', image: story6 },
-  { id: 7, title: '동화 7', image: story7 },
-  { id: 8, title: '동화 8', image: story8 },
-];
+// 기본 삽화 이미지들 (삽화가 없을 때 사용)
+const defaultStoryImages = [story1, story2, story3, story4, story5, story6, story7, story8];
 
 export default function MainScreen() {
-  const [backgroundImage, setBackgroundImage] = useState(nightBg);
+  const [backgroundImage] = useState(nightBg);
   const [selectedProfile, setSelectedProfile] = useState<ChildProfile | null>(null);
-  const backgroundColor = useThemeColor('background');
-  const isDark = backgroundColor === '#0d1b1e';
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [storyImages, setStoryImages] = useState<(string | number)[]>([]);
 
   useEffect(() => {
     // 화면을 가로 모드로 고정
@@ -103,26 +103,163 @@ export default function MainScreen() {
     //   }
     // };
 
-    // 초기 배경 설정
-    setBackgroundImage(nightBg);
+    // updateBackgroundImage();
 
-    // 1분마다 배경 업데이트 (추후 개발 예정)
-    // const interval = setInterval(updateBackgroundImage, 60000);
-
-    // 컴포넌트가 언마운트될 때 정리
     return () => {
+      // 화면을 세로 모드로 복원
       ScreenOrientation.unlockAsync();
+      // 시스템 UI 복원
       setStatusBarHidden(false);
       NavigationBar.setVisibilityAsync('visible');
-      backHandler.remove(); // 뒤로가기 핸들러 제거
-      // clearInterval(interval);
+      // 뒤로가기 핸들러 제거
+      backHandler.remove();
     };
   }, []);
 
-  // 개발용 뒤로가기 버튼 클릭 핸들러
-  // TODO: 개발 완료 후 삭제 필요 - 프로필 선택 화면으로 이동
-  const handleBackToProfile = () => {
-    router.push('/(profile)');
+  // 화면이 포커스될 때마다 동화 목록 새로고침 (중복 실행 방지)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
+
+      const refreshStories = async () => {
+        if (selectedProfile && isMounted) {
+          console.log('메인 화면 포커스 - 동화 목록 새로고침');
+          await loadStories(selectedProfile.childId);
+        }
+      };
+
+      refreshStories();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [selectedProfile])
+  );
+
+  // 동화 목록 및 삽화 로드
+  const loadStories = async (childId: number) => {
+    try {
+      console.log(`프로필 ${childId}의 동화 목록 로드 시작...`);
+
+      // 먼저 서버에서 최신 데이터 가져오기
+      try {
+        console.log('서버에서 최신 동화 목록 동기화 시작...');
+        await fetchUserStories(childId);
+        console.log('서버 동기화 완료, 잠시 대기...');
+        // 서버 저장 완료 후 잠시 대기
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (serverError) {
+        console.error('서버 동기화 실패, 로컬 데이터만 사용:', serverError);
+      }
+
+      // 로컬에서 동화 목록 로드
+      let stories = await loadStoriesFromStorage(childId); // Use 'let' to allow re-assignment
+      console.log(`로컬에서 ${stories.length}개의 동화 로드 완료`);
+
+      // 사용자가 보유한 동화에 해당하는 삽화 동기화 및 Story 객체에 추가
+      if (stories.length > 0) {
+        try {
+          console.log('사용자 동화에 해당하는 삽화 동기화 시작...');
+
+          // 사용자가 보유한 동화 ID 목록
+          const userStoryIds = stories.map((story) => story.storyId);
+          console.log('사용자 동화 ID 목록:', userStoryIds);
+
+          // 누락된 삽화 동기화 (서버 목록 확인 후 누락된 것만 다운로드)
+          await syncMissingIllustrations(userStoryIds);
+
+          // 서버에서 최신 삽화 목록 조회
+          const illustrations = await fetchIllustrations();
+          console.log(`서버에서 ${illustrations.length}개의 삽화 조회 완료`);
+
+          // 사용자가 보유한 동화에 해당하는 삽화만 필터링
+          const userIllustrations = illustrations.filter((illustration) =>
+            userStoryIds.includes(illustration.storyId)
+          );
+          console.log(`사용자 동화에 해당하는 삽화 ${userIllustrations.length}개 필터링 완료`);
+
+          // Story 객체에 illustrations 정보 추가
+          const storiesWithIllustrations = stories.map((story) => {
+            const storyIllustrations = userIllustrations.filter(
+              (illustration) => illustration.storyId === story.storyId
+            );
+            return {
+              ...story,
+              illustrations: storyIllustrations.map((illustration) => ({
+                illustrationId: illustration.illustrationId,
+                storyId: illustration.storyId,
+                localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
+                imageUrl: illustration.imageUrl,
+                description: illustration.description,
+                createdAt: illustration.createdAt,
+              })),
+            };
+          });
+
+          // Story 객체를 illustrations 정보와 함께 다시 저장
+          await Promise.all(storiesWithIllustrations.map((story) => addStoryToStorage(story)));
+          console.log('Story 객체에 illustrations 정보 추가 완료');
+
+          // Update the 'stories' variable to reflect the changes
+          stories = storiesWithIllustrations; // Crucial update
+
+          console.log('사용자 동화 삽화 동기화 완료');
+        } catch (illustrationError) {
+          console.error('삽화 동기화 실패:', illustrationError);
+        }
+      }
+
+      console.log(
+        `최종 로컬에서 ${stories.length}개의 동화 로드 완료:`,
+        stories.map((s) => ({ id: s.storyId, title: s.title }))
+      );
+      setUserStories(stories); // Now 'stories' contains illustrations
+
+      // 삽화 디렉토리 확인
+      const illustrationsDir = `${FileSystem.documentDirectory}illustrations/`;
+      const dirInfo = await FileSystem.getInfoAsync(illustrationsDir);
+      console.log('삽화 디렉토리 존재 여부:', dirInfo.exists, '경로:', illustrationsDir);
+
+      // 각 동화의 삽화 경로 확인
+      console.log('동화 삽화 이미지 로드 시작...');
+      const images = await Promise.all(
+        stories.map(async (story, index) => {
+          try {
+            // 삽화 경로 확인 (새로운 illustrationId 기반 방식)
+            const illustrationPath = await getStoryIllustrationPathFromStory(story);
+
+            if (illustrationPath) {
+              // 파일 실제 존재 여부 확인
+              const fileInfo = await FileSystem.getInfoAsync(illustrationPath);
+              if (fileInfo.exists) {
+                console.log(`동화 ${story.storyId} 삽화 발견:`, illustrationPath);
+                return illustrationPath;
+              } else {
+                console.log(
+                  `동화 ${story.storyId} 삽화 경로는 있지만 파일이 없음:`,
+                  illustrationPath
+                );
+              }
+            }
+
+            // 삽화가 없으면 기본 이미지 사용
+            const defaultImageIndex = index % defaultStoryImages.length;
+            console.log(
+              `동화 ${story.storyId} 삽화 없음, 기본 이미지 사용 (인덱스: ${defaultImageIndex})`
+            );
+            return defaultStoryImages[defaultImageIndex];
+          } catch (error) {
+            console.error(`동화 ${story.storyId} 삽화 로드 실패:`, error);
+            const defaultImageIndex = index % defaultStoryImages.length;
+            return defaultStoryImages[defaultImageIndex];
+          }
+        })
+      );
+      console.log(`총 ${images.length}개의 이미지 설정 완료`);
+      setStoryImages(images);
+    } catch (error) {
+      console.error('동화 목록 로드 실패:', error);
+    }
   };
 
   return (
@@ -132,60 +269,6 @@ export default function MainScreen() {
       resizeMode="cover"
     >
       <ThemedView style={MainScreenStyles.container}>
-        {/* 개발용 뒤로가기 버튼 - 추후 삭제 필요 */}
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: 200,
-            zIndex: 1000,
-            backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)',
-            paddingHorizontal: 15,
-            paddingVertical: 8,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: isDark ? '#fff' : '#000',
-          }}
-          onPress={handleBackToProfile}
-        >
-          <ThemedText
-            style={{
-              color: isDark ? '#fff' : '#000',
-              fontSize: 16,
-              fontWeight: 'bold',
-            }}
-          >
-            ← 프로필 선택 (개발용)
-          </ThemedText>
-        </TouchableOpacity>
-
-        {/* 영어 학습 화면으로 이동 버튼 */}
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: 420,
-            zIndex: 1000,
-            backgroundColor: isDark ? 'rgba(0,100,0,0.7)' : 'rgba(0,200,0,0.7)',
-            paddingHorizontal: 15,
-            paddingVertical: 8,
-            borderRadius: 20,
-            borderWidth: 1,
-            borderColor: isDark ? '#0f0' : '#0a0',
-          }}
-          onPress={() => router.push('/(english-learning)')}
-        >
-          <ThemedText
-            style={{
-              color: isDark ? '#fff' : '#000',
-              fontSize: 16,
-              fontWeight: 'bold',
-            }}
-          >
-            영어 학습 화면으로 이동
-          </ThemedText>
-        </TouchableOpacity>
-
         <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
         <View style={MainScreenStyles.userProfileContainer}>
           <Image source={defaultProfile} style={MainScreenStyles.userProfileImage} />
@@ -222,12 +305,27 @@ export default function MainScreen() {
             decelerationRate="normal"
             bounces={true}
           >
-            {stories.map((story) => (
-              <View key={story.id} style={MainScreenStyles.storyItem}>
-                <Image source={story.image} style={MainScreenStyles.storyImage} />
-                <Text style={MainScreenStyles.storyTitle}>{story.title}</Text>
+            {userStories.length === 0 ? (
+              <View style={MainScreenStyles.storyItem}>
+                <Text style={MainScreenStyles.storyTitle}>
+                  현재 생성된 동화가 없습니다.{'\n'}동화를 생성해주세요!
+                </Text>
               </View>
-            ))}
+            ) : (
+              userStories.map((story, index) => (
+                <View key={story.storyId} style={MainScreenStyles.storyItem}>
+                  <Image
+                    source={
+                      typeof storyImages[index] === 'string'
+                        ? { uri: storyImages[index] as string }
+                        : storyImages[index]
+                    }
+                    style={MainScreenStyles.storyImage}
+                  />
+                  <Text style={MainScreenStyles.storyTitle}>{story.title}</Text>
+                </View>
+              ))
+            )}
           </ScrollView>
         </View>
 

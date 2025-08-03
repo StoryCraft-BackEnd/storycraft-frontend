@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Story } from './types';
+import { Story, StorySection } from './types';
 
 /**
  * 프로필별 폴더 구조를 위한 키 생성 함수들
@@ -37,6 +37,13 @@ const getProgressKey = (childId: number): string => {
  */
 const getSettingsKey = (childId: number): string => {
   return createProfileKey(childId, 'settings');
+};
+
+/**
+ * 프로필별 동화 단락 폴더 키 생성
+ */
+const getStorySectionsKey = (childId: number, storyId: number): string => {
+  return createProfileKey(childId, `story_sections_${storyId}`);
 };
 
 /**
@@ -244,6 +251,10 @@ export const clearProfileData = async (childId: number): Promise<void> => {
     ];
 
     await Promise.all(keys.map((key) => AsyncStorage.removeItem(key)));
+
+    // 동화 단락도 함께 삭제
+    await clearAllStorySections(childId);
+
     console.log(`프로필 ${childId} 모든 데이터 삭제 완료`);
   } catch (error) {
     console.error(`프로필 ${childId} 데이터 삭제 실패:`, error);
@@ -282,6 +293,13 @@ export const logProfileStructure = async (childId: number): Promise<void> => {
 
     const settings = await loadProfileSettings(childId);
     console.log(`   ⚙️ settings/: 프로필 설정 데이터`);
+
+    // 동화 단락 정보 추가
+    const allKeys = await AsyncStorage.getAllKeys();
+    const sectionKeys = allKeys.filter((key) =>
+      key.startsWith(`profile_${childId}/story_sections_`)
+    );
+    console.log(`   📖 story_sections/: ${sectionKeys.length}개 동화의 단락 캐시`);
 
     console.log('📁 ================================\n');
   } catch (error) {
@@ -483,6 +501,75 @@ export const getStoryStats = async (
       likedStories: 0,
       recentStories: 0,
     };
+  }
+};
+
+/**
+ * 특정 동화의 단락들을 로컬에 저장
+ */
+export const saveStorySections = async (
+  childId: number,
+  storyId: number,
+  sections: StorySection[]
+): Promise<void> => {
+  try {
+    const key = getStorySectionsKey(childId, storyId);
+    await AsyncStorage.setItem(key, JSON.stringify(sections));
+    console.log(`동화 ${storyId} 단락 저장 완료:`, sections.length, '개 단락');
+  } catch (error) {
+    console.error(`동화 ${storyId} 단락 저장 실패:`, error);
+    throw error;
+  }
+};
+
+/**
+ * 특정 동화의 단락들을 로컬에서 불러오기
+ */
+export const loadStorySections = async (
+  childId: number,
+  storyId: number
+): Promise<StorySection[]> => {
+  try {
+    const key = getStorySectionsKey(childId, storyId);
+    const sectionsJson = await AsyncStorage.getItem(key);
+    const sections = sectionsJson ? JSON.parse(sectionsJson) : [];
+    console.log(`동화 ${storyId} 단락 불러오기 완료:`, sections.length, '개 단락');
+    return sections;
+  } catch (error) {
+    console.error(`동화 ${storyId} 단락 불러오기 실패:`, error);
+    return [];
+  }
+};
+
+/**
+ * 특정 동화의 단락들을 로컬에서 삭제
+ */
+export const removeStorySections = async (childId: number, storyId: number): Promise<void> => {
+  try {
+    const key = getStorySectionsKey(childId, storyId);
+    await AsyncStorage.removeItem(key);
+    console.log(`동화 ${storyId} 단락 삭제 완료`);
+  } catch (error) {
+    console.error(`동화 ${storyId} 단락 삭제 실패:`, error);
+  }
+};
+
+/**
+ * 프로필별 모든 동화 단락 삭제
+ */
+export const clearAllStorySections = async (childId: number): Promise<void> => {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const sectionKeys = allKeys.filter((key) =>
+      key.startsWith(`profile_${childId}/story_sections_`)
+    );
+
+    if (sectionKeys.length > 0) {
+      await Promise.all(sectionKeys.map((key) => AsyncStorage.removeItem(key)));
+      console.log(`프로필 ${childId} 모든 동화 단락 삭제 완료:`, sectionKeys.length, '개');
+    }
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 단락 삭제 실패:`, error);
   }
 };
 

@@ -1,4 +1,10 @@
-import { Story, LearningStory, HighlightedWord } from './types';
+import {
+  Story,
+  LearningStory,
+  HighlightedWord,
+  StorySection,
+  LearningStoryWithSections,
+} from './types';
 import * as FileSystem from 'expo-file-system';
 
 /**
@@ -206,6 +212,32 @@ export function convertStoryToLearningStoryWithPages(
 }
 
 /**
+ * API에서 받아온 단락을 사용하여 학습용 동화로 변환
+ * @param story 원본 동화 데이터
+ * @param sections API에서 받아온 단락들
+ * @returns API 단락을 사용하는 학습용 동화 데이터
+ */
+export function convertStoryToLearningStoryWithSections(
+  story: Story,
+  sections: StorySection[]
+): LearningStoryWithSections {
+  const highlightedWords = extractHighlightedWords(story.content || '');
+
+  return {
+    storyId: story.storyId,
+    title: story.title,
+    content: story.content || '',
+    contentKr: story.contentKr || '',
+    thumbnailUrl: story.thumbnailUrl,
+    childId: story.childId,
+    keywords: story.keywords || [],
+    totalPages: sections.length,
+    highlightedWords: highlightedWords,
+    sections: sections,
+  };
+}
+
+/**
  * 삽화 이미지를 다운로드하고 로컬에 저장
  * @param imageUrl 삽화 이미지 URL
  * @param storyId 동화 ID (파일명 생성용)
@@ -243,7 +275,7 @@ export async function downloadStoryIllustration(
 }
 
 /**
- * 저장된 삽화 이미지 경로 가져오기
+ * 저장된 삽화 이미지 경로 가져오기 (storyId 기반 - 기존 방식)
  * @param storyId 동화 ID
  * @returns 로컬 파일 경로 또는 null
  */
@@ -259,6 +291,55 @@ export async function getStoryIllustrationPath(storyId: number): Promise<string 
     return null;
   } catch (error) {
     console.error('삽화 경로 확인 실패:', error);
+    return null;
+  }
+}
+
+/**
+ * illustrationId 기반으로 저장된 삽화 이미지 경로 가져오기 (새로운 방식)
+ * @param illustrationId 삽화 ID
+ * @returns 로컬 파일 경로 또는 null
+ */
+export async function getIllustrationPathById(illustrationId: number): Promise<string | null> {
+  try {
+    const fileName = `illustration_${illustrationId}.jpg`;
+    const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
+
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (fileInfo.exists) {
+      return fileUri;
+    }
+    return null;
+  } catch (error) {
+    console.error('삽화 경로 확인 실패:', error);
+    return null;
+  }
+}
+
+/**
+ * Story 객체의 illustrations 배열에서 첫 번째 삽화 경로 가져오기
+ * @param story 동화 객체
+ * @returns 로컬 파일 경로 또는 null
+ */
+export async function getStoryIllustrationPathFromStory(story: any): Promise<string | null> {
+  try {
+    // Story 객체에 illustrations 배열이 있고 첫 번째 삽화가 있는 경우
+    if (story.illustrations && story.illustrations.length > 0) {
+      const firstIllustration = story.illustrations[0];
+      const illustrationPath = await getIllustrationPathById(firstIllustration.illustrationId);
+      if (illustrationPath) {
+        console.log(
+          `동화 ${story.storyId}의 삽화 ${firstIllustration.illustrationId} 발견:`,
+          illustrationPath
+        );
+        return illustrationPath;
+      }
+    }
+
+    // 기존 방식으로 fallback (storyId 기반)
+    return await getStoryIllustrationPath(story.storyId);
+  } catch (error) {
+    console.error('Story에서 삽화 경로 확인 실패:', error);
     return null;
   }
 }

@@ -11,10 +11,11 @@ import {
   TextInput, // 사용자가 텍스트를 입력할 수 있는 필드
   ImageBackground, // 배경 이미지를 적용할 수 있는 컨테이너
   ScrollView, // 콘텐츠가 화면을 벗어날 경우 스크롤 가능하게 만드는 컨테이너
+  BackHandler, // 안드로이드 뒤로가기 버튼 제어
 } from 'react-native';
 
 // --- 네비게이션 및 UI 라이브러리 ---
-import { router } from 'expo-router'; // 화면 간 이동(네비게이션)을 관리하는 객체
+import { router, useFocusEffect } from 'expo-router'; // 화면 간 이동(네비게이션)을 관리하는 객체
 import { LinearGradient } from 'expo-linear-gradient'; // 그라데이션 효과를 주는 컴포넌트
 import { Ionicons } from '@expo/vector-icons'; // 아이콘을 사용하기 위해 import 합니다.
 
@@ -26,6 +27,7 @@ import {
   COLORS,
 } from '@/styles/StoryCreateScreen.styles'; // 이 화면 전용 스타일 시트
 import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
+import { LoadingPopup } from '@/components/ui/LoadingPopup'; // 로딩 팝업 컴포넌트
 import { createStory } from '@/features/storyCreate/storyApi';
 import { addStoryToStorage, logProfileStructure } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
@@ -50,6 +52,29 @@ const StoryCreateScreen = () => {
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupTitle, setPopupTitle] = useState('');
   const [popupMessage, setPopupMessage] = useState('');
+
+  // 로딩 팝업 상태 관리
+  const [loadingPopupVisible, setLoadingPopupVisible] = useState(false);
+
+  // 뒤로가기 방지 로직
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // 로딩 중일 때는 뒤로가기 방지
+        if (isLoading) {
+          console.log('동화 생성 중: 뒤로가기 차단됨');
+          return true; // true를 반환하면 뒤로가기를 막음
+        }
+        return false; // false를 반환하면 기본 뒤로가기 동작 실행
+      };
+
+      // 뒤로가기 이벤트 리스너 등록
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // 화면이 포커스를 잃을 때 리스너 제거
+      return () => subscription.remove();
+    }, [isLoading])
+  );
 
   // --- 이벤트 핸들러 함수 ---
 
@@ -113,6 +138,7 @@ const StoryCreateScreen = () => {
     }
 
     setIsLoading(true); // API 요청 시작 전, 로딩 상태를 true로 설정합니다.
+    setLoadingPopupVisible(true); // 로딩 팝업 표시
     try {
       // 로그인 상태 확인
       console.log('🔐 로그인 상태 확인 중...');
@@ -161,6 +187,9 @@ const StoryCreateScreen = () => {
       // 프로필 구조 로깅 (디버깅용)
       await logProfileStructure(selectedProfile.childId);
 
+      // 로딩 팝업 숨기기
+      setLoadingPopupVisible(false);
+
       // 성공 메시지 표시
       showPopup(
         '성공',
@@ -186,6 +215,10 @@ const StoryCreateScreen = () => {
     } catch (error) {
       // try 블록에서 발생한 모든 에러를 여기서 처리합니다.
       console.error('Error creating story:', error); // 에러 로그를 콘솔에 출력합니다.
+
+      // 로딩 팝업 숨기기
+      setLoadingPopupVisible(false);
+
       showPopup(
         '오류',
         error instanceof Error ? error.message : '동화 생성 중 오류가 발생했습니다.'
@@ -203,9 +236,19 @@ const StoryCreateScreen = () => {
     <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
       <View style={styles.overlay} />
       {/* 뒤로가기 버튼: 절대 위치로 배치 */}
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={ICON_SIZES.backButton} color={COLORS.headerIcon} />
-        <Text style={styles.backButtonText}>Back</Text>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={[styles.backButton, isLoading && styles.disabledBackButton]}
+        disabled={isLoading}
+      >
+        <Ionicons
+          name="arrow-back"
+          size={ICON_SIZES.backButton}
+          color={isLoading ? COLORS.disabled : COLORS.headerIcon}
+        />
+        <Text style={[styles.backButtonText, isLoading && styles.disabledBackButtonText]}>
+          Back
+        </Text>
       </TouchableOpacity>
       {/* 3. 화면 콘텐츠를 스크롤 가능하게 만드는 래퍼 */}
       <ScrollView contentContainerStyle={styles.container}>
@@ -291,6 +334,11 @@ const StoryCreateScreen = () => {
         title={popupTitle}
         message={popupMessage}
         onClose={() => setPopupVisible(false)}
+      />
+      <LoadingPopup
+        visible={loadingPopupVisible}
+        title="동화를 생성중입니다"
+        message="잠시만 기다려주세요"
       />
     </ImageBackground>
   );
