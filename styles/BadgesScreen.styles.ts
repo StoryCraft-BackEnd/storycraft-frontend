@@ -149,4 +149,58 @@ export const BadgesScreenStyles = StyleSheet.create({
     fontSize: wp('1.5%'),
     fontWeight: 'bold',
   },
+
+  // 로딩 상태 스타일
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: wp('3%'),
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  // 에러 상태 스타일
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+  },
+  errorText: {
+    fontSize: wp('3%'),
+    color: '#ff6b6b',
+    textAlign: 'center',
+    marginBottom: hp('3%'),
+  },
+  retryButton: {
+    backgroundColor: '#6c63ff',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('2%'),
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: wp('2.5%'),
+    fontWeight: 'bold',
+  },
+
+  // 미획득 배지 스타일
+  unearnedBadgeContainer: {
+    position: 'relative',
+  },
+  unearnedBadgeIcon: {
+    opacity: 0.3,
+  },
+  unearnedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: wp('6%'),
+  },
 });

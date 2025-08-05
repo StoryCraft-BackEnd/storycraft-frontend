@@ -207,3 +207,36 @@ export const rewardsApi = {
     return response.data.data;
   },
 };
+
+// 기존 getAvailableBadges 함수를 새로운 엔드포인트에 맞게 수정
+export const getAvailableBadges = async (): Promise<AvailableBadge[]> => {
+  const requestUrl = '/rewards/badges/available';
+  const fullUrl = `${apiClient.defaults.baseURL}${requestUrl}`;
+
+  console.log('🏆 배지 API 요청 시작...');
+  console.log('🌐 요청 URL:', requestUrl);
+  console.log('🔗 전체 URL:', fullUrl);
+  console.log('🔧 API 클라이언트 설정:', {
+    baseURL: apiClient.defaults.baseURL,
+    timeout: apiClient.defaults.timeout,
+  });
+
+  try {
+    const response = await apiClient.get(requestUrl);
+    console.log('✅ 배지 API 응답 성공');
+    console.log('📊 응답 데이터:', response.data);
+    return response.data.data;
+  } catch (error) {
+    console.error('❌ 배지 목록 조회 실패:', error);
+    if (error.response) {
+      console.error('❌ 서버 응답 에러:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        url: error.response.config?.url,
+        method: error.response.config?.method,
+      });
+    }
+    throw error;
+  }
+};
