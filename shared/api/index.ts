@@ -86,6 +86,37 @@ export type {
   Child, // 완전한 프로필 데이터 타입 (모든 필드 포함)
 } from './childrenApi';
 
+// ===== 공지사항 및 이벤트 관련 API 함수들 export =====
+
+/**
+ * 공지사항 및 이벤트 조회 함수들
+ *
+ * 공지사항과 이벤트의 목록 조회 및 상세 조회 기능을 제공하는 API 함수들을 export합니다.
+ * 공지사항은 중요도 순으로 정렬되며, 이벤트는 진행 상태에 따라 분류됩니다.
+ */
+export {
+  getNotices, // 공지사항 목록 조회 함수 (GET /api/notices)
+  getNoticeDetail, // 공지사항 상세 조회 함수 (GET /api/notices/{id})
+  getOngoingEvents, // 진행중인 이벤트 목록 조회 함수 (GET /api/events/ongoing)
+  getPastEvents, // 지난 이벤트 목록 조회 함수 (GET /api/events/past)
+  getEventDetail, // 이벤트 상세 조회 함수 (GET /api/events/{id})
+} from './noticeEventApi';
+
+/**
+ * 공지사항 및 이벤트 관련 TypeScript 타입 정의들
+ *
+ * 공지사항과 이벤트 API의 요청과 응답에 사용되는 타입들을 export합니다.
+ * 데이터 구조의 일관성을 보장하고 런타임 에러를 방지합니다.
+ */
+export type {
+  Notice, // 공지사항 데이터 타입
+  NoticeListResponse, // 공지사항 목록 응답 타입
+  NoticeDetailResponse, // 공지사항 상세 응답 타입
+  Event, // 이벤트 데이터 타입
+  EventListResponse, // 이벤트 목록 응답 타입
+  EventDetailResponse, // 이벤트 상세 응답 타입
+} from './noticeEventApi';
+
 // ===== API 테스트 함수들 export =====
 
 /**
@@ -199,6 +230,15 @@ export const API_MODULE_INFO = {
       'GET /children/{id}', // 특정 프로필 조회
       'PUT /children/{id}', // 프로필 수정
       'DELETE /children/{id}', // 프로필 삭제
+    ],
+    notices: [
+      'GET /api/notices', // 공지사항 목록 조회
+      'GET /api/notices/{id}', // 공지사항 상세 조회
+    ],
+    events: [
+      'GET /api/events/ongoing', // 진행중인 이벤트 목록 조회
+      'GET /api/events/past', // 지난 이벤트 목록 조회
+      'GET /api/events/{id}', // 이벤트 상세 조회
     ],
     health: [
       'GET /health', // 서버 상태 확인

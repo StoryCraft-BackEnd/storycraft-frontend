@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,67 +7,19 @@ import {
   ScrollView,
   ImageBackground,
   FlatList,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import styles from '@/styles/NoticeEventFAQScreen.styles';
 import nightBg from '@/assets/images/background/night-bg.png';
 import BackButton from '@/components/ui/BackButton';
+import { getNotices, getOngoingEvents, getPastEvents, type Notice, type Event } from '@/shared/api';
 
 const TABS = [
   { key: 'notice', label: '공지사항', iconName: 'notifications-outline' as const },
   { key: 'event', label: '이벤트', iconName: 'gift-outline' as const },
   { key: 'faq', label: 'FAQ', iconName: 'help-circle-outline' as const },
-];
-
-const DUMMY_NOTICES = [
-  {
-    id: '1',
-    title: 'StoryCraft 앱 업데이트 안내',
-    date: '2024-01-15',
-    content:
-      '새로운 기능이 추가되었습니다. 더 나은 학습 경험을 제공하기 위해 지속적으로 개선하고 있습니다.',
-    isImportant: true,
-  },
-  {
-    id: '2',
-    title: '서버 점검 안내',
-    date: '2024-01-14',
-    content: '2024년 1월 20일 새벽 2시부터 4시까지 서버 점검이 예정되어 있습니다.',
-    isImportant: false,
-  },
-  {
-    id: '3',
-    title: '개인정보 처리방침 개정',
-    date: '2024-01-13',
-    content: '개인정보 처리방침이 개정되었습니다. 자세한 내용은 설정에서 확인하실 수 있습니다.',
-    isImportant: true,
-  },
-];
-
-const DUMMY_EVENTS = [
-  {
-    id: '1',
-    title: '겨울방학 특별 이벤트',
-    date: '2024-01-15',
-    content:
-      '겨울방학을 맞아 특별한 동화 만들기 이벤트를 진행합니다. 참여하시면 특별한 보상을 받으실 수 있습니다.',
-    isActive: true,
-  },
-  {
-    id: '2',
-    title: '신규 사용자 환영 이벤트',
-    date: '2024-01-14',
-    content: '새로 가입하신 분들을 위한 특별한 환영 이벤트입니다. 첫 동화를 만들어보세요!',
-    isActive: true,
-  },
-  {
-    id: '3',
-    title: '크리스마스 특별 이벤트',
-    date: '2024-01-13',
-    content: '크리스마스 테마의 동화를 만들어보세요. 특별한 크리스마스 선물을 드립니다.',
-    isActive: false,
-  },
 ];
 
 const DUMMY_FAQS = [
@@ -91,15 +43,65 @@ const DUMMY_FAQS = [
   },
 ];
 
+/**
+ * 공지사항, 이벤트, FAQ 화면
+ *
+ * 공지사항과 이벤트는 실제 API에서 데이터를 가져오며,
+ * FAQ는 현재 더미 데이터를 사용합니다.
+ */
 const NoticeEventFAQScreen = () => {
   const [activeTab, setActiveTab] = useState('notice');
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [ongoingEvents, setOngoingEvents] = useState<Event[]>([]);
+  const [pastEvents, setPastEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // API 데이터 로드 함수들
+  const loadNotices = async () => {
+    try {
+      setLoading(true);
+      const response = await getNotices();
+      setNotices(response.data);
+    } catch (error) {
+      console.error('공지사항 로드 실패:', error);
+      Alert.alert('오류', '공지사항을 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const [ongoingResponse, pastResponse] = await Promise.all([
+        getOngoingEvents(),
+        getPastEvents(),
+      ]);
+      setOngoingEvents(ongoingResponse.data);
+      setPastEvents(pastResponse.data);
+    } catch (error) {
+      console.error('이벤트 로드 실패:', error);
+      Alert.alert('오류', '이벤트를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 탭 변경 시 데이터 로드
+  useEffect(() => {
+    if (activeTab === 'notice') {
+      loadNotices();
+    } else if (activeTab === 'event') {
+      loadEvents();
+    }
+  }, [activeTab]);
 
   const getTabData = () => {
     switch (activeTab) {
       case 'notice':
-        return DUMMY_NOTICES;
+        return notices;
       case 'event':
-        return DUMMY_EVENTS;
+        return [...ongoingEvents, ...pastEvents];
       case 'faq':
         return DUMMY_FAQS;
       default:
@@ -107,21 +109,22 @@ const NoticeEventFAQScreen = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => {
+  const renderItem = ({ item }: { item: Notice | Event | any }) => {
     if (activeTab === 'notice') {
+      const notice = item as Notice;
       return (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.title}>{item.title}</Text>
-            {item.isImportant && (
+            <Text style={styles.title}>{notice.title}</Text>
+            {notice.importance === 'HIGH' && (
               <View style={styles.importantBadge}>
                 <Text style={styles.importantText}>중요</Text>
               </View>
             )}
           </View>
-          <Text style={styles.date}>{item.date}</Text>
+          <Text style={styles.date}>{new Date(notice.createdAt).toLocaleDateString('ko-KR')}</Text>
           <Text style={styles.content} numberOfLines={3}>
-            {item.content}
+            {notice.content}
           </Text>
           <TouchableOpacity style={styles.readMoreBtn}>
             <Text style={styles.readMoreText}>자세히 보기</Text>
@@ -129,23 +132,24 @@ const NoticeEventFAQScreen = () => {
         </View>
       );
     } else if (activeTab === 'event') {
+      const event = item as Event;
       return (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.title}>{item.title}</Text>
-            <View style={[styles.statusBadge, item.isActive && styles.activeBadge]}>
-              <Text style={[styles.statusText, item.isActive && styles.activeStatusText]}>
-                {item.isActive ? '진행중' : '종료'}
+            <Text style={styles.title}>{event.title}</Text>
+            <View style={[styles.statusBadge, event.isOngoing && styles.activeBadge]}>
+              <Text style={[styles.statusText, event.isOngoing && styles.activeStatusText]}>
+                {event.isOngoing ? '진행중' : '종료'}
               </Text>
             </View>
           </View>
-          <Text style={styles.date}>{item.date}</Text>
+          <Text style={styles.date}>{event.eventPeriod}</Text>
           <Text style={styles.content} numberOfLines={3}>
-            {item.content}
+            {event.summary}
           </Text>
-          <TouchableOpacity style={[styles.readMoreBtn, !item.isActive && styles.disabledBtn]}>
-            <Text style={[styles.readMoreText, !item.isActive && styles.disabledText]}>
-              {item.isActive ? '참여하기' : '종료됨'}
+          <TouchableOpacity style={[styles.readMoreBtn, !event.isOngoing && styles.disabledBtn]}>
+            <Text style={[styles.readMoreText, !event.isOngoing && styles.disabledText]}>
+              {event.isOngoing ? '참여하기' : '종료됨'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -195,14 +199,31 @@ const NoticeEventFAQScreen = () => {
           })}
         </View>
 
-        <FlatList
-          data={getTabData()}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardList}
-          renderItem={renderItem}
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>데이터를 불러오는 중...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={getTabData()}
+            keyExtractor={(item) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.cardList}
+            renderItem={renderItem}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {activeTab === 'notice'
+                    ? '공지사항이 없습니다.'
+                    : activeTab === 'event'
+                      ? '이벤트가 없습니다.'
+                      : 'FAQ가 없습니다.'}
+                </Text>
+              </View>
+            }
+          />
+        )}
       </SafeAreaView>
     </ImageBackground>
   );

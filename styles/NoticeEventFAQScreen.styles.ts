@@ -140,6 +140,29 @@ const styles = StyleSheet.create({
   disabledText: {
     color: '#ccc',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    color: '#b3b3ff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    minHeight: 200,
+  },
+  emptyText: {
+    color: '#b3b3ff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
 
 export default styles;
