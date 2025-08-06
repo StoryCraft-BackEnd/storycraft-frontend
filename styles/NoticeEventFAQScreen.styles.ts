@@ -43,6 +43,12 @@ const styles = StyleSheet.create({
     paddingLeft: 50,
     paddingRight: 8,
   },
+  emptyCardList: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   card: {
     width: CARD_WIDTH,
     backgroundColor: '#181f3a',
@@ -162,6 +168,70 @@ const styles = StyleSheet.create({
     color: '#b3b3ff',
     fontSize: 16,
     textAlign: 'center',
+  },
+  // 상세 화면 스타일
+  detailContainer: {
+    backgroundColor: '#181f3a',
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 20,
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  detailTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    flex: 1,
+    marginRight: 12,
+  },
+  detailDate: {
+    fontSize: 14,
+    color: '#b3b3ff',
+    marginBottom: 20,
+  },
+  detailContent: {
+    fontSize: 16,
+    color: '#e0e0ff',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  eventInfoContainer: {
+    marginBottom: 20,
+  },
+  eventInfoLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#b3b3ff',
+    marginBottom: 8,
+  },
+  eventInfoValue: {
+    fontSize: 16,
+    color: '#e0e0ff',
+    lineHeight: 22,
+  },
+  participateButton: {
+    backgroundColor: '#4caf50',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  participateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

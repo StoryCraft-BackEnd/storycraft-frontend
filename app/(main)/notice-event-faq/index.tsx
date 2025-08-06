@@ -126,7 +126,10 @@ const NoticeEventFAQScreen = () => {
           <Text style={styles.content} numberOfLines={3}>
             {notice.content}
           </Text>
-          <TouchableOpacity style={styles.readMoreBtn}>
+          <TouchableOpacity
+            style={styles.readMoreBtn}
+            onPress={() => router.push(`/(main)/notice-event-faq/notice-detail?id=${notice.id}`)}
+          >
             <Text style={styles.readMoreText}>자세히 보기</Text>
           </TouchableOpacity>
         </View>
@@ -147,7 +150,12 @@ const NoticeEventFAQScreen = () => {
           <Text style={styles.content} numberOfLines={3}>
             {event.summary}
           </Text>
-          <TouchableOpacity style={[styles.readMoreBtn, !event.isOngoing && styles.disabledBtn]}>
+          <TouchableOpacity
+            style={[styles.readMoreBtn, !event.isOngoing && styles.disabledBtn]}
+            onPress={() =>
+              event.isOngoing && router.push(`/(main)/notice-event-faq/event-detail?id=${event.id}`)
+            }
+          >
             <Text style={[styles.readMoreText, !event.isOngoing && styles.disabledText]}>
               {event.isOngoing ? '참여하기' : '종료됨'}
             </Text>
@@ -166,7 +174,10 @@ const NoticeEventFAQScreen = () => {
           <Text style={styles.content} numberOfLines={3}>
             {item.answer}
           </Text>
-          <TouchableOpacity style={styles.readMoreBtn}>
+          <TouchableOpacity
+            style={styles.readMoreBtn}
+            onPress={() => Alert.alert('FAQ', item.answer)}
+          >
             <Text style={styles.readMoreText}>자세히 보기</Text>
           </TouchableOpacity>
         </View>
@@ -209,7 +220,9 @@ const NoticeEventFAQScreen = () => {
             keyExtractor={(item) => item.id.toString()}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.cardList}
+            contentContainerStyle={
+              getTabData().length === 0 ? styles.emptyCardList : styles.cardList
+            }
             renderItem={renderItem}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
