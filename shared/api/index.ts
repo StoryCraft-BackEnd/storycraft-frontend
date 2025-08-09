@@ -117,6 +117,30 @@ export type {
   EventDetailResponse, // 이벤트 상세 응답 타입
 } from './noticeEventApi';
 
+// ===== 자녀별 학습 통계 관련 API 함수들 export =====
+
+/**
+ * 자녀별 학습 통계 조회 함수들
+ *
+ * 자녀의 학습 성과와 통계 데이터를 조회하는 API 함수들을 export합니다.
+ * 생성한 동화 수, 완성한 동화 수, 학습한 단어 수, 퀴즈 성과, 총 학습 시간 등을 제공합니다.
+ */
+export {
+  getChildStatistics, // 자녀별 학습 통계 조회 함수 (GET /statistics/children/{id})
+  statisticsUtils, // 통계 데이터 유틸리티 함수들 (시간 포맷팅, 완성률 계산 등)
+} from './statisticsApi';
+
+/**
+ * 자녀별 학습 통계 관련 TypeScript 타입 정의들
+ *
+ * 학습 통계 API의 요청과 응답에 사용되는 타입들을 export합니다.
+ * 데이터 구조의 일관성을 보장하고 런타임 에러를 방지합니다.
+ */
+export type {
+  ChildStatistics, // 자녀별 학습 통계 데이터 타입
+  StatisticsApiResponse, // 통계 API 응답 래퍼 타입
+} from './statisticsApi';
+
 // ===== API 테스트 함수들 export =====
 
 /**
@@ -239,6 +263,9 @@ export const API_MODULE_INFO = {
       'GET /api/events/ongoing', // 진행중인 이벤트 목록 조회
       'GET /api/events/past', // 지난 이벤트 목록 조회
       'GET /api/events/{id}', // 이벤트 상세 조회
+    ],
+    statistics: [
+      'GET /statistics/children/{id}', // 자녀별 학습 통계 조회
     ],
     health: [
       'GET /health', // 서버 상태 확인

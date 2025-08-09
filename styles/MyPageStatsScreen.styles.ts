@@ -10,10 +10,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'center',
     paddingVertical: 24,
     paddingHorizontal: 16,
-    paddingLeft: 80,
     gap: 16,
+    minWidth: '100%',
   },
   title: {
     fontSize: 26,
@@ -259,6 +260,21 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: '#a18fff',
+  },
+
+  // 총 학습 시간 카드 전용 스타일
+  timeDisplayContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  timeDisplayText: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    lineHeight: 40,
   },
 });
 
