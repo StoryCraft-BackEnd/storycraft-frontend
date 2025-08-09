@@ -107,7 +107,7 @@ const SettingsScreen = () => {
             <View style={SettingsScreenStyles.settingsBox}>
               <Text style={SettingsScreenStyles.categoryTitle}>계정 정보</Text>
               <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
-                계정 정보를 확인하고 관리할 수 있습니다.
+                계정 정보를 확인하고 관리합니다.
               </Text>
               <View style={SettingsScreenStyles.row}>
                 <View style={SettingsScreenStyles.iconBox}>
