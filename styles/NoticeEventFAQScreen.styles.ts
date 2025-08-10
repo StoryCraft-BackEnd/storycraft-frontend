@@ -173,9 +173,10 @@ const styles = StyleSheet.create({
   detailContainer: {
     backgroundColor: '#181f3a',
     borderRadius: 18,
-    padding: 20,
-    marginTop: 20,
+    padding: 16,
+    marginTop: 80,
     marginBottom: 40,
+    marginHorizontal: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,

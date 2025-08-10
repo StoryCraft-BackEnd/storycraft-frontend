@@ -24,7 +24,14 @@ const EventDetailScreen = () => {
       try {
         setLoading(true);
         const response = await getEventDetail(parseInt(id));
-        setEvent(response.data);
+
+        // 서버 응답을 클라이언트 타입에 맞게 변환
+        const eventData = {
+          ...response.data,
+          isOngoing: (response.data as any).ongoing || false, // ongoing -> isOngoing으로 변환
+        };
+
+        setEvent(eventData);
       } catch (error) {
         console.error('이벤트 상세 조회 실패:', error);
         Alert.alert('오류', '이벤트를 불러오는데 실패했습니다.');

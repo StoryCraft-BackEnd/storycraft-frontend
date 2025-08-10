@@ -60,7 +60,7 @@ const NoticeDetailScreen = () => {
     <ImageBackground source={nightBg} style={{ flex: 1 }} resizeMode="cover">
       <SafeAreaView style={styles.safeArea}>
         <BackButton />
-        <ScrollView style={{ flex: 1, paddingHorizontal: 20 }}>
+        <ScrollView style={{ flex: 1 }}>
           <View style={styles.detailContainer}>
             <View style={styles.detailHeader}>
               <Text style={styles.detailTitle}>{notice.title}</Text>

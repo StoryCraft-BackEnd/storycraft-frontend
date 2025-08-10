@@ -6,7 +6,7 @@ import styles from '../../styles/BackButton.styles';
 export default function BackButton() {
   const router = useRouter();
   return (
-    <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(main)')}>
+    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
       <Ionicons name="arrow-back" size={24} color="#fff" />
     </TouchableOpacity>
   );

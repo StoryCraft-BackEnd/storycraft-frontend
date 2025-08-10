@@ -77,8 +77,19 @@ const NoticeEventFAQScreen = () => {
         getOngoingEvents(),
         getPastEvents(),
       ]);
-      setOngoingEvents(ongoingResponse.data);
-      setPastEvents(pastResponse.data);
+      console.log('진행중인 이벤트:', ongoingResponse.data);
+      console.log('지난 이벤트:', pastResponse.data);
+
+      // 서버 응답을 클라이언트 타입에 맞게 변환
+      const convertEventData = (events: any[]) => {
+        return events.map((event) => ({
+          ...event,
+          isOngoing: event.ongoing || false, // ongoing -> isOngoing으로 변환
+        }));
+      };
+
+      setOngoingEvents(convertEventData(ongoingResponse.data));
+      setPastEvents(convertEventData(pastResponse.data));
     } catch (error) {
       console.error('이벤트 로드 실패:', error);
       Alert.alert('오류', '이벤트를 불러오는데 실패했습니다.');
