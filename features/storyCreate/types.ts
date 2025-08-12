@@ -27,6 +27,7 @@ export interface CreateStoryResponse {
 export interface LocalIllustration {
   illustrationId: number; // 서버의 삽화 ID
   storyId: number; // 동화 ID
+  orderIndex: number; // 삽화 순서 (단락 순서와 매칭)
   localPath: string; // 로컬 파일 경로
   imageUrl: string; // 원본 URL
   description: string; // 삽화 설명
@@ -112,6 +113,7 @@ export interface LearningStoryWithSections {
   totalPages: number; // 총 페이지 수 (단락 수)
   highlightedWords: HighlightedWord[]; // 강조된 단어들
   sections: StorySection[]; // API에서 받아온 단락들
+  illustrations?: LocalIllustration[]; // 해당 동화의 삽화 목록
 }
 
 // 삽화 생성 요청 타입
@@ -125,12 +127,15 @@ export interface CreateIllustrationResponse {
   status: number;
   message: string;
   data: {
-    illustrationId: number;
     storyId: number;
-    orderIndex: number;
-    imageUrl: string;
-    description: string;
-    createdAt: string;
+    illustrations: {
+      illustrationId: number;
+      storyId: number;
+      orderIndex: number;
+      imageUrl: string;
+      description: string;
+      createdAt: string;
+    }[];
   };
 }
 
@@ -154,14 +159,18 @@ export interface TTSRequest {
 
 // TTS 응답 타입
 export interface TTSResponse {
-  ttsId: number;
-  storyId: number;
-  sectionId: number;
-  voiceId: string;
-  speechRate: number;
-  language: string;
-  ttsUrl: string;
-  createdAt: string;
+  status: number;
+  message: string;
+  data: {
+    ttsId: number;
+    storyId: number;
+    sectionId: number;
+    voiceId: string;
+    speechRate: number;
+    language: string;
+    ttsUrl: string;
+    createdAt: string;
+  };
 }
 
 // TTS 오디오 파일 정보 타입

@@ -47,6 +47,13 @@ const getStorySectionsKey = (childId: number, storyId: number): string => {
 };
 
 /**
+ * 프로필별 동화 TTS 정보 폴더 키 생성
+ */
+const getStoryTTSKey = (childId: number, storyId: number): string => {
+  return createProfileKey(childId, `story_tts_${storyId}`);
+};
+
+/**
  * 프로필별 동화 목록을 로컬 스토리지에 저장
  */
 export const saveStories = async (childId: number, stories: Story[]): Promise<void> => {
@@ -505,7 +512,7 @@ export const getStoryStats = async (
 };
 
 /**
- * 특정 동화의 단락들을 로컬에 저장
+ * 프로필별 동화 단락 정보를 로컬 스토리지에 저장
  */
 export const saveStorySections = async (
   childId: number,
@@ -515,17 +522,16 @@ export const saveStorySections = async (
   try {
     const key = getStorySectionsKey(childId, storyId);
     await AsyncStorage.setItem(key, JSON.stringify(sections));
-    console.log(`동화 ${storyId} 단락 저장 완료:`, sections.length, '개 단락');
+    console.log(`프로필 ${childId} 동화 ${storyId} 단락 정보 저장 완료:`, sections.length, '개');
   } catch (error) {
-    console.error(`동화 ${storyId} 단락 저장 실패:`, error);
-    throw error;
+    console.error(`프로필 ${childId} 동화 ${storyId} 단락 정보 저장 실패:`, error);
   }
 };
 
 /**
- * 특정 동화의 단락들을 로컬에서 불러오기
+ * 프로필별 로컬 스토리지에서 동화 단락 정보 불러오기
  */
-export const loadStorySections = async (
+export const loadStorySectionsFromStorage = async (
   childId: number,
   storyId: number
 ): Promise<StorySection[]> => {
@@ -533,11 +539,59 @@ export const loadStorySections = async (
     const key = getStorySectionsKey(childId, storyId);
     const sectionsJson = await AsyncStorage.getItem(key);
     const sections = sectionsJson ? JSON.parse(sectionsJson) : [];
-    console.log(`동화 ${storyId} 단락 불러오기 완료:`, sections.length, '개 단락');
+    console.log(
+      `프로필 ${childId} 동화 ${storyId} 단락 정보 불러오기 완료:`,
+      sections.length,
+      '개'
+    );
     return sections;
   } catch (error) {
-    console.error(`동화 ${storyId} 단락 불러오기 실패:`, error);
+    console.error(`프로필 ${childId} 동화 ${storyId} 단락 정보 불러오기 실패:`, error);
     return [];
+  }
+};
+
+/**
+ * 프로필별 동화 TTS 정보를 로컬 스토리지에 저장
+ */
+export const saveStoryTTS = async (
+  childId: number,
+  storyId: number,
+  ttsInfo: { [sectionId: number]: { audioPath: string; ttsUrl: string } }
+): Promise<void> => {
+  try {
+    const key = getStoryTTSKey(childId, storyId);
+    await AsyncStorage.setItem(key, JSON.stringify(ttsInfo));
+    console.log(
+      `프로필 ${childId} 동화 ${storyId} TTS 정보 저장 완료:`,
+      Object.keys(ttsInfo).length,
+      '개 단락'
+    );
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 ${storyId} TTS 정보 저장 실패:`, error);
+  }
+};
+
+/**
+ * 프로필별 로컬 스토리지에서 동화 TTS 정보 불러오기
+ */
+export const loadStoryTTSFromStorage = async (
+  childId: number,
+  storyId: number
+): Promise<{ [sectionId: number]: { audioPath: string; ttsUrl: string } }> => {
+  try {
+    const key = getStoryTTSKey(childId, storyId);
+    const ttsJson = await AsyncStorage.getItem(key);
+    const ttsInfo = ttsJson ? JSON.parse(ttsJson) : {};
+    console.log(
+      `프로필 ${childId} 동화 ${storyId} TTS 정보 불러오기 완료:`,
+      Object.keys(ttsInfo).length,
+      '개 단락'
+    );
+    return ttsInfo;
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 ${storyId} TTS 정보 불러오기 실패:`, error);
+    return {};
   }
 };
 

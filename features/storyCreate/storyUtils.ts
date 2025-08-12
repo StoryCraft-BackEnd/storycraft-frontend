@@ -221,7 +221,7 @@ export function convertStoryToLearningStoryWithSections(
   story: Story,
   sections: StorySection[]
 ): LearningStoryWithSections {
-  const highlightedWords = extractHighlightedWords(story.content || '');
+  const highlightedWords = extractHighlightedWords(story.content || '') || [];
 
   return {
     storyId: story.storyId,
@@ -234,6 +234,7 @@ export function convertStoryToLearningStoryWithSections(
     totalPages: sections.length,
     highlightedWords: highlightedWords,
     sections: sections,
+    illustrations: story.illustrations, // 삽화 정보 추가
   };
 }
 
@@ -380,12 +381,17 @@ export async function getStoryIllustrationPathFromStory(story: any): Promise<str
       illustrationsCount: story.illustrations?.length || 0,
     });
 
-    // Story 객체에 illustrations 배열이 있고 첫 번째 삽화가 있는 경우
+    // Story 객체에 illustrations 배열이 있고 삽화가 있는 경우
     if (story.illustrations && story.illustrations.length > 0) {
-      const firstIllustration = story.illustrations[0];
+      // orderIndex가 1인 첫 번째 삽화를 찾기 (메인 페이지 대표 이미지)
+      const firstIllustration =
+        story.illustrations.find((illustration: any) => illustration.orderIndex === 1) ||
+        story.illustrations[0]; // orderIndex가 1이 없으면 첫 번째 요소 사용
+
       console.log('첫 번째 삽화 정보:', {
         illustrationId: firstIllustration.illustrationId,
         storyId: firstIllustration.storyId,
+        orderIndex: firstIllustration.orderIndex,
         imageUrl: firstIllustration.imageUrl,
       });
 
@@ -393,7 +399,7 @@ export async function getStoryIllustrationPathFromStory(story: any): Promise<str
       const illustrationPath = await getIllustrationPathById(firstIllustration.illustrationId);
       if (illustrationPath) {
         console.log(
-          `동화 ${story.storyId}의 삽화 ${firstIllustration.illustrationId} 발견:`,
+          `동화 ${story.storyId}의 삽화 ${firstIllustration.illustrationId} (orderIndex: ${firstIllustration.orderIndex}) 발견:`,
           illustrationPath
         );
         return illustrationPath;

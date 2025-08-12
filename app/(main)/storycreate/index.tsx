@@ -55,6 +55,8 @@ const StoryCreateScreen = () => {
 
   // 로딩 팝업 상태 관리
   const [loadingPopupVisible, setLoadingPopupVisible] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [totalSteps] = useState(3);
 
   // 뒤로가기 방지 로직
   useFocusEffect(
@@ -166,8 +168,12 @@ const StoryCreateScreen = () => {
         childId: selectedProfile.childId, // 선택된 프로필의 ID 사용
       };
 
-      // 새로운 API 함수를 사용하여 동화 생성 요청
+      // 동화 생성 요청 (내부적으로 삽화와 TTS도 함께 생성됨)
+      setCurrentStep(1);
       const result: StoryData = await createStory(requestData);
+
+      // 모든 단계 완료
+      setCurrentStep(3);
 
       // 서버 응답에서 실제 동화 데이터 추출 (API 스펙에 따라 직접 객체 반환)
       const storyData = result;
@@ -219,10 +225,23 @@ const StoryCreateScreen = () => {
       // 로딩 팝업 숨기기
       setLoadingPopupVisible(false);
 
-      showPopup(
-        '오류',
-        error instanceof Error ? error.message : '동화 생성 중 오류가 발생했습니다.'
-      );
+      // 504 Gateway Timeout 오류에 대한 특별한 안내
+      let errorMessage = '동화 생성 중 오류가 발생했습니다.';
+      let errorTitle = '오류';
+
+      if (error instanceof Error) {
+        if (error.message.includes('504') || error.message.includes('Gateway Timeout')) {
+          errorTitle = '삽화 생성 지연';
+          errorMessage = `삽화 생성 시간이 너무 오래 걸려서 일시적으로 실패했습니다.\n\n일부 삽화는 이미 생성되었을 수 있습니다.\n\n잠시 후 다시 시도해주세요.`;
+        } else if (error.message.includes('삽화 생성')) {
+          errorTitle = '삽화 생성 실패';
+          errorMessage = `${error.message}\n\n동화와 음성은 정상적으로 생성되었습니다.\n\n삽화는 나중에 다시 시도할 수 있습니다.`;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      showPopup(errorTitle, errorMessage);
     } finally {
       // 요청이 성공하든 실패하든 관계없이 항상 실행됩니다.
       setIsLoading(false); // 로딩 상태를 false로 되돌립니다.
@@ -339,6 +358,13 @@ const StoryCreateScreen = () => {
         visible={loadingPopupVisible}
         title="동화를 생성중입니다"
         message="잠시만 기다려주세요"
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        stepMessages={[
+          '동화 생성 중...',
+          '삽화 생성 중... (예상 2-3분)\nDALL-E AI가 14개 단락의 삽화를 생성합니다',
+          '음성 생성 중...',
+        ]}
       />
     </ImageBackground>
   );

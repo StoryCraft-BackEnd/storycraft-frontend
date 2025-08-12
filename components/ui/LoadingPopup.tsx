@@ -6,6 +6,9 @@ interface LoadingPopupProps {
   visible: boolean;
   title?: string;
   message?: string;
+  currentStep?: number;
+  totalSteps?: number;
+  stepMessages?: string[];
 }
 
 const { width, height } = Dimensions.get('window');
@@ -14,6 +17,9 @@ export const LoadingPopup: React.FC<LoadingPopupProps> = ({
   visible,
   title = '동화를 생성중입니다',
   message = '잠시만 기다려주세요',
+  currentStep = 1,
+  totalSteps = 3,
+  stepMessages = ['동화 생성 중...', '삽화 생성 중...', '음성 생성 중...'],
 }) => {
   const [dots, setDots] = useState('');
 
@@ -37,6 +43,9 @@ export const LoadingPopup: React.FC<LoadingPopupProps> = ({
 
   if (!visible) return null;
 
+  const progressPercentage = (currentStep / totalSteps) * 100;
+  const currentStepMessage = stepMessages[currentStep - 1] || '처리 중...';
+
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
@@ -59,6 +68,23 @@ export const LoadingPopup: React.FC<LoadingPopupProps> = ({
 
               {/* 메시지 */}
               <Text style={styles.message}>{message}</Text>
+
+              {/* 진행 단계 표시 */}
+              {totalSteps > 1 && (
+                <View style={styles.stepContainer}>
+                  <Text style={styles.stepText}>
+                    {currentStep} / {totalSteps}
+                  </Text>
+                  <Text style={styles.stepMessage}>{currentStepMessage}</Text>
+
+                  {/* 진행 바 */}
+                  <View style={styles.progressBarContainer}>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
           </LinearGradient>
         </View>
@@ -113,5 +139,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     opacity: 0.9,
+    marginBottom: 15,
+  },
+  stepContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  stepText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  stepMessage: {
+    fontSize: 12,
+    color: '#fff',
+    textAlign: 'center',
+    opacity: 0.9,
+    marginBottom: 10,
+  },
+  progressBarContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 3,
   },
 });

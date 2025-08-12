@@ -246,6 +246,20 @@ const englishLearningStyles = StyleSheet.create({
   },
 
   /**
+   * 🔄 삽화 로딩 상태 텍스트
+   * 삽화가 로딩 중일 때 표시되는 텍스트
+   * 제목 아래에 작게 표시되어 사용자에게 피드백 제공
+   */
+  loadingText: {
+    fontSize: wp(3.5), // 작은 글자 크기 3.5% (반응형)
+    color: '#ffd700', // 황금색으로 시각적 강조
+    textAlign: 'center', // 중앙 정렬
+    marginTop: hp(1), // 상단 여백 1% (반응형)
+    fontStyle: 'italic', // 이탤릭체로 로딩 상태 표현
+    opacity: 0.8, // 약간 투명하게 처리
+  },
+
+  /**
    * 🏷️ 페이지 표시기 (사용되지 않음)
    * 별도의 페이지 표시용 컴포넌트
    * 현재는 상단 progressContainer가 이 역할을 담당
