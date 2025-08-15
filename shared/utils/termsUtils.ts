@@ -12,11 +12,8 @@ export interface Agreements {
  */
 export const checkTermsAgreement = async (): Promise<boolean> => {
   try {
-    console.log('🔍 AsyncStorage에서 약관 동의 상태 확인 중...');
     const termsAgreed = await AsyncStorage.getItem('termsAgreed');
-    console.log('📋 AsyncStorage에서 읽은 값:', termsAgreed);
     const result = termsAgreed === 'true';
-    console.log('✅ 약관 동의 상태 결과:', result);
     return result;
   } catch (error) {
     console.error('❌ 약관 동의 상태 확인 중 오류:', error);

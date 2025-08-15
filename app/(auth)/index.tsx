@@ -13,7 +13,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Popup } from '@/components/ui/Popup';
 import { NotFoundScreen } from '@/components/ui/NotFoundScreen';
 import sleepcharacter from '@/assets/images/character/sleep.png';
-import { clearTermsAgreement, checkTermsAgreement } from '@/shared/utils/termsUtils';
+import { clearTermsAgreement } from '@/shared/utils/termsUtils';
 
 export default function HomeScreen() {
   // 상태 관리
@@ -31,20 +31,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('🔍 (auth)/index.tsx - 약관 동의 상태 확인 중...');
-
-        // 약관 동의 상태 확인
-        const termsAgreed = await checkTermsAgreement();
-        console.log('📋 (auth)/index.tsx - 약관 동의 상태:', termsAgreed);
-
-        // 약관에 동의하지 않은 경우 약관 동의 페이지로 리다이렉트
-        if (!termsAgreed) {
-          console.log('❌ (auth)/index.tsx - 약관 미동의, 약관 동의 페이지로 리다이렉트');
-          router.replace('/(auth)/terms-agreement');
-          return;
-        }
-
-        console.log('✅ (auth)/index.tsx - 약관 동의 완료, 서버 연결 확인 시작');
+        console.log('✅ (auth)/index.tsx - 서버 연결 확인 시작');
 
         // 서버 연결 확인
         const connected = await checkServerConnection();

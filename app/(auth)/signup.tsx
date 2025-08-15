@@ -122,7 +122,11 @@ export default function SignupScreen() {
         console.log('❌ 이메일 중복:', email);
       }
     } catch (error) {
-      console.error('❌ 이메일 중복 확인 실패:', error);
+      console.error('❌ 이메일 중복 확인 실패:', {
+        email,
+        error,
+        timestamp: new Date().toISOString(),
+      });
       setEmailChecked(false);
       Alert.alert('확인 실패', '이메일 중복 확인 중 문제가 발생했습니다.');
     } finally {
@@ -157,7 +161,11 @@ export default function SignupScreen() {
         console.log('❌ 닉네임 중복:', nickname);
       }
     } catch (error) {
-      console.error('❌ 닉네임 중복 확인 실패:', error);
+      console.error('❌ 닉네임 중복 확인 실패:', {
+        nickname,
+        error,
+        timestamp: new Date().toISOString(),
+      });
       setNicknameChecked(false);
       Alert.alert('확인 실패', '닉네임 중복 확인 중 문제가 발생했습니다.');
     } finally {
@@ -172,6 +180,7 @@ export default function SignupScreen() {
         Alert.alert('오류', '성을 포함한 이름을 입력해 주세요.');
         return;
       }
+      console.log('👤 이름 입력 완료:', { lastName, firstName });
     }
     if (step === 2) {
       if (!email || !email.includes('@')) {
@@ -182,12 +191,14 @@ export default function SignupScreen() {
         Alert.alert('오류', '이메일 중복 확인을 해주세요.');
         return;
       }
+      console.log('📧 이메일 입력 및 중복확인 완료:', { email, emailChecked });
     }
     if (step === 3) {
       if (!password || password.length < 6) {
         Alert.alert('오류', '비밀번호를 6자 이상 입력해 주세요.');
         return;
       }
+      console.log('🔒 비밀번호 입력 완료:', { passwordLength: password.length });
     }
     if (step === 4) {
       if (!nickname) {
@@ -198,8 +209,10 @@ export default function SignupScreen() {
         Alert.alert('오류', '닉네임 중복 확인을 해주세요.');
         return;
       }
+      console.log('🏷️ 닉네임 입력 및 중복확인 완료:', { nickname, nicknameChecked });
     }
     if (step === 5) {
+      console.log('🚀 최종 회원가입 단계 - 프로필 생성 시작');
       handleSignup();
       return;
     }
