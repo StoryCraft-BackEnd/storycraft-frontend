@@ -276,4 +276,66 @@ export const MainScreenStyles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
+  // 테스트 결과 표시 컨테이너
+  testResultContainer: {
+    position: 'absolute',
+    top: hp('25%'), // 화면 중앙 상단에 위치
+    left: wp('5%'),
+    right: wp('5%'),
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: wp('2%'),
+    borderRadius: wp('2%'),
+    zIndex: 1000,
+  },
+  // 테스트 결과 텍스트
+  testResultText: {
+    color: 'white',
+    fontSize: wp('3%'),
+    textAlign: 'center',
+    lineHeight: wp('4%'),
+  },
+  // 테스트 버튼 컨테이너
+  testButtonContainer: {
+    position: 'absolute',
+    top: hp('35%'), // 테스트 결과 아래에 위치
+    left: wp('5%'),
+    right: wp('5%'),
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    zIndex: 1000,
+  },
+  // 테스트 버튼
+  testButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('2%'),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  // 테스트 버튼 텍스트
+  testButtonText: {
+    color: 'white',
+    fontSize: wp('3%'),
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  // 닫기 버튼
+  closeButton: {
+    position: 'absolute',
+    top: wp('1%'),
+    right: wp('1%'),
+    width: wp('4%'),
+    height: wp('4%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: wp('2%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // 닫기 버튼 텍스트
+  closeButtonText: {
+    color: 'white',
+    fontSize: wp('2.5%'),
+    fontWeight: 'bold',
+  },
 });

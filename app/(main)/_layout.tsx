@@ -42,6 +42,20 @@ export default function MainLayout() {
           animationDuration: 0, // 애니메이션 지속시간 0으로 설정
         }}
       />
+
+      {/* 퀴즈 화면 설정 */}
+      <Stack.Screen
+        name="quiz/index"
+        options={{
+          headerShown: false, // 헤더 숨김
+          navigationBarHidden: true, // 네비게이션 바 숨김
+          gestureEnabled: false, // 뒤로가기 제스처 비활성화
+          animation: 'none', // 화면 전환 애니메이션 제거
+          headerBackVisible: false, // 뒤로가기 버튼 숨김
+          presentation: 'modal', // 모달 스타일로 표시
+          animationDuration: 0, // 애니메이션 지속시간 0으로 설정
+        }}
+      />
     </Stack>
   );
 }

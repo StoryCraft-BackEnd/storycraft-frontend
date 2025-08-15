@@ -3,108 +3,130 @@
  * StoryCraft 영어 퀴즈 모달 컴포넌트
  * 퀴즈 문제를 표시하고 답안을 제출할 수 있는 모달입니다.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // --- 내부 모듈 및 스타일 ---
 import styles, { COLORS } from '@/styles/QuizModal.styles';
 import { Popup } from '@/components/ui/Popup';
+import { addQuizBookmark, removeQuizBookmark, isQuizBookmarked } from '@/features/quiz/quizStorage';
 
-// 퀴즈 문제 타입 정의
-interface QuizQuestion {
-  id: string;
+// 새로운 퀴즈 API 타입 사용
+interface Quiz {
+  quizId: number;
+  storyId: number;
   question: string;
-  example: string;
-  options: string[];
-  correctAnswer: number;
-  category: 'vocabulary' | 'grammar' | 'story';
-  difficulty: 'easy' | 'normal' | 'hard';
-  source: string;
+  options: { [key: string]: string };
 }
 
 interface QuizModalProps {
   visible: boolean;
   onClose: () => void;
-  quiz: QuizQuestion;
-  onComplete: (score: number) => void;
+  quiz: Quiz | null;
+  onSubmit: (selectedAnswer: string) => void;
+  isLastQuiz?: boolean;
 }
 
 /**
  * 영어 퀴즈 모달 컴포넌트
  * - 퀴즈 문제 표시
  * - 답안 선택 및 제출
- * - 결과 표시
+ * - 북마크 기능
+ * - 자동 진행 시스템 지원
  */
-export default function QuizModal({ visible, onClose, quiz, onComplete }: QuizModalProps) {
+export default function QuizModal({
+  visible,
+  onClose,
+  quiz,
+  onSubmit,
+  isLastQuiz,
+}: QuizModalProps) {
   // === 상태 관리 ===
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  // === 북마크 상태 로드 ===
+  useEffect(() => {
+    if (quiz) {
+      loadBookmarkStatus();
+    }
+  }, [quiz]);
+
+  const loadBookmarkStatus = async () => {
+    if (!quiz) return;
+
+    try {
+      const bookmarked = await isQuizBookmarked(quiz.quizId);
+      setIsBookmarked(bookmarked);
+    } catch (error) {
+      console.error('북마크 상태 로드 실패:', error);
+    }
+  };
 
   // === 이벤트 핸들러 ===
   /**
    * 답안 선택 함수
-   * - 사용자가 선택한 답안을 저장
    */
-  const handleAnswerSelect = (answerIndex: number) => {
+  const handleAnswerSelect = (answerKey: string) => {
     if (!isSubmitted) {
-      setSelectedAnswer(answerIndex);
+      setSelectedAnswer(answerKey);
     }
   };
 
   /**
    * 답안 제출 함수
-   * - 선택한 답안을 검증하고 결과 표시
    */
   const handleSubmit = () => {
-    if (selectedAnswer === null) {
+    if (selectedAnswer === null || !quiz) {
       Alert.alert('알림', '답안을 선택해주세요.');
       return;
     }
 
-    const correct = selectedAnswer === quiz.correctAnswer;
-    setIsCorrect(correct);
     setIsSubmitted(true);
 
-    // 점수 계산 (정답: 100점, 오답: 0점)
-    const score = correct ? 100 : 0;
-
-    // 잠시 후 결과 표시
+    // 잠시 후 답안 제출
     setTimeout(() => {
-      Alert.alert(
-        correct ? '정답입니다! 🎉' : '틀렸습니다 😢',
-        correct
-          ? `정답: ${quiz.options[quiz.correctAnswer]}\n점수: ${score}점`
-          : `정답: ${quiz.options[quiz.correctAnswer]}\n점수: ${score}점`,
-        [
-          {
-            text: '확인',
-            onPress: () => {
-              onComplete(score);
-              handleClose();
-            },
-          },
-        ]
-      );
+      onSubmit(selectedAnswer);
+      handleClose();
     }, 1000);
   };
 
   /**
+   * 북마크 토글 함수
+   */
+  const handleToggleBookmark = async () => {
+    if (!quiz) return;
+
+    try {
+      if (isBookmarked) {
+        await removeQuizBookmark(quiz.quizId);
+        setIsBookmarked(false);
+        Alert.alert('북마크 제거', '북마크에서 제거되었습니다.');
+      } else {
+        await addQuizBookmark(quiz);
+        setIsBookmarked(true);
+        Alert.alert('북마크 추가', '북마크에 추가되었습니다.');
+      }
+    } catch (error) {
+      console.error('북마크 토글 실패:', error);
+      Alert.alert('오류', '북마크 상태를 변경할 수 없습니다.');
+    }
+  };
+
+  /**
    * 모달 닫기 함수
-   * - 상태 초기화 후 모달 닫기
    */
   const handleClose = () => {
     setSelectedAnswer(null);
     setIsSubmitted(false);
-    setIsCorrect(false);
     onClose();
   };
 
   /**
    * 취소 함수
-   * - 확인 후 모달 닫기
    */
   const handleCancel = () => {
     if (isSubmitted) {
@@ -114,111 +136,46 @@ export default function QuizModal({ visible, onClose, quiz, onComplete }: QuizMo
     }
   };
 
-  // === 유틸리티 함수 ===
-  /**
-   * 카테고리별 한글 라벨 반환 함수
-   */
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'vocabulary':
-        return '어휘 퀴즈';
-      case 'grammar':
-        return '문법 퀴즈';
-      case 'story':
-        return '동화 퀴즈';
-      default:
-        return '퀴즈';
-    }
-  };
-
-  /**
-   * 난이도별 색상 반환 함수
-   */
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return COLORS.difficultyEasy;
-      case 'normal':
-        return COLORS.difficultyNormal;
-      case 'hard':
-        return COLORS.difficultyHard;
-      default:
-        return COLORS.textSecondary;
-    }
-  };
-
-  /**
-   * 난이도별 한글 라벨 반환 함수
-   */
-  const getDifficultyLabel = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return '쉬움';
-      case 'normal':
-        return '보통';
-      case 'hard':
-        return '어려움';
-      default:
-        return '보통';
-    }
-  };
-
   // === 렌더링 함수 ===
   /**
    * 답안 옵션 렌더링 함수
    */
-  const renderAnswerOption = (option: string, index: number) => {
-    const isSelected = selectedAnswer === index;
-    const isCorrectAnswer = index === quiz.correctAnswer;
-    const showResult = isSubmitted && (isSelected || isCorrectAnswer);
+  const renderAnswerOption = (optionKey: string, optionText: string) => {
+    const isSelected = selectedAnswer === optionKey;
 
     let backgroundColor = COLORS.filterBackground;
     let borderColor = COLORS.inputBorder;
 
     if (isSelected) {
-      if (isSubmitted) {
-        backgroundColor = isCorrect ? COLORS.textSuccess : '#F44336';
-        borderColor = isCorrect ? COLORS.textSuccess : '#F44336';
-      } else {
-        backgroundColor = COLORS.activeFilterBackground;
-        borderColor = COLORS.primaryPurple;
-      }
-    } else if (showResult && isCorrectAnswer) {
-      backgroundColor = COLORS.textSuccess;
-      borderColor = COLORS.textSuccess;
+      backgroundColor = COLORS.activeFilterBackground;
+      borderColor = COLORS.primaryPurple;
     }
 
     return (
       <TouchableOpacity
-        key={index}
+        key={optionKey}
         style={[styles.answerOption, { backgroundColor, borderColor }]}
-        onPress={() => handleAnswerSelect(index)}
+        onPress={() => handleAnswerSelect(optionKey)}
         disabled={isSubmitted}
       >
         <Text
           style={[
             styles.answerText,
             {
-              color:
-                isSelected || (showResult && isCorrectAnswer)
-                  ? COLORS.textPrimary
-                  : COLORS.textSecondary,
+              color: isSelected ? COLORS.textPrimary : COLORS.textSecondary,
             },
           ]}
         >
-          {option}
+          {optionText}
         </Text>
-        {isSelected && isSubmitted && (
-          <Ionicons
-            name={isCorrect ? 'checkmark-circle' : 'close-circle'}
-            size={20}
-            color={COLORS.textPrimary}
-            style={styles.resultIcon}
-          />
-        )}
       </TouchableOpacity>
     );
   };
+
+  // 퀴즈가 없으면 렌더링하지 않음
+  if (!quiz) {
+    return null;
+  }
 
   // === 메인 렌더링 ===
   return (
@@ -227,37 +184,45 @@ export default function QuizModal({ visible, onClose, quiz, onComplete }: QuizMo
         <View style={styles.modalContainer}>
           {/* 헤더 */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{getCategoryLabel(quiz.category)}</Text>
-            <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-              <Ionicons name="close" size={20} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            <Text style={styles.modalTitle}>동화 퀴즈</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* 북마크 버튼 */}
+              <TouchableOpacity
+                onPress={handleToggleBookmark}
+                style={{ marginRight: 10, padding: 5 }}
+              >
+                <Ionicons
+                  name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+                  size={20}
+                  color={isBookmarked ? COLORS.primaryPurple : COLORS.textSecondary}
+                />
+              </TouchableOpacity>
+              {/* 닫기 버튼 */}
+              <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
+                <Ionicons name="close" size={20} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* 카테고리 및 출처 태그 */}
           <View style={styles.tagContainer}>
-            <View
-              style={[
-                styles.difficultyTag,
-                { backgroundColor: getDifficultyColor(quiz.difficulty) },
-              ]}
-            >
-              <Text style={styles.difficultyText}>{getDifficultyLabel(quiz.difficulty)}</Text>
+            <View style={[styles.difficultyTag, { backgroundColor: COLORS.difficultyNormal }]}>
+              <Text style={styles.difficultyText}>동화 퀴즈</Text>
             </View>
             <View style={styles.sourceTag}>
-              <Text style={styles.sourceText}>{quiz.source}</Text>
+              <Text style={styles.sourceText}>동화 #{quiz.storyId}</Text>
             </View>
           </View>
 
           {/* 퀴즈 문제 */}
           <View style={styles.questionContainer}>
             <Text style={styles.questionText}>{quiz.question}</Text>
-            <Text style={styles.exampleText}>예문: "{quiz.example}"</Text>
           </View>
 
-          {/* 답안 옵션들 - 1줄에 전부 배치 */}
+          {/* 답안 옵션들 */}
           <View style={styles.answerContainer}>
             <View style={styles.answerRow}>
-              {quiz.options.map((option, index) => renderAnswerOption(option, index))}
+              {Object.entries(quiz.options).map(([key, text]) => renderAnswerOption(key, text))}
             </View>
           </View>
 
@@ -272,7 +237,7 @@ export default function QuizModal({ visible, onClose, quiz, onComplete }: QuizMo
               onPress={handleSubmit}
               disabled={selectedAnswer === null || isSubmitted}
             >
-              <Text style={styles.submitButtonText}>답안 제출</Text>
+              <Text style={styles.submitButtonText}>{isLastQuiz ? '완료' : '다음'}</Text>
             </TouchableOpacity>
           </View>
         </View>
