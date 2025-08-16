@@ -22,6 +22,7 @@ import {
   testServerConnection,
   testCreateChild,
   testGetChildren,
+  testSaveLearningTime,
   runAllApiTests,
   createChild,
   // Auth 테스트 함수
@@ -184,6 +185,21 @@ export default function ApiTestScreen() {
                 age: Math.floor(Math.random() * 10) + 5,
                 learningLevel: ['초급', '중급', '고급'][Math.floor(Math.random() * 3)] as any,
               });
+            })
+          }
+        />
+
+        <Text style={styles.sectionTitle}>⏰ 학습 통계 API 테스트</Text>
+
+        <TestButton
+          title="학습 시간 저장 테스트 (POST /statistics/learning-time)"
+          color="#20c997"
+          onPress={() =>
+            runTest('학습 시간 저장', async () => {
+              // lastChildId가 있으면 사용하고, 없으면 기본값 1 사용
+              const childId = lastChildId || 1;
+              const learningTime = Math.floor(Math.random() * 60) + 10; // 10-70분 랜덤
+              return await testSaveLearningTime(childId, learningTime);
             })
           }
         />

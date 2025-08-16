@@ -28,6 +28,9 @@ import {
   CreateChildRequest,
 } from './childrenApi';
 
+// 학습 통계 관련 API 함수들을 가져옵니다
+import { saveLearningTime, SaveLearningTimeRequest } from './statisticsApi';
+
 // ===== 서버 연결 테스트 함수 =====
 
 /**
@@ -479,6 +482,75 @@ export const quickCreateTest = async () => {
   } catch (error) {
     // 생성 실패 시 에러를 로깅하고 다시 던집니다
     console.error('⚡ 빠른 생성 실패:', error);
+    throw error;
+  }
+};
+
+// ===== 학습 시간 저장 테스트 함수 =====
+
+/**
+ * 학습 시간 저장 테스트 함수
+ *
+ * 자녀의 학습 시간(동화 읽기 시간)을 저장하는 API의 정상 동작을 테스트합니다.
+ * 테스트용 데이터를 사용하여 학습 시간 저장 기능을 검증합니다.
+ *
+ * @async
+ * @function testSaveLearningTime
+ * @param {number} childId - 테스트할 자녀의 ID
+ * @param {number} learningTimeMinutes - 저장할 학습 시간 (분 단위)
+ * @returns {Promise<any>} 저장 결과 또는 에러
+ * @throws {Error} 학습 시간 저장 실패 시
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const result = await testSaveLearningTime(123, 15);
+ *   console.log('학습 시간 저장 성공:', result.message);
+ * } catch (error) {
+ *   console.error('학습 시간 저장 실패:', error.message);
+ * }
+ * ```
+ */
+export const testSaveLearningTime = async (childId: number, learningTimeMinutes: number = 15) => {
+  // 테스트 시작을 알리는 로그 출력
+  console.log('\n⏰ 학습 시간 저장 테스트 시작...');
+  console.log(`   📊 테스트 데이터: childId=${childId}, learningTime=${learningTimeMinutes}분`);
+
+  try {
+    // 현재 시간을 YYYY-MM-DD HH:MM:SS 형식으로 포맷팅
+    const now = new Date();
+    const updatedAt = now.toISOString().slice(0, 19).replace('T', ' ');
+
+    // 테스트용 학습 시간 저장 요청 데이터 생성
+    const testRequest: SaveLearningTimeRequest = {
+      childId: childId,
+      totalLearningTimeMinutes: learningTimeMinutes,
+      updatedAt: updatedAt,
+    };
+
+    console.log('   📤 요청 데이터:', testRequest);
+
+    // 학습 시간 저장 API 호출
+    const result = await saveLearningTime(testRequest);
+
+    // 성공 결과를 로깅합니다
+    console.log('   ✅ 학습 시간 저장 성공!');
+    console.log(`   📋 응답 메시지: ${result.message}`);
+    console.log(`   📊 저장된 학습 시간: ${learningTimeMinutes}분`);
+
+    // 저장 결과를 반환합니다
+    return result;
+  } catch (error: any) {
+    // 실패 시 상세 정보를 로깅합니다
+    console.error('   ❌ 학습 시간 저장 실패:', {
+      childId,
+      learningTimeMinutes,
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+    });
+
+    // 에러를 다시 던져서 호출자가 처리할 수 있도록 합니다
     throw error;
   }
 };

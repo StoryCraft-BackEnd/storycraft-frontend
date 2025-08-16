@@ -127,6 +127,7 @@ export type {
  */
 export {
   getChildStatistics, // 자녀별 학습 통계 조회 함수 (GET /statistics/children/{id})
+  saveLearningTime, // 총 학습 시간 저장 함수 (POST /statistics/learning-time)
   statisticsUtils, // 통계 데이터 유틸리티 함수들 (시간 포맷팅, 완성률 계산 등)
 } from './statisticsApi';
 
@@ -139,6 +140,8 @@ export {
 export type {
   ChildStatistics, // 자녀별 학습 통계 데이터 타입
   StatisticsApiResponse, // 통계 API 응답 래퍼 타입
+  SaveLearningTimeRequest, // 학습 시간 저장 요청 데이터 타입
+  SaveLearningTimeResponse, // 학습 시간 저장 응답 데이터 타입
 } from './statisticsApi';
 
 // ===== API 테스트 함수들 export =====
@@ -156,6 +159,7 @@ export {
   testGetChild, // 특정 프로필 조회 API 테스트 함수
   testUpdateChild, // 프로필 수정 API 테스트 함수
   testDeleteChild, // 프로필 삭제 API 테스트 함수
+  testSaveLearningTime, // 학습 시간 저장 API 테스트 함수
   runAllApiTests, // 모든 API 종합 테스트 실행 함수
   quickCreateTest, // 빠른 프로필 생성 테스트 함수
 } from './apiTest';

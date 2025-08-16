@@ -42,6 +42,31 @@ export interface StatisticsApiResponse {
   data: ChildStatistics;
 }
 
+/**
+ * 학습 시간 저장 요청 데이터 타입
+ *
+ * 서버로 전송하는 학습 시간 저장 요청의 구조를 정의합니다.
+ */
+export interface SaveLearningTimeRequest {
+  /** 자녀 ID */
+  childId: number;
+  /** 학습 시간 (분 단위) - 동화 읽기 시간 */
+  totalLearningTimeMinutes: number;
+  /** 업데이트 시간 */
+  updatedAt: string;
+}
+
+/**
+ * 학습 시간 저장 응답 데이터 타입
+ *
+ * 서버에서 반환하는 학습 시간 저장 응답의 구조를 정의합니다.
+ */
+export interface SaveLearningTimeResponse {
+  status: number;
+  message: string;
+  data: null;
+}
+
 // ===== API 함수들 =====
 
 /**
@@ -85,6 +110,63 @@ export const getChildStatistics = async (childId: number): Promise<ChildStatisti
     // 에러 발생 시 상세 정보를 콘솔에 기록합니다
     console.error('❌ 자녀별 학습 통계 조회 실패:', {
       childId,
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+    });
+
+    // 에러를 다시 던져서 호출자가 적절히 처리할 수 있도록 합니다
+    throw error;
+  }
+};
+
+/**
+ * 학습 시간 저장 API 함수
+ *
+ * 자녀의 학습 시간(동화 읽기 시간)을 서버에 저장합니다.
+ * 동화 읽기 화면에서만 호출되어야 하며, 실제 학습 시간만 측정합니다.
+ *
+ * @param request - 학습 시간 저장 요청 데이터 (childId, totalLearningTimeMinutes, updatedAt)
+ * @returns Promise<SaveLearningTimeResponse> - 저장 결과를 담은 Promise
+ * @throws Error - 인증 실패, 자녀 없음, 권한 없음, 또는 서버 오류 시 발생
+ *
+ * @example
+ * ```typescript
+ * const request = {
+ *   childId: 123,
+ *   totalLearningTimeMinutes: 15,
+ *   updatedAt: "2024-01-15 14:30:00"
+ * };
+ * const result = await saveLearningTime(request);
+ * console.log('학습 시간 저장 성공:', result.message);
+ * ```
+ */
+export const saveLearningTime = async (
+  request: SaveLearningTimeRequest
+): Promise<SaveLearningTimeResponse> => {
+  try {
+    // 요청 정보를 콘솔에 로깅합니다
+    console.log('⏰ 학습 시간 저장 요청:', {
+      url: '/statistics/learning-time',
+      method: 'POST',
+      request,
+    });
+
+    // 서버로 POST 요청을 전송하여 학습 시간을 저장합니다
+    const response = await apiClient.post<SaveLearningTimeResponse>(
+      '/statistics/learning-time',
+      request
+    );
+
+    // 성공적인 응답을 받았을 때 결과를 콘솔에 로깅합니다
+    console.log('✅ 학습 시간 저장 성공:', response.data);
+
+    // 서버 응답을 반환합니다
+    return response.data;
+  } catch (error: any) {
+    // 에러 발생 시 상세 정보를 콘솔에 기록합니다
+    console.error('❌ 학습 시간 저장 실패:', {
+      request,
       error: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
