@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { DailyMissionScreenStyles as styles } from '@/styles/DailyMissionScreen.styles';
 import BackButton from '@/components/ui/BackButton';
+import { Ionicons } from '@expo/vector-icons';
 import nightBg from '@/assets/images/background/night-bg.png';
 import pointImage from '@/assets/images/rewards/point_icon.png';
 import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
@@ -275,7 +276,7 @@ export default function DailyMissionScreen() {
     // 미션 타입에 따라 해당 화면으로 이동
     switch (mission.type) {
       case 'quiz':
-        router.push('/(main)/quiz-collection');
+        router.push('/(main)/quiz');
         break;
       case 'story':
         router.push('/(main)/storylist');
@@ -502,7 +503,20 @@ export default function DailyMissionScreen() {
       <View style={styles.container}>
         {/* 헤더 */}
         <View style={styles.header}>
-          <BackButton />
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 8,
+              position: 'absolute',
+              top: 18,
+              left: 12,
+              zIndex: 10,
+            }}
+            onPress={() => router.push('/(main)')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
           <ThemedText style={styles.title}>데일리 미션</ThemedText>
           <View style={{ width: 60 }} />
         </View>
