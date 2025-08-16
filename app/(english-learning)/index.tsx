@@ -34,6 +34,7 @@ import {
   Quiz,
   QuizSubmitRequest,
 } from '@/features/quiz/quizApi';
+import { saveWordsByStory, getStoredUserId } from '@/shared/api';
 
 // --- 이미지 및 리소스 ---
 import defaultBackgroundImage from '@/assets/images/background/night-bg.png';
@@ -56,6 +57,45 @@ export default function EnglishLearningScreen() {
   const [showQuizPopup, setShowQuizPopup] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<QuizSubmitRequest[]>([]);
   const [isQuizLoading, setIsQuizLoading] = useState(false);
+
+  // 동화 로드 시 자동으로 단어를 저장하는 함수
+  const saveWordsFromStory = async (storyId: number, childId: number) => {
+    try {
+      console.log('📚 동화 기반 단어 자동 저장 시작:', { storyId, childId });
+
+      // 사용자 ID 가져오기
+      const userId = await getStoredUserId();
+      if (!userId) {
+        console.warn('⚠️ 사용자 ID가 없어 단어 저장을 건너뜁니다. 로그인이 필요합니다.');
+        return;
+      }
+
+      // 동화에서 단어 추출 및 저장
+      const savedWords = await saveWordsByStory(storyId, childId);
+      console.log('✅ 동화 기반 단어 저장 완료:', {
+        storyId,
+        childId,
+        savedWordsCount: savedWords.length,
+        words: savedWords.map((word) => word.word),
+      });
+
+      // 저장된 단어를 currentStory에 추가
+      setCurrentStory((prevStory) => {
+        if (!prevStory) return prevStory;
+
+        return {
+          ...prevStory,
+          savedWords: savedWords,
+        };
+      });
+
+      return savedWords;
+    } catch (error) {
+      console.error('❌ 동화 기반 단어 저장 실패:', error);
+      // 단어 저장 실패는 동화 로드 실패로 처리하지 않음
+      return [];
+    }
+  };
 
   // 컴포넌트 마운트 시 동화 데이터 로드
   useEffect(() => {
@@ -113,7 +153,8 @@ export default function EnglishLearningScreen() {
             console.log('✅ 동화 단락 변환 완료:', {
               title: learningStory.title,
               content: learningStory.content
-                ? learningStory.content.substring(0, 100) + '...'
+                ? learningStory.content.split('\n').slice(0, 3).join('\n') +
+                  (learningStory.content.split('\n').length > 3 ? '\n...' : '')
                 : '없음',
               contentLength: learningStory.content?.length || 0,
               sectionsCount: learningStory.sections?.length || 0,
@@ -122,8 +163,11 @@ export default function EnglishLearningScreen() {
             setIsStoryLoaded(true);
 
             // 단어 즐겨찾기 상태 초기화
-            setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-            setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+            setWordFavorites(new Array(learningStory.savedWords?.length || 0).fill(false));
+            setWordClicked(new Array(learningStory.savedWords?.length || 0).fill(false));
+
+            // 동화에서 단어 자동 저장
+            await saveWordsFromStory(storyData.storyId, storyData.childId);
 
             // 저장된 단어 정보 가져오기 (전체 단어 목록 조회)
             try {
@@ -163,7 +207,8 @@ export default function EnglishLearningScreen() {
             console.log('✅ 기존 방식으로 동화 변환 완료:', {
               title: fallbackStory.title,
               content: fallbackStory.content
-                ? fallbackStory.content.substring(0, 100) + '...'
+                ? fallbackStory.content.split('\n').slice(0, 3).join('\n') +
+                  (fallbackStory.content.split('\n').length > 3 ? '\n...' : '')
                 : '없음',
               contentLength: fallbackStory.content?.length || 0,
             });
@@ -174,23 +219,19 @@ export default function EnglishLearningScreen() {
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
           }
 
-          // 삽화 이미지 로드 (개선된 동기화 로직)
-          try {
-            // childId 유효성 검증 추가
-            if (!storyData.childId || storyData.childId <= 0) {
-              console.warn(
-                `⚠️ 동화 ${storyData.storyId}의 childId가 유효하지 않음:`,
-                storyData.childId
-              );
-              console.log('삽화 로드 건너뛰기 - 기본 배경 사용');
-              setBackgroundImage(null);
-              return;
-            }
-
+          // 삽화 이미지 로드 (재시도 없음)
+          if (!storyData.childId || storyData.childId <= 0) {
+            console.warn(
+              `⚠️ 동화 ${storyData.storyId}의 childId가 유효하지 않음:`,
+              storyData.childId
+            );
+            console.log('삽화 로드 건너뛰기 - 기본 배경 사용');
+            setBackgroundImage(null);
+          } else {
             console.log(`동화 ${storyData.storyId} 삽화 이미지 로드 시작...`);
 
-            // 해당 동화의 삽화 동기화
             try {
+              // 해당 동화의 삽화 동기화 (1회만 시도)
               await syncMissingIllustrations([storyData.storyId], storyData.childId);
 
               // 서버에서 최신 삽화 목록 조회
@@ -216,7 +257,7 @@ export default function EnglishLearningScreen() {
                   illustrations: storyIllustrations.map((illustration) => ({
                     illustrationId: illustration.illustrationId,
                     storyId: illustration.storyId,
-                    orderIndex: illustration.orderIndex, // orderIndex 추가
+                    orderIndex: illustration.orderIndex,
                     localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
                     imageUrl: illustration.imageUrl,
                     description: illustration.description,
@@ -227,12 +268,11 @@ export default function EnglishLearningScreen() {
                 // Story 객체를 illustrations 정보와 함께 저장
                 await addStoryToStorage(storyWithIllustrations);
 
-                // LearningStoryWithSections 객체에 삽화 정보 추가 - 함수형 업데이트 사용
+                // LearningStoryWithSections 객체에 삽화 정보 추가
                 setCurrentStory((prevStory) => {
                   const learningStoryWithIllustrations = {
                     ...prevStory,
                     illustrations: storyWithIllustrations.illustrations,
-                    // 기존 정보 모두 유지
                     content: prevStory?.content || storyData.content,
                     title: prevStory?.title || storyData.title,
                     contentKr: prevStory?.contentKr || storyData.contentKr,
@@ -268,12 +308,9 @@ export default function EnglishLearningScreen() {
                 console.log(`동화 ${storyData.storyId}에 해당하는 삽화가 없습니다. 기본 배경 사용`);
               }
             } catch (illustrationError) {
-              console.error('삽화 정보 조회 실패:', illustrationError);
+              console.error('삽화 정보 조회 실패 (재시도 없음):', illustrationError);
               setBackgroundImage(null);
             }
-          } catch (error) {
-            console.error(`동화 ${storyData.storyId} 삽화 로드 실패:`, error);
-            setBackgroundImage(null);
           }
 
           console.log('동화 데이터 로드 완료:', {
@@ -284,7 +321,8 @@ export default function EnglishLearningScreen() {
             hasBackgroundImage: !!backgroundImage,
             currentStoryKeys: currentStory ? Object.keys(currentStory) : [],
             currentStoryContent: currentStory?.content
-              ? currentStory.content.substring(0, 100) + '...'
+              ? currentStory.content.split('\n').slice(0, 3).join('\n') +
+                (currentStory.content.split('\n').length > 3 ? '\n...' : '')
               : '없음',
           });
         } else {
@@ -338,7 +376,8 @@ export default function EnglishLearningScreen() {
             console.log('✅ 최신 동화 단락 변환 완료:', {
               title: learningStory.title,
               content: learningStory.content
-                ? learningStory.content.substring(0, 100) + '...'
+                ? learningStory.content.split('\n').slice(0, 3).join('\n') +
+                  (learningStory.content.split('\n').length > 3 ? '\n...' : '')
                 : '없음',
               contentLength: learningStory.content?.length || 0,
               sectionsCount: learningStory.sections?.length || 0,
@@ -348,6 +387,9 @@ export default function EnglishLearningScreen() {
 
             setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+
+            // 최신 동화에서 단어 자동 저장
+            await saveWordsFromStory(latestStory.storyId, latestStory.childId);
           } catch (sectionError) {
             console.error(`동화 ${latestStory.storyId} 단락 조회 실패:`, {
               error: sectionError,
@@ -369,7 +411,8 @@ export default function EnglishLearningScreen() {
             console.log('✅ 최신 동화 기존 방식 변환 완료:', {
               title: fallbackStory.title,
               content: fallbackStory.content
-                ? fallbackStory.content.substring(0, 100) + '...'
+                ? fallbackStory.content.split('\n').slice(0, 3).join('\n') +
+                  (fallbackStory.content.split('\n').length > 3 ? '\n...' : '')
                 : '없음',
               contentLength: fallbackStory.content?.length || 0,
             });
@@ -380,23 +423,19 @@ export default function EnglishLearningScreen() {
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
           }
 
-          // 삽화 이미지 로드 (개선된 동기화 로직)
-          try {
-            // childId 유효성 검증 추가
-            if (!latestStory.childId || latestStory.childId <= 0) {
-              console.warn(
-                `⚠️ 동화 ${latestStory.storyId}의 childId가 유효하지 않음:`,
-                latestStory.childId
-              );
-              console.log('삽화 로드 건너뛰기 - 기본 배경 사용');
-              setBackgroundImage(null);
-              return;
-            }
-
+          // 삽화 이미지 로드 (재시도 없음)
+          if (!latestStory.childId || latestStory.childId <= 0) {
+            console.warn(
+              `⚠️ 동화 ${latestStory.storyId}의 childId가 유효하지 않음:`,
+              latestStory.childId
+            );
+            console.log('삽화 로드 건너뛰기 - 기본 배경 사용');
+            setBackgroundImage(null);
+          } else {
             console.log(`동화 ${latestStory.storyId} 삽화 이미지 로드 시작...`);
 
-            // 해당 동화의 삽화 동기화
             try {
+              // 해당 동화의 삽화 동기화 (1회만 시도)
               await syncMissingIllustrations([latestStory.storyId], latestStory.childId);
 
               // 서버에서 최신 삽화 목록 조회
@@ -422,7 +461,7 @@ export default function EnglishLearningScreen() {
                   illustrations: storyIllustrations.map((illustration) => ({
                     illustrationId: illustration.illustrationId,
                     storyId: illustration.storyId,
-                    orderIndex: illustration.orderIndex, // orderIndex 추가
+                    orderIndex: illustration.orderIndex,
                     localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
                     imageUrl: illustration.imageUrl,
                     description: illustration.description,
@@ -433,12 +472,11 @@ export default function EnglishLearningScreen() {
                 // Story 객체를 illustrations 정보와 함께 저장
                 await addStoryToStorage(storyWithIllustrations);
 
-                // LearningStoryWithSections 객체에 삽화 정보 추가 - 함수형 업데이트 사용
+                // LearningStoryWithSections 객체에 삽화 정보 추가
                 setCurrentStory((prevStory) => {
                   const learningStoryWithIllustrations = {
                     ...prevStory,
                     illustrations: storyWithIllustrations.illustrations,
-                    // 기존 정보 모두 유지
                     content: prevStory?.content || latestStory.content,
                     title: prevStory?.title || latestStory.title,
                     contentKr: prevStory?.contentKr || latestStory.contentKr,
@@ -476,12 +514,9 @@ export default function EnglishLearningScreen() {
                 );
               }
             } catch (illustrationError) {
-              console.error('삽화 정보 조회 실패:', illustrationError);
+              console.error('삽화 정보 조회 실패 (재시도 없음):', illustrationError);
               setBackgroundImage(null);
             }
-          } catch (error) {
-            console.error(`동화 ${latestStory.storyId} 삽화 로드 실패:`, error);
-            setBackgroundImage(null);
           }
         }
       } catch (error) {
@@ -505,7 +540,10 @@ export default function EnglishLearningScreen() {
     console.log('🔄 currentStory 상태 변경:', {
       hasStory: !!currentStory,
       title: currentStory?.title || '없음',
-      content: currentStory?.content ? currentStory.content.substring(0, 100) + '...' : '없음',
+      content: currentStory?.content
+        ? currentStory.content.split('\n').slice(0, 3).join('\n') +
+          (currentStory.content.split('\n').length > 3 ? '\n...' : '')
+        : '없음',
       contentLength: currentStory?.content?.length || 0,
       sectionsCount: currentStory?.sections?.length || 0,
       highlightedWordsCount: currentStory?.highlightedWords?.length || 0,
@@ -624,6 +662,16 @@ export default function EnglishLearningScreen() {
       });
   };
 
+  // 하이라이트된 텍스트를 굵은 글씨로 변환하는 함수
+  const formatHighlightedText = (text: string) => {
+    if (!text) return '';
+
+    // **단어** 형태를 찾아서 ** 제거
+    return text.replace(/\*\*(.*?)\*\*/g, (match, word) => {
+      return word; // ** 제거하고 단어만 반환
+    });
+  };
+
   // 현재 페이지의 영어 텍스트 가져오기
   const getCurrentPageText = () => {
     if (!currentStory) {
@@ -652,7 +700,7 @@ export default function EnglishLearningScreen() {
       });
 
       if (currentSection) {
-        return currentSection.paragraphText;
+        return formatHighlightedText(currentSection.paragraphText);
       } else {
         console.warn(`⚠️ 페이지 ${currentPage}에 해당하는 단락이 없습니다.`);
         return '이 페이지의 내용을 찾을 수 없습니다.';
@@ -661,7 +709,7 @@ export default function EnglishLearningScreen() {
 
     // 기존 방식 (전체 내용을 현재 페이지로 표시)
     console.log('📝 전체 내용 사용:', currentStory.content);
-    return currentStory.content || '';
+    return formatHighlightedText(currentStory.content || '');
   };
 
   // 현재 페이지의 한국어 번역 가져오기
@@ -672,14 +720,14 @@ export default function EnglishLearningScreen() {
     if (currentStory.sections && currentStory.sections.length > 0) {
       const currentSection = currentStory.sections[currentPage - 1];
       if (currentSection) {
-        return currentSection.paragraphTextKr;
+        return formatHighlightedText(currentSection.paragraphTextKr);
       } else {
         return '이 페이지의 번역을 찾을 수 없습니다.';
       }
     }
 
     // 기존 방식 (전체 한국어 내용)
-    return currentStory.contentKr || '';
+    return formatHighlightedText(currentStory.contentKr || '');
   };
 
   // 읽어주기 버튼 핸들러
@@ -912,14 +960,21 @@ export default function EnglishLearningScreen() {
         // 삽화 로딩 시작
         setIsImageLoading(true);
 
-        // 현재 단락 순서에 해당하는 삽화 찾기 (orderIndex 기반)
-        const sectionIllustration = currentStory.illustrations.find(
-          (illustration) => illustration.orderIndex === currentSection.orderIndex
+        // 현재 단락 순서에 해당하는 삽화 찾기 (단락 수에 맞춰 균등 분배)
+        const totalSections = currentStory.sections.length;
+        const totalIllustrations = currentStory.illustrations.length;
+        const sectionsPerIllustration = Math.ceil(totalSections / totalIllustrations);
+
+        // 현재 페이지가 몇 번째 삽화 구간에 속하는지 계산
+        const illustrationIndex = Math.min(
+          Math.floor((currentPage - 1) / sectionsPerIllustration),
+          totalIllustrations - 1
         );
+
+        const sectionIllustration = currentStory.illustrations[illustrationIndex];
 
         if (sectionIllustration) {
           // 로컬 경로가 있으면 사용, 없으면 원격 URL 사용
-          const imageSource = sectionIllustration.localPath || sectionIllustration.imageUrl;
 
           // 로컬 파일 존재 여부 확인
           if (sectionIllustration.localPath) {
@@ -928,14 +983,14 @@ export default function EnglishLearningScreen() {
                 if (fileInfo.exists) {
                   setBackgroundImage(sectionIllustration.localPath);
                   console.log(
-                    `페이지 ${currentPage} (순서: ${currentSection.orderIndex}) 로컬 삽화 설정:`,
+                    `페이지 ${currentPage} (삽화 ${illustrationIndex + 1}/${totalIllustrations}, 구간 ${Math.floor((currentPage - 1) / sectionsPerIllustration) + 1}) 로컬 삽화 설정:`,
                     sectionIllustration.localPath
                   );
                 } else {
                   // 로컬 파일이 없으면 원격 URL 사용
                   setBackgroundImage(sectionIllustration.imageUrl);
                   console.log(
-                    `페이지 ${currentPage} (순서: ${currentSection.orderIndex}) 원격 삽화 설정:`,
+                    `페이지 ${currentPage} (삽화 ${illustrationIndex + 1}/${totalIllustrations}, 구간 ${Math.floor((currentPage - 1) / sectionsPerIllustration) + 1}) 원격 삽화 설정:`,
                     sectionIllustration.imageUrl
                   );
                 }
@@ -945,7 +1000,7 @@ export default function EnglishLearningScreen() {
                 // 에러 발생 시 원격 URL 사용
                 setBackgroundImage(sectionIllustration.imageUrl);
                 console.log(
-                  `페이지 ${currentPage} (순서: ${currentSection.orderIndex}) 원격 삽화 사용 (로컬 확인 실패):`,
+                  `페이지 ${currentPage} (삽화 ${illustrationIndex + 1}/${totalIllustrations}, 구간 ${Math.floor((currentPage - 1) / sectionsPerIllustration) + 1}) 원격 삽화 사용 (로컬 확인 실패):`,
                   sectionIllustration.imageUrl
                 );
                 setIsImageLoading(false);
@@ -954,7 +1009,7 @@ export default function EnglishLearningScreen() {
             // 로컬 경로가 없으면 원격 URL 사용
             setBackgroundImage(sectionIllustration.imageUrl);
             console.log(
-              `페이지 ${currentPage} (순서: ${currentSection.orderIndex}) 원격 삽화 설정:`,
+              `페이지 ${currentPage} (삽화 ${illustrationIndex + 1}/${totalIllustrations}, 구간 ${Math.floor((currentPage - 1) / sectionsPerIllustration) + 1}) 원격 삽화 설정:`,
               sectionIllustration.imageUrl
             );
             setIsImageLoading(false);
@@ -962,9 +1017,7 @@ export default function EnglishLearningScreen() {
         } else {
           // 해당 단락의 삽화가 없으면 기본 배경 사용
           setBackgroundImage(null);
-          console.log(
-            `페이지 ${currentPage} (순서: ${currentSection.orderIndex})에 해당하는 삽화가 없습니다. 기본 배경 사용`
-          );
+          console.log(`페이지 ${currentPage}에 해당하는 삽화가 없습니다. 기본 배경 사용`);
           setIsImageLoading(false);
         }
       } else {
@@ -1057,7 +1110,7 @@ export default function EnglishLearningScreen() {
                 )}
 
                 <View style={englishLearningStyles.keyWords}>
-                  {(currentStory?.highlightedWords || []).map((wordData, index) => (
+                  {(currentStory?.savedWords || []).map((wordData, index) => (
                     <TouchableOpacity
                       key={index}
                       style={englishLearningStyles.keyWordItem}
@@ -1074,7 +1127,9 @@ export default function EnglishLearningScreen() {
                       <View style={englishLearningStyles.wordTextContainer}>
                         <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
                         {wordClicked[index] && (
-                          <Text style={englishLearningStyles.keyWordKorean}>{wordData.korean}</Text>
+                          <Text style={englishLearningStyles.keyWordKorean}>
+                            {wordData.meaning}
+                          </Text>
                         )}
                       </View>
                     </TouchableOpacity>
@@ -1201,7 +1256,7 @@ export default function EnglishLearningScreen() {
                 )}
 
                 <View style={englishLearningStyles.keyWords}>
-                  {(currentStory?.highlightedWords || []).map((wordData, index) => (
+                  {(currentStory?.savedWords || []).map((wordData, index) => (
                     <TouchableOpacity
                       key={index}
                       style={englishLearningStyles.keyWordItem}
@@ -1218,7 +1273,9 @@ export default function EnglishLearningScreen() {
                       <View style={englishLearningStyles.wordTextContainer}>
                         <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
                         {wordClicked[index] && (
-                          <Text style={englishLearningStyles.keyWordKorean}>{wordData.korean}</Text>
+                          <Text style={englishLearningStyles.keyWordKorean}>
+                            {wordData.meaning}
+                          </Text>
                         )}
                       </View>
                     </TouchableOpacity>

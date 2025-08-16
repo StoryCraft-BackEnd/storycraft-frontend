@@ -521,15 +521,107 @@ const englishLearningStyles = StyleSheet.create({
   },
 
   /**
-   * 📄 패널 설명 텍스트
-   * 즐겨찾기 단어가 없을 때 표시되는 안내 메시지
-   * 사용자에게 기능 사용법 안내
+   * 📚 즐겨찾기 단어 설명
+   * 즐겨찾기 단어 기능에 대한 안내 텍스트
+   * 작은 글자로 부가 정보 제공
    */
   vocabularyDescription: {
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
-    color: '#666', // 중간 회색
+    color: '#b8b8b8', // 연한 회색 텍스트
+    fontSize: wp(3), // 글자 크기 3% (반응형)
     textAlign: 'center', // 중앙 정렬
-    lineHeight: wp(5), // 줄 간격 5% (반응형)
+    lineHeight: wp(4), // 줄 간격 4% (반응형)
+    marginTop: hp(1), // 위쪽 여백 1% (반응형)
+  },
+
+  // ===================================================================
+  // 📚 저장된 단어 표시 스타일
+  // ===================================================================
+
+  /**
+   * 📚 저장된 단어 컨테이너
+   * 동화에서 추출된 학습 단어들을 표시하는 영역
+   * 단어, 뜻, 예문을 포함한 완전한 학습 정보 제공
+   */
+  savedWordsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // 반투명 흰색 배경
+    borderRadius: wp(3), // 둥근 모서리 3% (반응형)
+    padding: wp(4), // 내부 여백 4% (반응형)
+    marginTop: hp(2), // 위쪽 여백 2% (반응형)
+    marginBottom: hp(2), // 아래쪽 여백 2% (반응형)
+  },
+
+  /**
+   * 📚 저장된 단어 제목
+   * 학습 단어 섹션의 제목
+   * 책 아이콘과 함께 표시
+   */
+  savedWordsTitle: {
+    color: '#ffffff', // 흰색 텍스트
+    fontSize: wp(4.5), // 글자 크기 4.5% (반응형)
+    fontWeight: 'bold', // 굵은 글꼴
+    textAlign: 'center', // 중앙 정렬
+    marginBottom: hp(2), // 아래쪽 여백 2% (반응형)
+  },
+
+  /**
+   * 📚 저장된 단어 아이템
+   * 각 단어의 정보를 담는 개별 컨테이너
+   * 단어, 뜻, 예문을 세로로 배치
+   */
+  savedWordItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // 매우 연한 반투명 흰색 배경
+    borderRadius: wp(2), // 둥근 모서리 2% (반응형)
+    padding: wp(3), // 내부 여백 3% (반응형)
+    marginBottom: hp(1.5), // 아래쪽 여백 1.5% (반응형)
+    borderLeftWidth: 3, // 왼쪽 테두리 두께
+    borderLeftColor: '#4a90e2', // 파란색 테두리
+  },
+
+  /**
+   * 📚 저장된 단어 텍스트
+   * 영어 단어 자체
+   * 강조된 스타일로 표시
+   */
+  savedWordText: {
+    color: '#4a90e2', // 파란색 텍스트 (강조)
+    fontSize: wp(4), // 글자 크기 4% (반응형)
+    fontWeight: 'bold', // 굵은 글꼴
+    marginBottom: hp(0.5), // 아래쪽 여백 0.5% (반응형)
+  },
+
+  /**
+   * 📚 저장된 단어 뜻
+   * 한국어 뜻
+   * 영어 단어 아래에 표시
+   */
+  savedWordMeaning: {
+    color: '#ffffff', // 흰색 텍스트
+    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontWeight: '600', // 중간 굵기
+    marginBottom: hp(0.5), // 아래쪽 여백 0.5% (반응형)
+  },
+
+  /**
+   * 📚 저장된 단어 영어 예문
+   * 영어 예문
+   * 작은 글자로 표시
+   */
+  savedWordExample: {
+    color: '#e0e0e0', // 연한 회색 텍스트
+    fontSize: wp(3), // 글자 크기 3% (반응형)
+    fontStyle: 'italic', // 기울임꼴
+    marginBottom: hp(0.3), // 아래쪽 여백 0.3% (반응형)
+  },
+
+  /**
+   * 📚 저장된 단어 한국어 예문
+   * 한국어 예문
+   * 가장 작은 글자로 표시
+   */
+  savedWordExampleKr: {
+    color: '#b8b8b8', // 연한 회색 텍스트
+    fontSize: wp(2.8), // 글자 크기 2.8% (반응형)
+    fontStyle: 'italic', // 기울임꼴
   },
 
   // ===================================================================

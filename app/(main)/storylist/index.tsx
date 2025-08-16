@@ -23,7 +23,7 @@ import {
   toggleStoryBookmarkNew,
   toggleStoryLikeNew,
   removeStoryFromStorage,
-  addStoryToStorage,
+  saveStories,
   attachUserPreferences,
 } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
@@ -33,7 +33,7 @@ import {
   fetchIllustrationList,
   downloadStoryIllustrations,
 } from '@/features/storyCreate/storyApi';
-import { Story, StoryData } from '@/features/storyCreate/types';
+import { Story } from '@/features/storyCreate/types';
 import { Popup } from '@/components/ui/Popup';
 
 // --- 이미지 및 리소스 ---
@@ -57,8 +57,6 @@ export default function StoryListScreen() {
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [deletePopupVisible, setDeletePopupVisible] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<{ id: number; title: string } | null>(null);
-  const [isLoadingIllustrations, setIsLoadingIllustrations] = useState(false);
-  const [illustrationLoadingProgress, setIllustrationLoadingProgress] = useState<string>('');
 
   /**
    * 동화 목록 로드 함수 (초기 로드용)
@@ -114,7 +112,8 @@ export default function StoryListScreen() {
           isLiked: false, // 로컬 스토리지에는 기본값으로 저장
         }));
 
-        await Promise.all(storiesForStorage.map((story) => addStoryToStorage(story)));
+        // 전체 동화 목록을 한 번에 저장 (개별 저장 대신)
+        await saveStories(profile.childId, storiesForStorage);
         console.log('동화 데이터 로컬 저장 완료');
 
         // === 4단계: UI 업데이트 ===
@@ -396,11 +395,6 @@ export default function StoryListScreen() {
         <View style={styles.emptyContainer}>
           <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
           <Text style={styles.emptyText}>동화를 불러오는 중...</Text>
-        </View>
-      ) : isLoadingIllustrations ? (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color="#FFD700" style={{ marginBottom: 16 }} />
-          <Text style={styles.emptyText}>{illustrationLoadingProgress}</Text>
         </View>
       ) : filteredStories.length === 0 ? (
         <View style={styles.emptyContainer}>

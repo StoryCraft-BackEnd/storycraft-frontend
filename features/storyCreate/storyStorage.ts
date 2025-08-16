@@ -58,9 +58,44 @@ const getStoryTTSKey = (childId: number, storyId: number): string => {
  */
 export const saveStories = async (childId: number, stories: Story[]): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ saveStories: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
+    // childId가 일치하지 않는 동화가 있으면 경고만 표시하고 모든 동화 저장
+    const invalidStories = stories.filter((story: Story) => {
+      if (!story.childId || story.childId !== childId) {
+        console.warn(`⚠️ 동화 ${story.storyId}의 childId가 일치하지 않음:`, {
+          storyChildId: story.childId,
+          expectedChildId: childId,
+          storyTitle: story.title,
+        });
+        return true;
+      }
+      return false;
+    });
+
+    if (invalidStories.length > 0) {
+      console.warn(
+        `⚠️ ${invalidStories.length}개의 동화가 유효하지 않은 childId를 가짐:`,
+        invalidStories.map((s) => ({ storyId: s.storyId, title: s.title, childId: s.childId }))
+      );
+    }
+
     const key = getStoriesKey(childId);
     await AsyncStorage.setItem(key, JSON.stringify(stories));
-    console.log(`프로필 ${childId} 동화 목록 저장 완료:`, stories.length, '개');
+    console.log(`프로필 ${childId} 동화 목록 저장 완료:`, {
+      totalStories: stories.length,
+      validStories: stories.length - invalidStories.length,
+      invalidStories: invalidStories.length,
+    });
   } catch (error) {
     console.error(`프로필 ${childId} 동화 목록 저장 실패:`, error);
   }
@@ -71,10 +106,48 @@ export const saveStories = async (childId: number, stories: Story[]): Promise<vo
  */
 export const loadStoriesFromStorage = async (childId: number): Promise<Story[]> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ loadStoriesFromStorage: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getStoriesKey(childId);
     const storiesJson = await AsyncStorage.getItem(key);
     const stories = storiesJson ? JSON.parse(storiesJson) : [];
-    console.log(`프로필 ${childId} 동화 목록 불러오기 완료:`, stories.length, '개');
+
+    // childId가 일치하지 않는 동화가 있으면 경고만 표시하고 모든 동화 반환
+    const invalidStories = stories.filter((story: Story) => {
+      if (!story.childId || story.childId !== childId) {
+        console.warn(`⚠️ 동화 ${story.storyId}의 childId가 일치하지 않음:`, {
+          storyChildId: story.childId,
+          expectedChildId: childId,
+          storyTitle: story.title,
+        });
+        return true;
+      }
+      return false;
+    });
+
+    if (invalidStories.length > 0) {
+      console.warn(
+        `⚠️ ${invalidStories.length}개의 동화가 유효하지 않은 childId를 가짐:`,
+        invalidStories.map((s) => ({ storyId: s.storyId, title: s.title, childId: s.childId }))
+      );
+    }
+
+    console.log(`프로필 ${childId} 동화 목록 불러오기 완료:`, {
+      totalStories: stories.length,
+      validStories: stories.length - invalidStories.length,
+      invalidStories: invalidStories.length,
+    });
+
+    // 모든 동화를 반환 (필터링하지 않음)
     return stories;
   } catch (error) {
     console.error(`프로필 ${childId} 동화 목록 불러오기 실패:`, error);
@@ -87,6 +160,17 @@ export const loadStoriesFromStorage = async (childId: number): Promise<Story[]> 
  */
 export const addStoryToStorage = async (story: Story): Promise<void> => {
   try {
+    // story.childId 검증 추가
+    if (!story.childId || typeof story.childId !== 'number' || story.childId <= 0) {
+      console.error('❌ addStoryToStorage: 유효하지 않은 story.childId:', {
+        storyChildId: story.childId,
+        type: typeof story.childId,
+        storyId: story.storyId,
+        storyTitle: story.title,
+      });
+      throw new Error(`유효하지 않은 story.childId입니다: ${story.childId}`);
+    }
+
     const key = getStoriesKey(story.childId);
     const existingStoriesJson = await AsyncStorage.getItem(key);
     const existingStories: Story[] = existingStoriesJson ? JSON.parse(existingStoriesJson) : [];
@@ -119,6 +203,17 @@ export const addStoryToStorage = async (story: Story): Promise<void> => {
  */
 export const removeStoryFromStorage = async (childId: number, storyId: number): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ removeStoryFromStorage: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const existingStories = await loadStoriesFromStorage(childId);
     const updatedStories = existingStories.filter((story) => story.storyId !== storyId);
     await saveStories(childId, updatedStories);
@@ -133,6 +228,17 @@ export const removeStoryFromStorage = async (childId: number, storyId: number): 
  */
 export const saveFavoriteWords = async (childId: number, words: string[]): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ saveFavoriteWords: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getFavoritesKey(childId);
     await AsyncStorage.setItem(key, JSON.stringify(words));
     console.log(`프로필 ${childId} 즐겨찾기 단어 저장 완료:`, words.length, '개');
@@ -146,6 +252,17 @@ export const saveFavoriteWords = async (childId: number, words: string[]): Promi
  */
 export const loadFavoriteWords = async (childId: number): Promise<string[]> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ loadFavoriteWords: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getFavoritesKey(childId);
     const wordsJson = await AsyncStorage.getItem(key);
     const words = wordsJson ? JSON.parse(wordsJson) : [];
@@ -560,6 +677,17 @@ export const saveStoryTTS = async (
   ttsInfo: { [sectionId: number]: { audioPath: string; ttsUrl: string } }
 ): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ saveStoryTTS: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getStoryTTSKey(childId, storyId);
     await AsyncStorage.setItem(key, JSON.stringify(ttsInfo));
     console.log(
@@ -580,6 +708,17 @@ export const loadStoryTTSFromStorage = async (
   storyId: number
 ): Promise<{ [sectionId: number]: { audioPath: string; ttsUrl: string } }> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ loadStoryTTSFromStorage: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getStoryTTSKey(childId, storyId);
     const ttsJson = await AsyncStorage.getItem(key);
     const ttsInfo = ttsJson ? JSON.parse(ttsJson) : {};
@@ -600,6 +739,17 @@ export const loadStoryTTSFromStorage = async (
  */
 export const removeStorySections = async (childId: number, storyId: number): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ removeStorySections: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getStorySectionsKey(childId, storyId);
     await AsyncStorage.removeItem(key);
     console.log(`동화 ${storyId} 단락 삭제 완료`);
@@ -613,6 +763,17 @@ export const removeStorySections = async (childId: number, storyId: number): Pro
  */
 export const clearAllStorySections = async (childId: number): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ clearAllStorySections: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const allKeys = await AsyncStorage.getAllKeys();
     const sectionKeys = allKeys.filter((key) =>
       key.startsWith(`profile_${childId}/story_sections_`)
@@ -633,6 +794,17 @@ export const clearAllStorySections = async (childId: number): Promise<void> => {
  */
 export const clearStoriesFromStorage = async (childId: number): Promise<void> => {
   try {
+    // childId 파라미터 검증 추가
+    if (!childId || typeof childId !== 'number' || childId <= 0) {
+      console.error('❌ clearStoriesFromStorage: 유효하지 않은 childId:', {
+        childId,
+        type: typeof childId,
+        isNull: childId === null,
+        isUndefined: childId === undefined,
+      });
+      throw new Error(`유효하지 않은 childId입니다: ${childId}`);
+    }
+
     const key = getStoriesKey(childId);
     await AsyncStorage.removeItem(key);
     console.log(`프로필 ${childId} 모든 동화 삭제 완료`);
@@ -649,4 +821,187 @@ export const loadStoriesByChildId = async (childId: number): Promise<Story[]> =>
 
 export const clearAllStories = async (): Promise<void> => {
   return await clearAllProfileData();
+};
+
+// === 북마크/좋아요 상태 별도 저장 ===
+
+/**
+ * 사용자의 북마크 상태를 별도로 저장
+ * @param childId - 자녀 ID
+ * @param storyId - 동화 ID
+ * @param isBookmarked - 북마크 상태
+ */
+export const saveBookmarkStatus = async (
+  childId: number,
+  storyId: number,
+  isBookmarked: boolean
+): Promise<void> => {
+  try {
+    const key = `bookmarks_${childId}`;
+    const existingBookmarks = await AsyncStorage.getItem(key);
+    let bookmarks: Record<number, boolean> = {};
+
+    if (existingBookmarks) {
+      bookmarks = JSON.parse(existingBookmarks);
+    }
+
+    if (isBookmarked) {
+      bookmarks[storyId] = true;
+    } else {
+      delete bookmarks[storyId];
+    }
+
+    await AsyncStorage.setItem(key, JSON.stringify(bookmarks));
+    console.log(`북마크 상태 저장 완료: storyId ${storyId} = ${isBookmarked}`);
+  } catch (error) {
+    console.error('북마크 상태 저장 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 사용자의 좋아요 상태를 별도로 저장
+ * @param childId - 자녀 ID
+ * @param storyId - 동화 ID
+ * @param isLiked - 좋아요 상태
+ */
+export const saveLikeStatus = async (
+  childId: number,
+  storyId: number,
+  isLiked: boolean
+): Promise<void> => {
+  try {
+    const key = `likes_${childId}`;
+    const existingLikes = await AsyncStorage.getItem(key);
+    let likes: Record<number, boolean> = {};
+
+    if (existingLikes) {
+      likes = JSON.parse(existingLikes);
+    }
+
+    if (isLiked) {
+      likes[storyId] = true;
+    } else {
+      delete likes[storyId];
+    }
+
+    await AsyncStorage.setItem(key, JSON.stringify(likes));
+    console.log(`좋아요 상태 저장 완료: storyId ${storyId} = ${isLiked}`);
+  } catch (error) {
+    console.error('좋아요 상태 저장 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 사용자의 모든 북마크 상태를 가져오기
+ * @param childId - 자녀 ID
+ * @returns 북마크된 동화 ID 목록
+ */
+export const getBookmarkStatuses = async (childId: number): Promise<Record<number, boolean>> => {
+  try {
+    const key = `bookmarks_${childId}`;
+    const bookmarks = await AsyncStorage.getItem(key);
+    return bookmarks ? JSON.parse(bookmarks) : {};
+  } catch (error) {
+    console.error('북마크 상태 로드 실패:', error);
+    return {};
+  }
+};
+
+/**
+ * 사용자의 모든 좋아요 상태를 가져오기
+ * @param childId - 자녀 ID
+ * @returns 좋아요한 동화 ID 목록
+ */
+export const getLikeStatuses = async (childId: number): Promise<Record<number, boolean>> => {
+  try {
+    const key = `likes_${childId}`;
+    const likes = await AsyncStorage.getItem(key);
+    return likes ? JSON.parse(likes) : {};
+  } catch (error) {
+    console.error('좋아요 상태 로드 실패:', error);
+    return {};
+  }
+};
+
+/**
+ * 동화 데이터에 북마크/좋아요 상태를 연결하여 반환
+ * @param childId - 자녀 ID
+ * @param stories - 동화 목록
+ * @returns 북마크/좋아요 상태가 연결된 동화 목록
+ */
+export const attachUserPreferences = async (
+  childId: number,
+  stories: Story[]
+): Promise<Story[]> => {
+  try {
+    // 북마크와 좋아요 상태를 병렬로 가져오기
+    const [bookmarks, likes] = await Promise.all([
+      getBookmarkStatuses(childId),
+      getLikeStatuses(childId),
+    ]);
+
+    // 각 동화에 사용자 선호도 상태 연결
+    const storiesWithPreferences = stories.map((story) => ({
+      ...story,
+      isBookmarked: bookmarks[story.storyId] || false,
+      isLiked: likes[story.storyId] || false,
+    }));
+
+    console.log(`사용자 선호도 연결 완료: ${stories.length}개 동화`);
+    return storiesWithPreferences;
+  } catch (error) {
+    console.error('사용자 선호도 연결 실패:', error);
+    // 실패 시 기본값으로 반환
+    return stories.map((story) => ({
+      ...story,
+      isBookmarked: false,
+      isLiked: false,
+    }));
+  }
+};
+
+/**
+ * 북마크 토글 (새로운 방식)
+ * @param childId - 자녀 ID
+ * @param storyId - 동화 ID
+ */
+export const toggleStoryBookmarkNew = async (childId: number, storyId: number): Promise<void> => {
+  try {
+    const bookmarks = await getBookmarkStatuses(childId);
+    const currentStatus = bookmarks[storyId] || false;
+    const newStatus = !currentStatus;
+
+    await saveBookmarkStatus(childId, storyId, newStatus);
+    console.log(`북마크 토글 완료: storyId ${storyId} = ${newStatus}`);
+  } catch (error) {
+    console.error('북마크 토글 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 좋아요 토글 (새로운 방식)
+ * @param childId - 자녀 ID
+ * @param storyId - 동화 ID
+ */
+export const toggleStoryLikeNew = async (childId: number, storyId: number): Promise<void> => {
+  try {
+    const likes = await getLikeStatuses(childId);
+    const currentStatus = likes[storyId] || false;
+    const newStatus = !currentStatus;
+
+    if (newStatus) {
+      likes[storyId] = true;
+    } else {
+      delete likes[storyId];
+    }
+
+    await saveLikeStatus(childId, storyId, newStatus);
+    console.log(`좋아요 토글 완료: storyId ${storyId} = ${newStatus}`);
+  } catch (error) {
+    console.error('좋아요 토글 실패:', error);
+    throw error;
+  }
 };

@@ -33,6 +33,7 @@ import { addStoryToStorage, logProfileStructure } from '@/features/storyCreate/s
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import type { CreateStoryRequest, StoryData, Story } from '@/features/storyCreate/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createQuiz } from '@/features/quiz/quizApi';
 
 // 배경 이미지 파일을 import 합니다.
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -57,6 +58,43 @@ const StoryCreateScreen = () => {
   const [loadingPopupVisible, setLoadingPopupVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [totalSteps] = useState(3);
+
+  // 동화 생성 완료 후 퀴즈 자동 생성 함수
+  const generateQuizForStory = async (storyId: number, storyKeywords: string[]) => {
+    try {
+      console.log('🎯 동화 기반 퀴즈 자동 생성 시작:', {
+        storyId,
+        keywords: storyKeywords,
+        keywordsCount: storyKeywords.length,
+      });
+
+      // 퀴즈 생성 API 호출 - POST /quizzes
+      const quizzes = await createQuiz({
+        storyId,
+        keywords: storyKeywords.length > 0 ? storyKeywords : undefined,
+      });
+
+      console.log('✅ 퀴즈 자동 생성 완료:', {
+        storyId,
+        generatedQuizzes: quizzes.length,
+        quizzes: quizzes.map((q) => ({
+          quizId: q.quizId,
+          question: q.question.substring(0, 50) + '...',
+          optionsCount: Object.keys(q.options).length,
+        })),
+      });
+
+      return quizzes;
+    } catch (error) {
+      console.error('❌ 퀴즈 자동 생성 실패:', {
+        storyId,
+        error: error instanceof Error ? error.message : '알 수 없는 오류',
+        errorType: error instanceof Error ? error.constructor.name : '알 수 없음',
+      });
+      // 퀴즈 생성 실패는 동화 생성 실패로 처리하지 않음
+      return [];
+    }
+  };
 
   // 뒤로가기 방지 로직
   useFocusEffect(
@@ -185,7 +223,17 @@ const StoryCreateScreen = () => {
         keywords: storyData.keywords || keywords, // 서버에서 받은 키워드 사용, 없으면 로컬 키워드 사용
       };
 
-      console.log('저장할 동화 데이터:', storyToSave);
+      console.log('저장할 동화 데이터:', {
+        ...storyToSave,
+        content: storyToSave.content
+          ? storyToSave.content.split('\n').slice(0, 3).join('\n') +
+            (storyToSave.content.split('\n').length > 3 ? '\n...' : '')
+          : '없음',
+        contentKr: storyToSave.contentKr
+          ? storyToSave.contentKr.split('\n').slice(0, 3).join('\n') +
+            (storyToSave.contentKr.split('\n').length > 3 ? '\n...' : '')
+          : '없음',
+      });
 
       // 프로필별 폴더 구조에 동화 저장
       await addStoryToStorage(storyToSave);
@@ -193,14 +241,23 @@ const StoryCreateScreen = () => {
       // 프로필 구조 로깅 (디버깅용)
       await logProfileStructure(selectedProfile.childId);
 
+      // 동화 생성 완료 후 퀴즈 자동 생성
+      console.log('🎯 동화 생성 완료, 퀴즈 자동 생성 시작...');
+      const generatedQuizzes = await generateQuizForStory(
+        storyData.storyId,
+        storyData.keywords || keywords
+      );
+
       // 로딩 팝업 숨기기
       setLoadingPopupVisible(false);
 
-      // 성공 메시지 표시
-      showPopup(
-        '성공',
-        `"${storyData.title}" 동화가 생성되었습니다!\n\n잠시 후 영어 학습 화면으로 이동합니다.`
-      );
+      // 성공 메시지 표시 (퀴즈 생성 결과 포함)
+      const quizMessage =
+        generatedQuizzes.length > 0
+          ? `"${storyData.title}" 동화가 생성되었습니다!\n\n🎯 ${generatedQuizzes.length}개의 퀴즈도 함께 생성되었습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`
+          : `"${storyData.title}" 동화가 생성되었습니다!\n\n⚠️ 퀴즈 생성에 실패했습니다. 나중에 수동으로 생성할 수 있습니다.\n\n잠시 후 영어 학습 화면으로 이동합니다.`;
+
+      showPopup('성공', quizMessage);
 
       // 성공 팝업 닫힌 후 생성된 동화의 영어 학습 화면으로 이동
       setTimeout(() => {

@@ -14,9 +14,9 @@ export interface LoginResponse {
   data: {
     access_token: string;
     refresh_token: string;
+    user_id: number;
   };
   message: string;
-  status: number;
 }
 
 // 에러 응답 데이터 타입

@@ -42,6 +42,8 @@ export const login = async (data: LoginRequest): Promise<ApiResponse<LoginRespon
       hasData: 'data' in response.data,
       dataKeys: Object.keys(response.data),
     });
+
+    // user_id가 포함된 응답 데이터를 반환
     return {
       status: response.status,
       data: response.data,

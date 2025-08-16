@@ -37,12 +37,13 @@ export {
  * 이 함수들은 사용자의 신원을 확인하고 API 접근 권한을 관리합니다.
  */
 export {
-  signup, // 새 사용자 계정 생성 함수 (회원가입)
-  login, // 사용자 인증 및 토큰 발급 함수 (로그인)
-  logout, // 로그아웃 및 토큰 정리 함수
-  getStoredToken, // 로컬 스토리지에서 토큰 조회 함수
-  setToken, // 토큰 수동 설정 함수 (개발/테스트용)
+  signup, // 회원가입 함수 (POST /auth/signup)
+  login, // 로그인 함수 (POST /auth/login)
+  logout, // 로그아웃 함수 (클라이언트 측 토큰 삭제)
+  getStoredToken, // 저장된 토큰 확인 함수
+  setToken, // 토큰 수동 설정 함수 (테스트용)
   refreshAccessToken, // 만료된 액세스 토큰 갱신 함수
+  getStoredUserId, // 저장된 사용자 ID 확인 함수
 } from './authApi';
 
 /**
@@ -144,6 +145,41 @@ export type {
   SaveLearningTimeResponse, // 학습 시간 저장 응답 데이터 타입
 } from './statisticsApi';
 
+// ===== 단어 조회 및 저장 관련 API 함수들 export =====
+
+/**
+ * 단어 조회 및 저장 함수들
+ *
+ * 영어 단어를 조회하고 사용자 사전에 저장하는 API 함수들을 export합니다.
+ * 사용자 ID와 자녀 프로필 ID를 기반으로 단어를 저장합니다.
+ */
+export {
+  saveWord, // 단어 조회 및 저장 함수 (POST /dictionaries/words/save)
+  saveWordsByStory, // 동화 ID로 단어 추출 및 저장 함수 (POST /dictionaries/words/save-by-story)
+} from './dictionaryApi';
+
+/**
+ * 단어 조회 및 저장 관련 TypeScript 타입 정의들
+ *
+ * 단어 API의 요청과 응답에 사용되는 타입들을 export합니다.
+ * 데이터 구조의 일관성을 보장하고 런타임 에러를 방지합니다.
+ */
+export type {
+  SaveWordRequest, // 단어 저장 요청 데이터 타입
+  SaveWordResponse, // 단어 저장 응답 데이터 타입
+} from './dictionaryApi';
+
+/**
+ * 단어 사전 API 테스트 함수들
+ *
+ * 단어 조회 및 저장 API의 정상 동작을 검증하는 테스트 함수들을 export합니다.
+ * 개발 및 디버깅 목적으로 사용할 수 있습니다.
+ */
+export {
+  testSaveWord, // 단일 단어 저장 테스트 함수
+  testMultipleWords, // 다중 단어 저장 테스트 함수
+} from './dictionaryTestApi';
+
 // ===== API 테스트 함수들 export =====
 
 /**
@@ -159,7 +195,6 @@ export {
   testGetChild, // 특정 프로필 조회 API 테스트 함수
   testUpdateChild, // 프로필 수정 API 테스트 함수
   testDeleteChild, // 프로필 삭제 API 테스트 함수
-  testSaveLearningTime, // 학습 시간 저장 API 테스트 함수
   runAllApiTests, // 모든 API 종합 테스트 실행 함수
   quickCreateTest, // 빠른 프로필 생성 테스트 함수
 } from './apiTest';
