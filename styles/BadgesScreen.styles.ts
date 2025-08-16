@@ -102,19 +102,13 @@ export const BadgesScreenStyles = StyleSheet.create({
     elevation: 2,
   },
   badgeIconContainer: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: hp('2%'),
-    borderWidth: 2,
-    borderColor: '#FFD700',
   },
   badgeIcon: {
-    width: wp('8%'),
-    height: wp('8%'),
+    width: wp('15%'),
+    height: wp('15%'),
   },
   plusIcon: {
     fontSize: wp('5%'),

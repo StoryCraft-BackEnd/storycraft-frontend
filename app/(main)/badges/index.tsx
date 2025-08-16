@@ -276,13 +276,10 @@ export default function BadgesScreen() {
                 {item.isEarned ? (
                   <Image source={badgeImage} style={BadgesScreenStyles.badgeIcon} />
                 ) : (
-                  <View style={BadgesScreenStyles.unearnedBadgeContainer}>
-                    <Image
-                      source={badgeImage}
-                      style={[BadgesScreenStyles.badgeIcon, BadgesScreenStyles.unearnedBadgeIcon]}
-                    />
-                    <View style={BadgesScreenStyles.unearnedOverlay} />
-                  </View>
+                  <Image
+                    source={badgeImage}
+                    style={[BadgesScreenStyles.badgeIcon, BadgesScreenStyles.unearnedBadgeIcon]}
+                  />
                 )}
               </View>
               <Text style={BadgesScreenStyles.badgeName}>{item.badgeName}</Text>
