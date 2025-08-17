@@ -15,10 +15,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from 'react-native-responsive-screen';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 
 // --- 내부 모듈 및 스타일 ---
 import styles, { COLORS } from '@/styles/EnglishDictionaryScreen.styles';
@@ -55,96 +52,7 @@ const DIFFICULTY_FILTERS = [
 ];
 
 // 임시 단어 데이터 (나중에 실제 API로 교체)
-const SAMPLE_WORDS: Word[] = [
-  {
-    id: '1',
-    english: 'Cat',
-    pronunciation: '[kæt]',
-    korean: '고양이',
-    difficulty: 'easy',
-    example: {
-      english: 'The cat is sleeping on the sofa.',
-      korean: '고양이가 소파에서 자고 있어요.',
-    },
-  },
-  {
-    id: '2',
-    english: 'Dog',
-    pronunciation: '[dɔːɡ]',
-    korean: '강아지',
-    difficulty: 'easy',
-    example: {
-      english: 'I walk my dog every morning.',
-      korean: '나는 매일 아침 강아지를 산책시켜요.',
-    },
-  },
-  {
-    id: '3',
-    english: 'Bird',
-    pronunciation: '[bɜːrd]',
-    korean: '새',
-    difficulty: 'easy',
-    example: {
-      english: 'Birds are singing in the tree.',
-      korean: '새들이 나무에서 노래하고 있어요.',
-    },
-  },
-  {
-    id: '4',
-    english: 'Fish',
-    pronunciation: '[fɪʃ]',
-    korean: '물고기',
-    difficulty: 'easy',
-    example: {
-      english: 'Fish swim in the water.',
-      korean: '물고기는 물에서 헤엄쳐요.',
-    },
-  },
-  {
-    id: '5',
-    english: 'Apple',
-    pronunciation: '[ˈæpl]',
-    korean: '사과',
-    difficulty: 'easy',
-    example: {
-      english: 'I eat an apple every day.',
-      korean: '나는 매일 사과를 먹어요.',
-    },
-  },
-  {
-    id: '6',
-    english: 'Beautiful',
-    pronunciation: '[ˈbjuːtɪfl]',
-    korean: '아름다운',
-    difficulty: 'normal',
-    example: {
-      english: 'She is a beautiful girl.',
-      korean: '그녀는 아름다운 소녀예요.',
-    },
-  },
-  {
-    id: '7',
-    english: 'Adventure',
-    pronunciation: '[ədˈventʃər]',
-    korean: '모험',
-    difficulty: 'normal',
-    example: {
-      english: 'We went on an adventure.',
-      korean: '우리는 모험을 떠났어요.',
-    },
-  },
-  {
-    id: '8',
-    english: 'Magnificent',
-    pronunciation: '[mæɡˈnɪfɪsnt]',
-    korean: '장엄한',
-    difficulty: 'hard',
-    example: {
-      english: 'The view was magnificent.',
-      korean: '경치가 장엄했어요.',
-    },
-  },
-];
+// const SAMPLE_WORDS: Word[] = [ ... ]; // 제거됨
 
 /**
  * 영어 사전 화면의 메인 컴포넌트
@@ -154,11 +62,13 @@ const SAMPLE_WORDS: Word[] = [
  */
 export default function EnglishDictionaryScreen() {
   // === 상태 관리 ===
-  const [words, setWords] = useState<Word[]>(SAMPLE_WORDS); // 전체 단어 목록
-  const [filteredWords, setFilteredWords] = useState<Word[]>(SAMPLE_WORDS); // 필터링된 단어 목록
+  const [words, setWords] = useState<Word[]>([]); // 전체 단어 목록 (즐겨찾기 단어만)
+  const [filteredWords, setFilteredWords] = useState<Word[]>([]); // 필터링된 단어 목록
   const [searchQuery, setSearchQuery] = useState(''); // 검색어
   const [activeFilter, setActiveFilter] = useState('all'); // 현재 선택된 난이도 필터
-  const [favoriteWords, setFavoriteWords] = useState<string[]>([]); // 즐겨찾기 단어 목록
+  const [favoriteWords, setFavoriteWords] = useState<
+    { word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]
+  >([]); // 즐겨찾기 단어 목록
   const [selectedProfile, setSelectedProfile] = useState<any>(null); // 현재 선택된 프로필
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set()); // 뒤집힌 카드 ID 목록
 
@@ -167,6 +77,13 @@ export default function EnglishDictionaryScreen() {
   useEffect(() => {
     loadFavoriteWordsData();
   }, []);
+
+  // 즐겨찾기 단어가 변경될 때마다 단어 목록 업데이트
+  useEffect(() => {
+    if (favoriteWords.length > 0 && selectedProfile) {
+      updateWordsFromFavorites();
+    }
+  }, [favoriteWords, selectedProfile]);
 
   // 검색어나 필터 변경 시 단어 목록 업데이트
   useEffect(() => {
@@ -183,8 +100,38 @@ export default function EnglishDictionaryScreen() {
       const profile = await loadSelectedProfile();
       if (profile) {
         setSelectedProfile(profile);
+        console.log('🔍 프로필 로드 완료:', profile);
+
         const favorites = await loadFavoriteWords(profile.childId);
+        console.log('⭐ 즐겨찾기 단어 로드 완료:', favorites);
         setFavoriteWords(favorites);
+
+        // 즐겨찾기 단어를 Word 타입으로 변환하여 words 상태에 추가
+        if (favorites && favorites.length > 0) {
+          const favoriteWordObjects = favorites.map((fav, index) => ({
+            id: `fav_${index}`,
+            english: fav.word,
+            pronunciation: `[${fav.word}]`, // 임시 발음 (나중에 실제 발음 API 연동)
+            korean: fav.meaning,
+            difficulty: 'normal' as const, // 기본값
+            example: {
+              english: fav.exampleEng || `This is an example sentence with ${fav.word}.`,
+              korean: fav.exampleKor || `${fav.meaning}에 대한 예문입니다.`,
+            },
+            audio: undefined,
+          }));
+
+          console.log('🔄 즐겨찾기 단어를 Word 타입으로 변환:', favoriteWordObjects);
+
+          // 기존 샘플 단어와 즐겨찾기 단어를 합침
+          const allWords = [...favoriteWordObjects];
+          console.log(
+            '📚 최종 단어 목록:',
+            allWords.map((w) => w.english)
+          );
+          setWords(allWords);
+          setFilteredWords(allWords);
+        }
       }
     } catch (error) {
       console.error('즐겨찾기 단어 로드 실패:', error);
@@ -218,6 +165,31 @@ export default function EnglishDictionaryScreen() {
 
   // === 즐겨찾기 관리 함수 ===
   /**
+   * 즐겨찾기 단어 목록을 Word 타입으로 변환하여 words 상태에 업데이트
+   */
+  const updateWordsFromFavorites = () => {
+    if (!favoriteWords || favoriteWords.length === 0) return;
+
+    const favoriteWordObjects = favoriteWords.map((fav, index) => ({
+      id: `fav_${index}`,
+      english: fav.word,
+      pronunciation: `[${fav.word}]`, // 임시 발음
+      korean: fav.meaning,
+      difficulty: 'normal' as const,
+      example: {
+        english: fav.exampleEng || `This is an example sentence with ${fav.word}.`,
+        korean: fav.exampleKor || `${fav.meaning}에 대한 예문입니다.`,
+      },
+      audio: undefined,
+    }));
+
+    // 기존 샘플 단어와 즐겨찾기 단어를 합침
+    const allWords = [...favoriteWordObjects];
+    setWords(allWords);
+    setFilteredWords(allWords);
+  };
+
+  /**
    * 즐겨찾기 토글 함수
    * - 단어를 즐겨찾기에 추가하거나 제거
    * - 프로필별로 독립적으로 관리
@@ -229,17 +201,27 @@ export default function EnglishDictionaryScreen() {
     }
 
     try {
-      const isFavorite = favoriteWords.includes(word);
+      const isFavorite = favoriteWords.some((fav) => fav.word === word);
 
       if (isFavorite) {
         // 즐겨찾기 제거
         await removeFavoriteWord(selectedProfile.childId, word);
-        setFavoriteWords((prev) => prev.filter((w) => w !== word));
+        setFavoriteWords((prev) => prev.filter((w) => w.word !== word));
       } else {
-        // 즐겨찾기 추가
-        await addFavoriteWord(selectedProfile.childId, word);
-        setFavoriteWords((prev) => [...prev, word]);
+        // 즐겨찾기 추가 - 기본값 설정
+        const newFavoriteWord = {
+          word,
+          meaning: `Meaning of ${word}`, // 기본 의미
+          exampleEng: `This is an example sentence with ${word}.`, // 기본 영어 예문
+          exampleKor: `${word}에 대한 예문입니다.`, // 기본 한국어 예문
+        };
+
+        await addFavoriteWord(selectedProfile.childId, newFavoriteWord);
+        setFavoriteWords((prev) => [...prev, newFavoriteWord]);
       }
+
+      // 단어 목록 업데이트
+      updateWordsFromFavorites();
     } catch (error) {
       console.error('즐겨찾기 토글 실패:', error);
       Alert.alert('오류', '즐겨찾기 설정에 실패했습니다.');
@@ -300,7 +282,7 @@ export default function EnglishDictionaryScreen() {
    */
   const renderWordCard = ({ item }: { item: Word }) => {
     const isFlipped = flippedCards.has(item.id); // 카드 뒤집힌 상태 확인
-    const isFavorite = favoriteWords.includes(item.english); // 즐겨찾기 상태 확인
+    const isFavorite = favoriteWords.some((fav) => fav.word === item.english); // 즐겨찾기 상태 확인
 
     if (isFlipped) {
       // 뒤집힌 카드 (예문 표시) - 반응형 크기 적용
@@ -455,20 +437,30 @@ export default function EnglishDictionaryScreen() {
       </View>
 
       {/* 단어 카드 목록 - 좌우 스크롤만 지원 */}
-      <FlatList
-        data={filteredWords}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false} // 세로 스크롤바 숨김
-        scrollEnabled={true} // 가로 스크롤 활성화
-        contentContainerStyle={styles.cardListContainer}
-        renderItem={renderWordCard}
-        snapToInterval={wp('60%') + wp('3%')} // 반응형 스냅 간격 대폭 조정
-        decelerationRate="fast"
-        bounces={false} // 바운스 효과 비활성화
-        overScrollMode="never" // 오버스크롤 비활성화
-      />
+      {filteredWords.length > 0 ? (
+        <FlatList
+          data={filteredWords}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false} // 세로 스크롤바 숨김
+          scrollEnabled={true} // 가로 스크롤 활성화
+          contentContainerStyle={styles.cardListContainer}
+          renderItem={renderWordCard}
+          snapToInterval={wp('60%') + wp('3%')} // 반응형 스냅 간격 대폭 조정
+          decelerationRate="fast"
+          bounces={false} // 바운스 효과 비활성화
+          overScrollMode="never" // 오버스크롤 비활성화
+        />
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <Ionicons name="star-outline" size={64} color={COLORS.textSecondary} />
+          <Text style={styles.emptyStateTitle}>즐겨찾기한 단어가 없어요</Text>
+          <Text style={styles.emptyStateSubtitle}>
+            학습 화면에서 단어에 별표를 눌러서 즐겨찾기에 추가해보세요!
+          </Text>
+        </View>
+      )}
     </ImageBackground>
   );
 }

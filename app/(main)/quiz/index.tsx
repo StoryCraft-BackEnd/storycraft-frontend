@@ -119,6 +119,13 @@ export default function EnglishQuizScreen() {
    * - 퀴즈를 북마크에서 제거
    */
   const removeBookmarkFromQuiz = async (quizId: number) => {
+    // quizId가 유효하지 않으면 처리하지 않음
+    if (!quizId || isNaN(quizId)) {
+      console.warn('⚠️ 유효하지 않은 quizId:', quizId);
+      Alert.alert('오류', '퀴즈 ID가 올바르지 않습니다.');
+      return;
+    }
+
     try {
       await removeQuizBookmark(quizId);
       // 로컬 상태에서도 제거
@@ -135,6 +142,13 @@ export default function EnglishQuizScreen() {
    * - 퀴즈 모달 표시
    */
   const startQuiz = (quiz: Quiz) => {
+    // quizId가 없으면 퀴즈를 시작하지 않음
+    if (!quiz.quizId) {
+      console.warn('⚠️ quizId가 없는 퀴즈:', quiz);
+      Alert.alert('오류', '퀴즈 정보가 올바르지 않습니다.');
+      return;
+    }
+
     // 퀴즈 문제 데이터 생성
     const quizQuestion = {
       id: quiz.quizId,
@@ -163,6 +177,12 @@ export default function EnglishQuizScreen() {
    * - 반응형 디자인 적용
    */
   const renderQuizCard = ({ item }: { item: Quiz }) => {
+    // quizId가 없으면 렌더링하지 않음
+    if (!item.quizId) {
+      console.warn('⚠️ quizId가 없는 퀴즈 항목:', item);
+      return null;
+    }
+
     return (
       <TouchableOpacity style={styles.quizCard} onPress={() => startQuiz(item)} activeOpacity={0.8}>
         <View style={styles.cardContent}>
@@ -347,7 +367,7 @@ export default function EnglishQuizScreen() {
       ) : (
         <FlatList
           data={filteredQuizzes}
-          keyExtractor={(item) => item.quizId.toString()}
+          keyExtractor={(item) => (item.quizId || Math.random()).toString()}
           horizontal
           showsHorizontalScrollIndicator={false}
           showsVerticalScrollIndicator={false}

@@ -54,6 +54,44 @@ const getStoryTTSKey = (childId: number, storyId: number): string => {
 };
 
 /**
+ * 프로필별 동화 목록 마지막 업데이트 시간 키 생성
+ */
+const getStoriesLastUpdateKey = (childId: number): string => {
+  return createProfileKey(childId, 'stories_last_update');
+};
+
+/**
+ * 동화 목록 마지막 업데이트 시간 저장
+ */
+export const saveStoriesLastUpdateTime = async (childId: number): Promise<void> => {
+  try {
+    const key = getStoriesLastUpdateKey(childId);
+    const timestamp = Date.now();
+    await AsyncStorage.setItem(key, timestamp.toString());
+    console.log(
+      `프로필 ${childId} 동화 목록 업데이트 시간 저장:`,
+      new Date(timestamp).toISOString()
+    );
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 목록 업데이트 시간 저장 실패:`, error);
+  }
+};
+
+/**
+ * 동화 목록 마지막 업데이트 시간 조회
+ */
+export const getStoriesLastUpdateTime = async (childId: number): Promise<number | null> => {
+  try {
+    const key = getStoriesLastUpdateKey(childId);
+    const timestamp = await AsyncStorage.getItem(key);
+    return timestamp ? parseInt(timestamp, 10) : null;
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 목록 업데이트 시간 조회 실패:`, error);
+    return null;
+  }
+};
+
+/**
  * 프로필별 동화 목록을 로컬 스토리지에 저장
  */
 export const saveStories = async (childId: number, stories: Story[]): Promise<void> => {
@@ -91,6 +129,10 @@ export const saveStories = async (childId: number, stories: Story[]): Promise<vo
 
     const key = getStoriesKey(childId);
     await AsyncStorage.setItem(key, JSON.stringify(stories));
+
+    // 동화 목록 업데이트 시간 저장
+    await saveStoriesLastUpdateTime(childId);
+
     console.log(`프로필 ${childId} 동화 목록 저장 완료:`, {
       totalStories: stories.length,
       validStories: stories.length - invalidStories.length,
@@ -226,7 +268,10 @@ export const removeStoryFromStorage = async (childId: number, storyId: number): 
 /**
  * 프로필별 즐겨찾기 단어 목록 저장
  */
-export const saveFavoriteWords = async (childId: number, words: string[]): Promise<void> => {
+export const saveFavoriteWords = async (
+  childId: number,
+  words: { word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]
+): Promise<void> => {
   try {
     // childId 파라미터 검증 추가
     if (!childId || typeof childId !== 'number' || childId <= 0) {
@@ -250,7 +295,9 @@ export const saveFavoriteWords = async (childId: number, words: string[]): Promi
 /**
  * 프로필별 즐겨찾기 단어 목록 불러오기
  */
-export const loadFavoriteWords = async (childId: number): Promise<string[]> => {
+export const loadFavoriteWords = async (
+  childId: number
+): Promise<{ word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]> => {
   try {
     // childId 파라미터 검증 추가
     if (!childId || typeof childId !== 'number' || childId <= 0) {
@@ -266,7 +313,7 @@ export const loadFavoriteWords = async (childId: number): Promise<string[]> => {
     const key = getFavoritesKey(childId);
     const wordsJson = await AsyncStorage.getItem(key);
     const words = wordsJson ? JSON.parse(wordsJson) : [];
-    console.log(`프로필 ${childId} 즐겨찾기 단어 불러오기 완료:`, words.length, '개');
+    // console.log(`프로필 ${childId} 즐겨찾기 단어 불러오기 완료:`, words.length, '개'); // 로그 제거
     return words;
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 불러오기 실패:`, error);
@@ -277,13 +324,21 @@ export const loadFavoriteWords = async (childId: number): Promise<string[]> => {
 /**
  * 프로필별 즐겨찾기 단어 추가
  */
-export const addFavoriteWord = async (childId: number, word: string): Promise<void> => {
+export const addFavoriteWord = async (
+  childId: number,
+  wordData: {
+    word: string;
+    meaning: string;
+    exampleEng?: string;
+    exampleKor?: string;
+  }
+): Promise<void> => {
   try {
     const existingWords = await loadFavoriteWords(childId);
-    if (!existingWords.includes(word)) {
-      const updatedWords = [...existingWords, word];
+    if (!existingWords.some((w) => w.word === wordData.word)) {
+      const updatedWords = [...existingWords, wordData];
       await saveFavoriteWords(childId, updatedWords);
-      console.log(`프로필 ${childId} 즐겨찾기 단어 추가 완료:`, word);
+      console.log(`프로필 ${childId} 즐겨찾기 단어 추가 완료:`, wordData.word);
     }
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 추가 실패:`, error);
@@ -296,11 +351,24 @@ export const addFavoriteWord = async (childId: number, word: string): Promise<vo
 export const removeFavoriteWord = async (childId: number, word: string): Promise<void> => {
   try {
     const existingWords = await loadFavoriteWords(childId);
-    const updatedWords = existingWords.filter((w) => w !== word);
+    const updatedWords = existingWords.filter((w) => w.word !== word);
     await saveFavoriteWords(childId, updatedWords);
     console.log(`프로필 ${childId} 즐겨찾기 단어 제거 완료:`, word);
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 제거 실패:`, error);
+  }
+};
+
+/**
+ * 프로필별 즐겨찾기 단어 확인
+ */
+export const isFavoriteWord = async (childId: number, word: string): Promise<boolean> => {
+  try {
+    const existingWords = await loadFavoriteWords(childId);
+    return existingWords.some((w) => w.word === word);
+  } catch (error) {
+    console.error(`프로필 ${childId} 즐겨찾기 단어 확인 실패:`, error);
+    return false;
   }
 };
 

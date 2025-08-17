@@ -22,7 +22,7 @@ export interface Quiz {
  */
 export interface CreateQuizRequest {
   storyId: number;
-  keywords?: string[];
+  childId: number;
 }
 
 /**
@@ -70,7 +70,7 @@ export interface QuizResultsResponse {
  * try {
  *   const quizzes = await createQuiz({
  *     storyId: 1,
- *     keywords: ['adventure', 'friendship', 'courage']
+ *     childId: 1
  *   });
  *   console.log(`✅ ${quizzes.length}개의 퀴즈 생성 완료`);
  * } catch (error) {
@@ -82,22 +82,19 @@ export const createQuiz = async (request: CreateQuizRequest): Promise<Quiz[]> =>
   try {
     console.log('🎯 퀴즈 생성 API 호출 시작:', {
       storyId: request.storyId,
-      keywords: request.keywords,
-      hasKeywords: !!request.keywords && request.keywords.length > 0,
+      childId: request.childId,
     });
 
     // 쿼리 파라미터 구성
     const queryParams = new URLSearchParams();
     queryParams.append('storyId', request.storyId.toString());
+    queryParams.append('childId', request.childId.toString());
 
-    if (request.keywords && request.keywords.length > 0) {
-      request.keywords.forEach((keyword) => {
-        queryParams.append('keywords', keyword);
-      });
-    }
+    // keywords는 서버에서 자동으로 동화 내용에서 추출하므로 전송하지 않음
 
     const url = `/quizzes?${queryParams.toString()}`;
     console.log('🌐 API 요청 URL:', url);
+    console.log('📤 HTTP 메서드: POST');
 
     // API 호출
     const response = await apiClient.post(url);
@@ -183,57 +180,45 @@ export const createQuiz = async (request: CreateQuizRequest): Promise<Quiz[]> =>
  * @example
  * ```typescript
  * try {
- *   const quizzes = await getQuizzesByStory(4);
+ *   const quizzes = await getQuizzesByStory(4, 1);
  *   console.log(`✅ ${quizzes.length}개의 퀴즈 조회 완료`);
  * } catch (error) {
  *   console.error('❌ 퀴즈 조회 실패:', error.message);
  * }
  * ```
  */
-export const getQuizzesByStory = async (storyId: number): Promise<Quiz[]> => {
+export const getQuizzesByStory = async (storyId: number, childId: number): Promise<Quiz[]> => {
   try {
-    console.log('🔍 동화별 퀴즈 목록 조회 시작:', { storyId });
+    console.log('🔍 동화별 퀴즈 목록 조회 시작:', { storyId, childId });
 
-    const response = await apiClient.get(`/quizzes?storyId=${storyId}`);
+    // 먼저 기존 퀴즈 조회 시도
+    try {
+      const url = `/quizzes?storyId=${storyId}&child_id=${childId}`;
+      console.log('🔍 기존 퀴즈 조회 시도 (GET):', url);
 
-    console.log('📊 퀴즈 목록 조회 API 응답:', {
-      status: response.status,
-      rawData: response.data,
-      dataType: typeof response.data,
-      hasData: !!response.data,
-      hasDataField: !!(response.data && response.data.data),
-    });
+      const response = await apiClient.get(url);
 
-    // 서버 응답 구조 확인 및 데이터 추출 (createQuiz와 동일한 로직)
-    let quizzesArray: Quiz[] = [];
-
-    if (Array.isArray(response.data)) {
-      // 직접 배열로 응답하는 경우
-      quizzesArray = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      if (Array.isArray(response.data.data)) {
-        // response.data.data에 배열이 있는 경우
-        quizzesArray = response.data.data;
-      } else {
-        console.error('❌ 응답 데이터의 data 필드가 배열이 아닙니다:', response.data);
-        throw new Error('서버 응답 데이터 구조가 올바르지 않습니다.');
+      // 퀴즈가 있으면 반환
+      if (response.data && response.data.data && response.data.data.length > 0) {
+        console.log('✅ 기존 퀴즈 발견:', response.data.data.length, '개');
+        return response.data.data;
       }
-    } else {
-      console.error('❌ 응답 데이터가 예상과 다릅니다:', response.data);
-      throw new Error('서버 응답 데이터 형식이 올바르지 않습니다.');
+    } catch (error: any) {
+      // 404 에러가 아닌 경우에만 로그 (퀴즈가 없는 경우는 정상)
+      if (error.response?.status !== 404) {
+        console.log('⚠️ 기존 퀴즈 조회 실패, 새로 생성 시도:', error.response?.status);
+        console.log('🔍 GET 요청 실패 상세:', {
+          method: 'GET',
+          url: `/quizzes?storyId=${storyId}&child_id=${childId}`,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      }
     }
 
-    console.log('✅ 퀴즈 목록 조회 성공:', {
-      storyId,
-      quizCount: quizzesArray.length,
-      quizzes: quizzesArray.map((q) => ({
-        quizId: q.quizId,
-        question: q.question.substring(0, 50) + '...',
-        optionsCount: Object.keys(q.options).length,
-      })),
-    });
-
-    return quizzesArray;
+    // 퀴즈가 없으면 새로 생성
+    console.log('🔄 퀴즈가 없습니다. 새로 생성 중...');
+    return await createQuiz({ storyId, childId });
   } catch (error: any) {
     console.error('❌ 퀴즈 목록 조회 실패:', error);
 

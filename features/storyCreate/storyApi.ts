@@ -214,22 +214,6 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
     try {
       console.log('🔊 TTS 생성 시작...');
 
-      // 비용 절약을 위해 첫 번째 단락만 TTS 생성 (현재)
-      const ttsRequest = {
-        storyId: storyData.storyId,
-        sectionId: 1, // 첫 번째 단락만
-        voiceId: 'Seoyeon', // 기본 성우
-        speechRate: 0.8, // 기본 속도
-      };
-
-      const ttsInfo = await requestTTS(ttsRequest);
-      console.log('✅ 첫 번째 단락 TTS 생성 성공:', {
-        sectionId: ttsInfo.sectionId,
-        audioPath: ttsInfo.audioPath,
-      });
-
-      /* 
-      // TODO: 비용 문제 해결 후 모든 단락에 대해 TTS 생성하는 코드 (주석처리)
       // 동화의 모든 단락 정보 가져오기
       const sections = await fetchStorySections(storyData.storyId, request.childId);
 
@@ -240,6 +224,7 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
         const ttsPromises = sections.map(async (section) => {
           try {
             const ttsRequest = {
+              childId: request.childId,
               storyId: storyData.storyId,
               sectionId: section.sectionId,
               voiceId: 'Seoyeon', // 기본 성우
@@ -265,7 +250,6 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
       } else {
         console.log('⚠️ 동화 단락 정보를 가져올 수 없어 TTS 생성을 건너뜁니다.');
       }
-      */
     } catch (ttsError) {
       console.error('TTS 생성 실패:', ttsError);
       // TTS 생성 실패는 동화 생성 실패로 처리하지 않음
@@ -318,13 +302,10 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
  */
 export const createIllustration = async (
   request: CreateIllustrationRequest,
-  childId: number, // childId 파라미터 추가
-  retryCount: number = 0
+  childId: number // childId 파라미터 추가
 ): Promise<Illustration[]> => {
-  const maxRetries = 2; // 최대 2번 재시도
-
   try {
-    console.log(`🎨 삽화 생성 요청 시작 (시도 ${retryCount + 1}/${maxRetries + 1}):`, {
+    console.log('🎨 삽화 생성 요청 시작:', {
       url: `/illustrations/sections?childId=${childId}`,
       method: 'POST',
       requestData: {
@@ -371,7 +352,7 @@ export const createIllustration = async (
     // API 응답에서 삽화 배열 반환
     return response.data.data?.illustrations || [];
   } catch (error: any) {
-    console.error(`❌ 삽화 생성 실패 상세 (시도 ${retryCount + 1}/${maxRetries + 1}):`, {
+    console.error('❌ 삽화 생성 실패 상세:', {
       error: error.response?.data || error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -381,18 +362,6 @@ export const createIllustration = async (
       requestData: error.config?.data,
       fullError: error,
     });
-
-    // 504 Gateway Timeout 오류인 경우 재시도
-    if (error.response?.status === 504 && retryCount < maxRetries) {
-      console.log(`🔄 504 Gateway Timeout 발생. ${retryCount + 1}초 후 재시도합니다...`);
-
-      // 재시도 전 대기 (점진적으로 증가)
-      const waitTime = (retryCount + 1) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-
-      console.log(`🔄 삽화 생성 재시도 중... (${retryCount + 1}/${maxRetries})`);
-      return createIllustration(request, retryCount + 1);
-    }
 
     // 네트워크 에러인지 확인
     if (!error.response) {
@@ -643,9 +612,9 @@ export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => 
     console.log('🔊 TTS API 요청:', request);
 
     // 요청 파라미터 검증
-    if (!request.storyId || !request.sectionId || !request.voiceId) {
+    if (!request.childId || !request.storyId || !request.sectionId || !request.voiceId) {
       throw new Error(
-        'TTS 요청 파라미터가 누락되었습니다: storyId, sectionId, voiceId가 필요합니다.'
+        'TTS 요청 파라미터가 누락되었습니다: childId, storyId, sectionId, voiceId가 필요합니다.'
       );
     }
 
@@ -654,47 +623,41 @@ export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => 
       request.speechRate = 0.8;
     }
 
-    const response = await apiClient.post<TTSResponse>('/speech/tts', request);
+    // 쿼리 파라미터로 전송 (POST 요청이지만 body는 없음)
+    const { childId, storyId, sectionId, voiceId, speechRate } = request;
+    const response = await apiClient.post<TTSResponse>(
+      `/speech/tts?child_id=${childId}&story_id=${storyId}&section_id=${sectionId}&voice_id=${voiceId}&speech_rate=${speechRate}`,
+      {} // 빈 body (POST 요청이지만 데이터는 쿼리 파라미터로 전송)
+    );
     console.log('🔊 TTS API 응답:', {
       status: response.status,
       data: response.data,
     });
 
-    // 응답 데이터 구조 확인
-    const ttsData = response.data;
+    // 응답 데이터 구조 확인 (중첩된 data 필드에서 추출)
+    const ttsData = response.data.data;
     if (!ttsData) {
       throw new Error('TTS 응답 데이터가 없습니다.');
     }
 
-    // 실제 TTS 데이터는 ttsData.data에 있음
-    const actualTtsData = ttsData.data;
-    if (!actualTtsData) {
-      console.error('❌ TTS data 필드가 없습니다. 응답 데이터:', ttsData);
-      throw new Error('TTS data 필드가 응답에 포함되지 않았습니다.');
-    }
-
     // TTS URL 확인 및 검증
-    if (
-      !actualTtsData.ttsUrl ||
-      typeof actualTtsData.ttsUrl !== 'string' ||
-      actualTtsData.ttsUrl.trim() === ''
-    ) {
-      console.error('❌ TTS URL이 유효하지 않습니다. 응답 데이터:', actualTtsData);
-      console.error('   - ttsUrl 값:', actualTtsData.ttsUrl);
-      console.error('   - ttsUrl 타입:', typeof actualTtsData.ttsUrl);
-      console.error('   - ttsUrl 길이:', actualTtsData.ttsUrl?.length);
+    if (!ttsData.ttsUrl || typeof ttsData.ttsUrl !== 'string' || ttsData.ttsUrl.trim() === '') {
+      console.error('❌ TTS URL이 유효하지 않습니다. 응답 데이터:', ttsData);
+      console.error('   - ttsUrl 값:', ttsData.ttsUrl);
+      console.error('   - ttsUrl 타입:', typeof ttsData.ttsUrl);
+      console.error('   - ttsUrl 길이:', ttsData.ttsUrl?.length);
       throw new Error('TTS URL이 유효하지 않거나 비어있습니다.');
     }
 
     // URL 형식 검증
     try {
-      new URL(actualTtsData.ttsUrl);
+      new URL(ttsData.ttsUrl);
     } catch {
-      console.error('❌ TTS URL 형식이 올바르지 않습니다:', actualTtsData.ttsUrl);
+      console.error('❌ TTS URL 형식이 올바르지 않습니다:', ttsData.ttsUrl);
       throw new Error('TTS URL 형식이 올바르지 않습니다.');
     }
 
-    console.log('✅ TTS URL 확인됨:', actualTtsData.ttsUrl);
+    console.log('✅ TTS URL 확인됨:', ttsData.ttsUrl);
 
     // 오디오 파일 다운로드
     const audioFileName = `tts_${request.storyId}_${request.sectionId}.mp3`;
@@ -708,8 +671,8 @@ export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => 
       console.log('📁 TTS 디렉토리 생성 완료:', audioDir);
     }
 
-    console.log('📥 TTS 오디오 다운로드 시작:', actualTtsData.ttsUrl);
-    const downloadResult = await FileSystem.downloadAsync(actualTtsData.ttsUrl, audioPath);
+    console.log('📥 TTS 오디오 다운로드 시작:', ttsData.ttsUrl);
+    const downloadResult = await FileSystem.downloadAsync(ttsData.ttsUrl, audioPath);
 
     if (downloadResult.status !== 200) {
       throw new Error(`TTS 오디오 다운로드 실패: ${downloadResult.status}`);
@@ -721,7 +684,7 @@ export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => 
       storyId: request.storyId,
       sectionId: request.sectionId,
       audioPath: downloadResult.uri,
-      ttsUrl: actualTtsData.ttsUrl,
+      ttsUrl: ttsData.ttsUrl,
     };
   } catch (error: any) {
     console.error('❌ TTS 생성 중 오류 발생:', error);
@@ -752,6 +715,7 @@ export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => 
  * 동화의 모든 단락에 대해 TTS 요청 및 오디오 다운로드
  */
 export const requestAllSectionsTTS = async (
+  childId: number,
   storyId: number,
   sections: StorySection[],
   voiceId: string = 'Seoyeon',
@@ -759,6 +723,7 @@ export const requestAllSectionsTTS = async (
 ): Promise<TTSAudioInfo[]> => {
   const ttsPromises = sections.map((section) =>
     requestTTS({
+      childId,
       storyId,
       sectionId: section.sectionId,
       voiceId,
@@ -1374,22 +1339,20 @@ export type { TTSAudioInfo };
  * 자녀가 저장한 모든 단어 목록 조회 API
  * 특정 자녀가 저장한 모든 단어를 반환합니다.
  *
- * @param userId - 로그인한 사용자 ID
  * @param childId - 자녀 프로필 ID
  * @returns Promise<SavedWord[]> - 저장된 단어 목록
  *
  * API 스펙:
  * - Method: GET
  * - Endpoint: /dictionaries/words/list
- * - Request: userID (query), childId (query)
+ * - Request: child_id (query)
  * - Response: SavedWord[] - 저장된 단어 목록
  */
-export const getAllWordsByChild = async (userId: number, childId: number): Promise<SavedWord[]> => {
+export const getAllWordsByChild = async (childId: number): Promise<SavedWord[]> => {
   try {
     console.log('🔠 전체 단어 목록 조회 요청 시작:', {
-      url: `/dictionaries/words/list?userID=${userId}&childId=${childId}`,
+      url: `/dictionaries/words/list?child_id=${childId}`,
       method: 'GET',
-      userId,
       childId,
     });
 
@@ -1404,7 +1367,7 @@ export const getAllWordsByChild = async (userId: number, childId: number): Promi
     // 서버에서 전체 단어 목록 조회
     console.log('🔠 서버에서 전체 단어 목록 조회 중...');
     const response = await apiClient.get<SavedWord[]>(
-      `/dictionaries/words/list?userID=${userId}&childId=${childId}`,
+      `/dictionaries/words/list?child_id=${childId}`,
       {
         timeout: 10000, // 10초로 설정
       }
@@ -1428,8 +1391,9 @@ export const getAllWordsByChild = async (userId: number, childId: number): Promi
       wordsArray = response.data;
     } else if (response.data && typeof response.data === 'object') {
       // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      if (Array.isArray(response.data.data)) {
-        wordsArray = response.data.data;
+      const responseData = response.data as any;
+      if (Array.isArray(responseData.data)) {
+        wordsArray = responseData.data;
       } else {
         console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
         wordsArray = [];
@@ -1458,7 +1422,6 @@ export const getAllWordsByChild = async (userId: number, childId: number): Promi
       isNetworkError: !error.response,
       url: error.config?.url,
       method: error.config?.method,
-      userId,
       childId,
     });
 
@@ -1493,8 +1456,7 @@ export const saveWordsByStory = async (storyId: number, childId: number): Promis
     console.log('🔠 단어 저장 요청 시작:', {
       url: `/dictionaries/words/save-by-story?storyId=${storyId}&childId=${childId}`,
       method: 'POST',
-      storyId,
-      childId,
+      params: { storyId, childId },
     });
 
     // 인증 토큰 상태 확인
@@ -1536,8 +1498,9 @@ export const saveWordsByStory = async (storyId: number, childId: number): Promis
       wordsArray = response.data;
     } else if (response.data && typeof response.data === 'object') {
       // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      if (Array.isArray(response.data.data)) {
-        wordsArray = response.data.data;
+      const responseData = response.data as any;
+      if (Array.isArray(responseData.data)) {
+        wordsArray = responseData.data;
       } else {
         console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
         wordsArray = [];
@@ -1642,8 +1605,9 @@ export const getWordsByStory = async (storyId: number, childId: number): Promise
       wordsArray = response.data;
     } else if (response.data && typeof response.data === 'object') {
       // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      if (Array.isArray(response.data.data)) {
-        wordsArray = response.data.data;
+      const responseData = response.data as any;
+      if (Array.isArray(responseData.data)) {
+        wordsArray = responseData.data;
       } else {
         console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
         wordsArray = [];

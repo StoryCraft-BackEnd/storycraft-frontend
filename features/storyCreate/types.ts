@@ -168,16 +168,15 @@ export interface Illustration {
 
 // TTS 요청 타입
 export interface TTSRequest {
+  childId: number;
   storyId: number;
   sectionId: number;
   voiceId: string;
   speechRate: number;
 }
 
-// TTS 응답 타입
+// TTS 응답 타입 (서버 응답 구조에 맞춤)
 export interface TTSResponse {
-  status: number;
-  message: string;
   data: {
     ttsId: number;
     storyId: number;
@@ -188,6 +187,8 @@ export interface TTSResponse {
     ttsUrl: string;
     createdAt: string;
   };
+  message: string;
+  status: number;
 }
 
 // TTS 오디오 파일 정보 타입

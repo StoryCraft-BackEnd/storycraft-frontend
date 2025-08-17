@@ -281,4 +281,26 @@ export default StyleSheet.create({
     marginBottom: 20,
     lineHeight: 24,
   },
+
+  // 빈 상태 스타일
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });

@@ -60,10 +60,21 @@ const StoryCreateScreen = () => {
   const [totalSteps] = useState(3);
 
   // 동화 생성 완료 후 퀴즈 자동 생성 함수
-  const generateQuizForStory = async (storyId: number, storyKeywords: string[]) => {
+  const generateQuizForStory = async (
+    storyId: number,
+    childId: number,
+    storyKeywords: string[]
+  ) => {
+    // 선택된 프로필 불러오기
+    const selectedProfile = await loadSelectedProfile();
+    if (!selectedProfile) {
+      showPopup('오류', '프로필을 먼저 선택해주세요.');
+      return;
+    }
     try {
       console.log('🎯 동화 기반 퀴즈 자동 생성 시작:', {
         storyId,
+        childId: selectedProfile.childId,
         keywords: storyKeywords,
         keywordsCount: storyKeywords.length,
       });
@@ -71,11 +82,12 @@ const StoryCreateScreen = () => {
       // 퀴즈 생성 API 호출 - POST /quizzes
       const quizzes = await createQuiz({
         storyId,
-        keywords: storyKeywords.length > 0 ? storyKeywords : undefined,
+        childId: selectedProfile.childId,
       });
 
       console.log('✅ 퀴즈 자동 생성 완료:', {
         storyId,
+        childId: selectedProfile.childId,
         generatedQuizzes: quizzes.length,
         quizzes: quizzes.map((q) => ({
           quizId: q.quizId,
@@ -88,6 +100,7 @@ const StoryCreateScreen = () => {
     } catch (error) {
       console.error('❌ 퀴즈 자동 생성 실패:', {
         storyId,
+        childId: selectedProfile.childId,
         error: error instanceof Error ? error.message : '알 수 없는 오류',
         errorType: error instanceof Error ? error.constructor.name : '알 수 없음',
       });

@@ -46,7 +46,7 @@ import { MainScreenStyles } from '@/styles/MainScreen';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import { ChildProfile } from '@/features/profile/types';
-import { loadStoriesFromStorage, addStoryToStorage } from '@/features/storyCreate/storyStorage';
+import { addStoryToStorage } from '@/features/storyCreate/storyStorage';
 import { Story, LocalIllustration } from '@/features/storyCreate/types';
 import { getStoryIllustrationPathFromStory } from '@/features/storyCreate/storyUtils';
 import {
@@ -54,7 +54,9 @@ import {
   fetchIllustrationList,
   downloadStoryIllustrations,
 } from '@/features/storyCreate/storyApi';
+import { getMyInfo } from '@/features/user/userApi';
 import * as FileSystem from 'expo-file-system';
+import { getStoriesLastUpdateTime } from '@/features/storyCreate/storyStorage';
 
 // 기본 삽화 이미지들 (삽화가 없을 때 사용)
 const defaultStoryImages = [story1, story2, story3, story4, story5, story6, story7, story8];
@@ -68,6 +70,8 @@ export default function MainScreen() {
   const [illustrationLoadingProgress, setIllustrationLoadingProgress] = useState<string>('');
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('불러오는중...');
+  const [illustrationsReady, setIllustrationsReady] = useState(false);
+  const [lastStoriesUpdateTime, setLastStoriesUpdateTime] = useState<number | null>(null);
 
   useEffect(() => {
     // 화면을 가로 모드로 고정
@@ -83,15 +87,22 @@ export default function MainScreen() {
       return true;
     });
 
-    // 선택된 프로필 불러오기
-    const loadProfile = async () => {
+    // 사용자 정보 및 프로필 불러오기
+    const loadUserData = async () => {
       try {
+        // 현재 로그인한 사용자 정보 가져오기
+        const userInfo = await getMyInfo();
+        console.log('✅ 사용자 정보 로드 완료:', {
+          userId: userInfo.id,
+          nickname: userInfo.nickname,
+        });
+
+        // 선택된 프로필 불러오기
         const profile = await loadSelectedProfile();
         setSelectedProfile(profile);
 
         // 프로필이 있으면 초기 로딩 시작
         if (profile) {
-          console.log('프로필 선택됨 - 초기 로딩 시작');
           await loadStories(profile.childId, true);
         } else {
           // 프로필이 없으면 프로필 선택 화면으로 이동
@@ -99,12 +110,29 @@ export default function MainScreen() {
           router.replace('/(profile)');
         }
       } catch (error) {
-        console.error('프로필 불러오기 실패:', error);
-        // 오류 발생 시 프로필 선택 화면으로 이동
+        console.error('사용자 데이터 로드 실패:', error);
+
+        // 에러 타입별로 다른 처리
+        if (error instanceof Error) {
+          if (
+            error.message.includes('로그인이 필요합니다') ||
+            error.message.includes('인증이 만료')
+          ) {
+            console.log('🔐 인증 문제 - 로그인 화면으로 이동');
+            router.replace('/(auth)/login');
+            return;
+          } else if (error.message.includes('서버 오류')) {
+            console.log('🌐 서버 오류 - 프로필 선택 화면으로 이동');
+            // 서버 오류 시에도 프로필 선택 화면으로 이동 시도
+          }
+        }
+
+        // 기본적으로 프로필 선택 화면으로 이동
+        console.log('🔄 프로필 선택 화면으로 이동');
         router.replace('/(profile)');
       }
     };
-    loadProfile();
+    loadUserData();
 
     // 시간대별 배경 이미지 설정 (추후 개발 예정)
     // const updateBackgroundImage = () => {
@@ -139,12 +167,28 @@ export default function MainScreen() {
       let isMounted = true;
 
       const refreshStories = async () => {
-        if (selectedProfile && isMounted) {
-          console.log('메인 화면 포커스 - 동화 목록 새로고침');
-          // 초기 로딩이 아닌 경우에만 새로고침
-          if (!isInitialLoading) {
-            await loadStories(selectedProfile.childId);
+        // 초기 로딩 중이거나 프로필이 없으면 새로고침 건너뛰기
+        if (selectedProfile && isMounted && !isInitialLoading) {
+          // 동화 목록 변경 감지: 마지막 업데이트 시간 확인
+          const lastUpdateTime = await getStoriesLastUpdateTime(selectedProfile.childId);
+          const needsRefresh = !lastUpdateTime || lastUpdateTime !== lastStoriesUpdateTime;
+
+          // 삽화가 이미 준비된 상태에서도 동화 목록이 변경되었으면 새로고침
+          if (illustrationsReady && userStories.length > 0 && !needsRefresh) {
+            console.log(
+              '메인 화면 포커스 - 삽화가 이미 준비되고 동화 목록 변경 없음, 새로고침 건너뛰기'
+            );
+            return;
           }
+
+          if (needsRefresh) {
+            console.log('메인 화면 포커스 - 동화 목록 변경 감지, 새로고침 필요');
+          } else {
+            console.log('메인 화면 포커스 - 동화 목록 새로고침');
+          }
+
+          // 동화 목록 새로고침
+          await loadStories(selectedProfile.childId, false);
         }
       };
 
@@ -153,7 +197,7 @@ export default function MainScreen() {
       return () => {
         isMounted = false;
       };
-    }, [selectedProfile, isInitialLoading])
+    }, [selectedProfile, isInitialLoading, illustrationsReady, userStories.length])
   );
 
   // 동화 목록 및 삽화 로드
@@ -166,44 +210,45 @@ export default function MainScreen() {
         setLoadingMessage('동화 목록을 불러오는 중...');
       }
 
-      // 1. 서버에서 동화 목록 조회
+      let stories: Story[] = [];
+
+      // 서버 우선 정책: 항상 서버에서 데이터 조회
       try {
-        console.log('서버에서 동화 목록 조회 시작...');
-        if (isInitialLoad) {
-          setLoadingMessage('서버에서 동화 목록을 조회하는 중...');
-        }
+        setLoadingMessage('서버에서 동화 목록을 조회하는 중...');
+
         const storyDataList = await fetchStoryList(childId);
         console.log(`서버에서 ${storyDataList.length}개의 동화 조회 완료`);
 
         // StoryData를 Story 타입으로 변환
-        const stories: Story[] = storyDataList.map((storyData) => ({
+        stories = storyDataList.map((storyData) => ({
           ...storyData,
           childId: childId,
           isBookmarked: false,
           isLiked: false,
         }));
 
-        // 동화 목록을 로컬에 저장
+        // 동화 목록을 로컬에 저장 (서버 데이터로 덮어쓰기)
         await Promise.all(stories.map((story) => addStoryToStorage(story)));
         console.log('동화 목록 로컬 저장 완료');
 
-        setUserStories(stories);
+        // 동화 목록 업데이트 시간 저장 (무한 루프 방지)
+        if (!lastStoriesUpdateTime) {
+          const currentTime = Date.now();
+          setLastStoriesUpdateTime(currentTime);
+        }
 
-        // 2. 서버에서 삽화 목록 조회
-        if (stories.length > 0) {
+        // 삽화 목록 조회 및 다운로드
+        if (stories.length > 0 && selectedProfile?.childId) {
           try {
-            console.log('서버에서 삽화 목록 조회 시작...');
+            console.log('✅ 서버에서 삽화 목록 조회 시작... - childId:', selectedProfile.childId);
             setIsLoadingIllustrations(true);
             setIllustrationLoadingProgress('삽화 목록을 조회하는 중...');
+            setLoadingMessage('삽화 목록을 조회하는 중...');
 
-            if (isInitialLoad) {
-              setLoadingMessage('삽화 목록을 조회하는 중...');
-            }
-
-            const illustrations = await fetchIllustrationList();
+            const illustrations = await fetchIllustrationList(selectedProfile.childId);
             console.log(`서버에서 ${illustrations.length}개의 삽화 조회 완료`);
 
-            // 3. 동화에 해당하는 삽화 정보를 동화 객체에 추가
+            // 동화에 해당하는 삽화 정보를 동화 객체에 추가
             const storiesWithIllustrations = stories.map((story) => {
               const storyIllustrations = illustrations.filter(
                 (illustration) => illustration.storyId === story.storyId
@@ -214,6 +259,7 @@ export default function MainScreen() {
                 (illustration) => ({
                   illustrationId: illustration.illustrationId,
                   storyId: illustration.storyId,
+                  orderIndex: illustration.orderIndex, // orderIndex 추가
                   localPath: '', // 다운로드 후 설정됨
                   imageUrl: illustration.imageUrl,
                   description: illustration.description,
@@ -236,22 +282,18 @@ export default function MainScreen() {
               }))
             );
 
-            // 4. 동화에 해당하는 삽화만 다운로드
+            // 동화에 해당하는 삽화만 다운로드
             setIllustrationLoadingProgress('삽화를 다운로드하는 중...');
-            if (isInitialLoad) {
-              setLoadingMessage('삽화를 다운로드하는 중...');
-            }
+            setLoadingMessage('삽화를 다운로드하는 중...');
 
             await downloadStoryIllustrations(stories, illustrations, (message) => {
               setIllustrationLoadingProgress(message);
-              if (isInitialLoad) {
-                setLoadingMessage(message);
-              }
+              setLoadingMessage(message);
             });
 
             console.log('동화 삽화 다운로드 완료');
 
-            // 5. 다운로드된 삽화의 localPath 업데이트
+            // 다운로드된 삽화의 localPath 업데이트
             const updatedStories = storiesWithIllustrations.map((story) => {
               if (story.illustrations && story.illustrations.length > 0) {
                 const updatedIllustrations = story.illustrations.map((illustration) => ({
@@ -267,11 +309,14 @@ export default function MainScreen() {
             });
 
             console.log('삽화 localPath 업데이트 완료');
+            stories = updatedStories;
 
-            // 삽화 정보가 포함된 동화 목록으로 업데이트
-            setUserStories(updatedStories);
+            // 삽화 로딩 완료 상태 설정
+            setIllustrationsReady(true);
           } catch (illustrationError) {
             console.error('삽화 처리 실패:', illustrationError);
+            // 삽화 로딩 실패 시에도 준비 완료로 설정
+            setIllustrationsReady(true);
           } finally {
             setIsLoadingIllustrations(false);
             setIllustrationLoadingProgress('');
@@ -279,15 +324,19 @@ export default function MainScreen() {
         }
       } catch (serverError) {
         console.error('서버 데이터 조회 실패:', serverError);
-        // 서버 실패 시 로컬 데이터 사용
-        const localStories = await loadStoriesFromStorage(childId);
-        setUserStories(localStories);
+
+        // 서버 실패 시 빈 배열 반환 (서버 우선 정책)
+        stories = [];
+        console.log('서버 요청 실패 - 빈 동화 목록 반환');
       }
 
-      // 4. 삽화 이미지 경로 설정
+      // 동화 목록 설정
+      setUserStories(stories);
+
+      // 삽화 이미지 경로 설정
       console.log('동화 삽화 이미지 경로 설정 시작...');
       const images = await Promise.all(
-        userStories.map(async (story, index) => {
+        stories.map(async (story, index) => {
           try {
             // 삽화 경로 확인
             const illustrationPath = await getStoryIllustrationPathFromStory(story);
@@ -443,7 +492,7 @@ export default function MainScreen() {
 
           <TouchableOpacity
             style={[MainScreenStyles.button, MainScreenStyles.button4]}
-            onPress={() => router.push('/(main)/quiz-collection')}
+            onPress={() => router.push('/(main)/quiz')}
           >
             <Image source={quiz} style={MainScreenStyles.buttonImage} />
             <Text style={MainScreenStyles.buttonText}>영어 퀴즈</Text>

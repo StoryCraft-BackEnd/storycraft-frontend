@@ -88,46 +88,81 @@ export const saveWord = async (requestData: SaveWordRequest): Promise<SaveWordRe
 
     // 서버로 단어 저장 요청을 전송합니다
     // 쿼리 파라미터로 데이터를 전송
-    const response = await apiClient.post<SaveWordResponse>('/dictionaries/words/save', null, {
-      params: {
-        userID: requestData.userID,
-        childID: requestData.childID,
-        word: requestData.word,
-      },
-    });
+    const response = await apiClient.post<SaveWordResponse>(
+      `/dictionaries/words/save?userID=${requestData.userID}&childID=${requestData.childID}&word=${encodeURIComponent(requestData.word)}`,
+      null,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     // 🔍 실제 전송된 요청 정보 확인
     console.log('📤 ===== 실제 전송된 요청 확인 =====');
-    console.log(`🌐 실제 요청 URL: ${response.config.url}`);
-    console.log(`🔧 실제 메서드: ${response.config.method?.toUpperCase()}`);
+    console.log(`🌐 실제 요청 URL: ${response.config.url || 'N/A'}`);
+    console.log(`🔧 실제 메서드: ${response.config.method?.toUpperCase() || 'N/A'}`);
     console.log(`🔧 요청 헤더:`, response.config.headers);
     console.log('🔧 =====================================\n');
 
+    // 응답 데이터 안전성 검사
+    if (!response.data) {
+      console.warn('⚠️ 응답 데이터가 없습니다:', {
+        responseData: response.data,
+        dataType: typeof response.data,
+      });
+      throw new Error('서버에서 응답 데이터를 받지 못했습니다.');
+    }
+
+    // 서버 응답이 { data: {...}, message: "...", status: 200 } 구조인 경우 처리
+    let finalData: SaveWordResponse;
+    if (typeof response.data === 'object' && 'data' in response.data) {
+      const responseData = response.data as {
+        data: SaveWordResponse;
+        message?: string;
+        status?: number;
+      };
+      if (responseData.data) {
+        console.log('✅ 서버 응답에서 data 필드 추출 성공:', {
+          message: responseData.message,
+          status: responseData.status,
+        });
+        finalData = responseData.data;
+      } else {
+        throw new Error('서버 응답의 data 필드가 비어있습니다.');
+      }
+    } else {
+      // 직접 SaveWordResponse로 응답된 경우
+      finalData = response.data as SaveWordResponse;
+    }
+
     // 성공적인 응답을 받았을 때 결과를 콘솔에 로깅합니다
-    console.log('✅ 단어 저장 성공:', response.data);
+    console.log('✅ 단어 저장 성공:', finalData);
 
     // 서버 응답 데이터를 반환합니다
-    return response.data;
-  } catch (error: any) {
+    return finalData;
+  } catch (error: unknown) {
     // 에러가 발생했을 때 상세 정보를 콘솔에 기록합니다
     console.error('❌ 단어 저장 실패:', error);
 
     // 🔍 서버 응답 상세 정보 추가 로깅
-    if (error.response) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response: any; config?: any };
       console.error('📋 서버 응답 상세 정보:');
-      console.error(`   📊 Status Code: ${error.response.status}`);
-      console.error(`   📝 Status Text: ${error.response.statusText}`);
-      console.error(`   📋 Response Data:`, error.response.data);
-      console.error(`   🔧 Response Headers:`, error.response.headers);
-      console.error(`   🌐 Request URL: ${error.config?.url}`);
-      console.error(`   📤 Request Params:`, error.config?.params);
+      console.error(`   📊 Status Code: ${apiError.response.status}`);
+      console.error(`   📝 Status Text: ${apiError.response.statusText}`);
+      console.error(`   📋 Response Data:`, apiError.response.data);
+      console.error(`   🔧 Response Headers:`, apiError.response.headers);
+      console.error(`   🌐 Request URL: ${apiError.config?.url || 'N/A'}`);
+      console.error(`   📤 Request Params:`, apiError.config?.params);
     }
 
     // 에러의 종류에 따라 다른 메시지를 생성합니다
-    if (error.response) {
+    if (error && typeof error === 'object' && 'response' in error) {
       // 서버에서 응답을 받았지만 에러 상태 코드인 경우 (4xx, 5xx)
-      const status = error.response.status;
-      const serverMessage = error.response.data?.message || '알 수 없는 오류';
+      const apiError = error as { response: any };
+      const status = apiError.response.status;
+      const serverMessage = apiError.response.data?.message || '알 수 없는 오류';
 
       // 상태 코드별로 적절한 에러 메시지 생성
       if (status === 400) {
@@ -145,12 +180,13 @@ export const saveWord = async (requestData: SaveWordRequest): Promise<SaveWordRe
       } else {
         throw new Error(`단어 저장 실패 (${status}): ${serverMessage}`);
       }
-    } else if (error.request) {
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // 요청은 보냈지만 서버로부터 응답을 받지 못한 경우 (네트워크 문제)
       throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
     } else {
       // 요청을 설정하는 과정에서 발생한 에러 (클라이언트 측 문제)
-      throw new Error(`요청 설정 오류: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      throw new Error(`요청 설정 오류: ${errorMessage}`);
     }
   }
 };
@@ -178,7 +214,10 @@ export const saveWord = async (requestData: SaveWordRequest): Promise<SaveWordRe
  * });
  * ```
  */
-export const saveWordsByStory = async (storyId: number, childId: number): Promise<SaveWordResponse[]> => {
+export const saveWordsByStory = async (
+  storyId: number,
+  childId: number
+): Promise<SaveWordResponse[]> => {
   try {
     // 요청할 완전한 URL을 생성합니다
     const fullUrl = `${apiClient.defaults.baseURL}/dictionaries/words/save-by-story`;
@@ -198,50 +237,90 @@ export const saveWordsByStory = async (storyId: number, childId: number): Promis
 
     // 서버로 동화 기반 단어 저장 요청을 전송합니다
     // 쿼리 파라미터로 데이터를 전송
-    const response = await apiClient.post<SaveWordResponse[]>('/dictionaries/words/save-by-story', null, {
-      params: {
-        storyId,
-        childId,
-      },
-    });
+    const response = await apiClient.post<SaveWordResponse[]>(
+      `/dictionaries/words/save-by-story?storyId=${storyId}&childId=${childId}`,
+      null,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     // 🔍 실제 전송된 요청 정보 확인
     console.log('📤 ===== 실제 전송된 요청 확인 =====');
-    console.log(`🌐 실제 요청 URL: ${response.config.url}`);
-    console.log(`🔧 실제 메서드: ${response.config.method?.toUpperCase()}`);
+    console.log(`🌐 실제 요청 URL: ${response.config.url || 'N/A'}`);
+    console.log(`🔧 실제 메서드: ${response.config.method?.toUpperCase() || 'N/A'}`);
     console.log(`🔧 요청 헤더:`, response.config.headers);
     console.log('🔧 =====================================\n');
 
+    // 응답 데이터 안전성 검사
+    if (!response.data || !Array.isArray(response.data)) {
+      // 서버 응답이 { data: [...], message: "...", status: 200 } 구조인 경우 처리
+      if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+        const responseData = response.data as {
+          data: SaveWordResponse[];
+          message?: string;
+          status?: number;
+        };
+        if (Array.isArray(responseData.data)) {
+          console.log('✅ 서버 응답에서 data 필드 추출 성공:', {
+            message: responseData.message,
+            status: responseData.status,
+            dataLength: responseData.data.length,
+          });
+          // 성공적인 응답을 받았을 때 결과를 콘솔에 로깅합니다
+          console.log('✅ 동화 기반 단어 저장 성공:', {
+            storyId,
+            childId,
+            savedWordsCount: responseData.data.length,
+            words: responseData.data.map((word) => word.word),
+          });
+          return responseData.data;
+        }
+      }
+
+      console.warn('⚠️ 응답 데이터가 배열이 아닙니다:', {
+        responseData: response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+      });
+      return [];
+    }
+
+    // 직접 배열로 응답된 경우 (기존 방식)
     // 성공적인 응답을 받았을 때 결과를 콘솔에 로깅합니다
     console.log('✅ 동화 기반 단어 저장 성공:', {
       storyId,
       childId,
       savedWordsCount: response.data.length,
-      words: response.data.map(word => word.word),
+      words: response.data.map((word) => word.word),
     });
 
     // 서버 응답 데이터를 반환합니다
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 에러가 발생했을 때 상세 정보를 콘솔에 기록합니다
     console.error('❌ 동화 기반 단어 저장 실패:', error);
 
     // 🔍 서버 응답 상세 정보 추가 로깅
-    if (error.response) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response: any; config?: any };
       console.error('📋 서버 응답 상세 정보:');
-      console.error(`   📊 Status Code: ${error.response.status}`);
-      console.error(`   📝 Status Text: ${error.response.statusText}`);
-      console.error(`   📋 Response Data:`, error.response.data);
-      console.error(`   🔧 Response Headers:`, error.response.headers);
-      console.error(`   🌐 Request URL: ${error.config?.url}`);
-      console.error(`   📤 Request Params:`, error.config?.params);
+      console.error(`   📊 Status Code: ${apiError.response.status}`);
+      console.error(`   📝 Status Text: ${apiError.response.statusText}`);
+      console.error(`   📋 Response Data:`, apiError.response.data);
+      console.error(`   🔧 Response Headers:`, apiError.response.headers);
+      console.error(`   🌐 Request URL: ${apiError.config?.url || 'N/A'}`);
+      console.error(`   📤 Request Params:`, apiError.config?.params);
     }
 
     // 에러의 종류에 따라 다른 메시지를 생성합니다
-    if (error.response) {
+    if (error && typeof error === 'object' && 'response' in error) {
       // 서버에서 응답을 받았지만 에러 상태 코드인 경우 (4xx, 5xx)
-      const status = error.response.status;
-      const serverMessage = error.response.data?.message || '알 수 없는 오류';
+      const apiError = error as { response: any };
+      const status = apiError.response.status;
+      const serverMessage = apiError.response.data?.message || '알 수 없는 오류';
 
       // 상태 코드별로 적절한 에러 메시지 생성
       if (status === 400) {
@@ -257,12 +336,13 @@ export const saveWordsByStory = async (storyId: number, childId: number): Promis
       } else {
         throw new Error(`동화 기반 단어 저장 실패 (${status}): ${serverMessage}`);
       }
-    } else if (error.request) {
+    } else if (error && typeof error === 'object' && 'request' in error) {
       // 요청은 보냈지만 서버로부터 응답을 받지 못한 경우 (네트워크 문제)
       throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
     } else {
       // 요청을 설정하는 과정에서 발생한 에러 (클라이언트 측 문제)
-      throw new Error(`요청 설정 오류: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+      throw new Error(`요청 설정 오류: ${errorMessage}`);
     }
   }
 };
