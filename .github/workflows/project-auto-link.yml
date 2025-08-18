@@ -32,7 +32,3 @@ jobs:
                 }
               }
             `);
-
-# 이메일 알림 비활성화
-notifications:
-  email: false

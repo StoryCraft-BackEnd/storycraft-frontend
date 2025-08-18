@@ -19,7 +19,3 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }} # GitHub 인증 토큰 (기본 제공)
           assignees: GitHub아이디 # 자동 할당할 사용자 GitHub 아이디
           numOfAssignee: 1 # 할당할 사람 수 (1명)
-
-# 이메일 알림 비활성화
-notifications:
-  email: false

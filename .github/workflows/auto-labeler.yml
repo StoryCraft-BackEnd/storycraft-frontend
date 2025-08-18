@@ -12,7 +12,3 @@ jobs:
         uses: jimschubert/labeler-action@v2 # PR의 파일 경로나 이름에 따라 라벨 자동 추가
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub 인증
-
-# 이메일 알림 비활성화
-notifications:
-  email: false
