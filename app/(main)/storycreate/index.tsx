@@ -29,7 +29,11 @@ import {
 import { Popup } from '@/components/ui/Popup'; // 커스텀 팝업 컴포넌트
 import { LoadingPopup } from '@/components/ui/LoadingPopup'; // 로딩 팝업 컴포넌트
 import { createStory } from '@/features/storyCreate/storyApi';
-import { addStoryToStorage, logProfileStructure } from '@/features/storyCreate/storyStorage';
+import {
+  addStoryToStorage,
+  logProfileStructure,
+  invalidateStoriesCache,
+} from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import type { CreateStoryRequest, StoryData, Story } from '@/features/storyCreate/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -251,6 +255,9 @@ const StoryCreateScreen = () => {
       // 프로필별 폴더 구조에 동화 저장
       await addStoryToStorage(storyToSave);
 
+      // 동화 목록 캐시 무효화 (메인 화면 새로고침을 위해)
+      await invalidateStoriesCache(selectedProfile.childId);
+
       // 프로필 구조 로깅 (디버깅용)
       await logProfileStructure(selectedProfile.childId);
 
@@ -258,6 +265,7 @@ const StoryCreateScreen = () => {
       console.log('🎯 동화 생성 완료, 퀴즈 자동 생성 시작...');
       const generatedQuizzes = await generateQuizForStory(
         storyData.storyId,
+        selectedProfile.childId,
         storyData.keywords || keywords
       );
 
@@ -295,23 +303,26 @@ const StoryCreateScreen = () => {
       // 로딩 팝업 숨기기
       setLoadingPopupVisible(false);
 
-      // 504 Gateway Timeout 오류에 대한 특별한 안내
-      let errorMessage = '동화 생성 중 오류가 발생했습니다.';
-      let errorTitle = '오류';
-
+      // 504 Gateway Timeout 오류는 사용자에게 표시하지 않음
       if (error instanceof Error) {
         if (error.message.includes('504') || error.message.includes('Gateway Timeout')) {
-          errorTitle = '삽화 생성 지연';
-          errorMessage = `삽화 생성 시간이 너무 오래 걸려서 일시적으로 실패했습니다.\n\n일부 삽화는 이미 생성되었을 수 있습니다.\n\n잠시 후 다시 시도해주세요.`;
+          console.log('504 Gateway Timeout 에러 발생 - 사용자에게 표시하지 않음');
+          // 에러 메시지를 표시하지 않고 조용히 처리
+          return;
         } else if (error.message.includes('삽화 생성')) {
-          errorTitle = '삽화 생성 실패';
-          errorMessage = `${error.message}\n\n동화와 음성은 정상적으로 생성되었습니다.\n\n삽화는 나중에 다시 시도할 수 있습니다.`;
+          // 삽화 생성 관련 다른 에러는 계속 표시
+          showPopup(
+            '삽화 생성 실패',
+            `${error.message}\n\n동화와 음성은 정상적으로 생성되었습니다.\n\n삽화는 나중에 다시 시도할 수 있습니다.`
+          );
         } else {
-          errorMessage = error.message;
+          // 기타 에러는 계속 표시
+          showPopup('오류', error.message);
         }
+      } else {
+        // 일반적인 에러는 계속 표시
+        showPopup('오류', '동화 생성 중 오류가 발생했습니다.');
       }
-
-      showPopup(errorTitle, errorMessage);
     } finally {
       // 요청이 성공하든 실패하든 관계없이 항상 실행됩니다.
       setIsLoading(false); // 로딩 상태를 false로 되돌립니다.

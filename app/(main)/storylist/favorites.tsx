@@ -25,6 +25,7 @@ import {
   removeStoryFromStorage,
   addStoryToStorage,
   attachUserPreferences,
+  invalidateStoriesCache,
 } from '@/features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import {
@@ -299,6 +300,9 @@ export default function FavoritesScreen() {
 
       // 로컬 스토리지에서도 동화 삭제
       await removeStoryFromStorage(selectedProfile.childId, storyToDelete.id);
+
+      // 동화 목록 캐시 무효화 (메인 화면 새로고침을 위해)
+      await invalidateStoriesCache(selectedProfile.childId);
 
       // UI에서 제거
       setStories((prevStories) =>

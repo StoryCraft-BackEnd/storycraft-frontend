@@ -23,6 +23,7 @@ import {
 } from '../../../../features/storyCreate/storyStorage';
 import { loadSelectedProfile } from '../../../../features/profile/profileStorage';
 import { deleteStory, fetchUserStories } from '../../../../features/storyCreate/storyApi';
+import { invalidateStoriesCache } from '../../../../features/storyCreate/storyStorage';
 import { Story, StoryData } from '../../../../features/storyCreate/types';
 
 const TABS = [
@@ -257,6 +258,9 @@ export default function StoryListScreen() {
 
       // 로컬에서도 삭제
       await removeStoryFromStorage(selectedProfile.childId, storyToDelete.id);
+
+      // 동화 목록 캐시 무효화 (메인 화면 새로고침을 위해)
+      await invalidateStoriesCache(selectedProfile.childId);
 
       // UI에서 제거
       setStories((prevStories) =>

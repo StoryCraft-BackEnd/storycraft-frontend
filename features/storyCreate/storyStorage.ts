@@ -92,6 +92,37 @@ export const getStoriesLastUpdateTime = async (childId: number): Promise<number 
 };
 
 /**
+ * 동화 목록 캐시 유효성 검사 (5분)
+ */
+export const isStoriesCacheValid = async (childId: number): Promise<boolean> => {
+  try {
+    const lastUpdateTime = await getStoriesLastUpdateTime(childId);
+    if (!lastUpdateTime) return false;
+
+    const cacheAge = Date.now() - lastUpdateTime;
+    const cacheValidDuration = 5 * 60 * 1000; // 5분
+
+    return cacheAge < cacheValidDuration;
+  } catch (error) {
+    console.error(`프로필 ${childId} 캐시 유효성 검사 실패:`, error);
+    return false;
+  }
+};
+
+/**
+ * 동화 목록 캐시 무효화 (동화 생성/삭제/수정 시 호출)
+ */
+export const invalidateStoriesCache = async (childId: number): Promise<void> => {
+  try {
+    const key = getStoriesLastUpdateKey(childId);
+    await AsyncStorage.removeItem(key);
+    console.log(`프로필 ${childId} 동화 목록 캐시 무효화 완료`);
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 목록 캐시 무효화 실패:`, error);
+  }
+};
+
+/**
  * 프로필별 동화 목록을 로컬 스토리지에 저장
  */
 export const saveStories = async (childId: number, stories: Story[]): Promise<void> => {
