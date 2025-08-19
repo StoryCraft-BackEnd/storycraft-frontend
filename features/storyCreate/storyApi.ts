@@ -25,6 +25,253 @@ import {
 } from './storyStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
+import { saveWordsByStory, getAllWordsByChild, getWordsByStory } from '@/shared/api/dictionaryApi';
+
+/**
+ * AI 기반 동화 통합 생성 API
+ * 키워드들을 프롬프트로 변환하여 서버에 요청하고 동화/단어/퀴즈를 일괄 생성
+ *
+ * 동화 통합 생성 전체 흐름:
+ * 1. 동화 생성 및 단어/퀴즈 일괄 생성 (POST /integration/stories) - GPT API로 동화 내용, 단어, 퀴즈 동시 생성
+ * 2. 동화 단락 조회 (GET /stories/{id}/sections) - 단락별 내용 수집
+ * 3. 삽화 생성 (POST /illustrations/sections) - DALL·E API로 단락별 삽화 자동 생성
+ * 4. TTS 생성 (POST /speech/tts) - Polly API로 음성 합성
+ *
+ * API 스펙:
+ * - Method: POST
+ * - Endpoint: /integration/stories
+ * - Request: { keywords: string[], childId: number }
+ * - Response: { storyId, title, content, contentKr, keywords, progress, createdAt, updatedAt }
+ */
+export const createIntegratedStory = async (request: CreateStoryRequest): Promise<StoryData> => {
+  try {
+    console.log('동화 통합 생성 요청:', {
+      url: '/integration/stories',
+      method: 'POST',
+      data: request,
+    });
+
+    // API 클라이언트 설정 정보 로깅
+    console.log('🔧 API 클라이언트 설정:', {
+      baseURL: apiClient.defaults.baseURL,
+      timeout: apiClient.defaults.timeout,
+    });
+
+    // 인증 토큰 상태 확인
+    console.log('🔐 인증 토큰 상태 확인 중...');
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
+    }
+    console.log('✅ 인증 토큰 확인 완료');
+
+    // 서버에 동화 통합 생성 요청 (서버가 내부적으로 GPT API 호출하여 동화/단어/퀴즈 일괄 생성)
+    console.log('🚀 서버에 동화 통합 생성 요청 전송 중...');
+    console.log('   ⏱️ 최대 120초 대기 (GPT API 응답 시간 포함)...');
+
+    const startTime = Date.now();
+    // childId는 쿼리 파라미터로, keywords는 요청 본문으로 전송
+    const { childId, ...requestBody } = request;
+    const response = await apiClient.post<CreateStoryResponse>(
+      `/integration/stories?childId=${childId}`,
+      requestBody,
+      {
+        timeout: 120000, // 120초로 늘림 (서버의 GPT API 호출 시간 포함)
+      }
+    );
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    console.log(`✅ 서버 응답 완료 (소요시간: ${duration}ms)`);
+    console.log('동화 통합 생성 성공:', {
+      status: response.status,
+      storyId: response.data.data?.storyId,
+      title: response.data.data?.title,
+      keywords: response.data.data?.keywords,
+      hasProgress: !!response.data.data?.progress,
+    });
+
+    const storyData = response.data.data;
+
+    // 기존 로컬 데이터 완전 삭제 후 서버 데이터만 저장
+    try {
+      console.log('🗑️ 기존 로컬 데이터 삭제 시작...');
+      await clearStoriesFromStorage(request.childId);
+      await clearAllStorySections(request.childId);
+      console.log('✅ 기존 로컬 데이터 삭제 완료');
+
+      const storyWithDefaults = {
+        ...storyData, // response.data.data에서 실제 동화 데이터 추출
+        childId: request.childId || 0, // childId가 없으면 기본값 사용
+        isBookmarked: false,
+        isLiked: false,
+      };
+      await addStoryToStorage(storyWithDefaults);
+      console.log('동화 로컬 저장 완료:', storyData.storyId);
+    } catch (storageError) {
+      console.error('동화 로컬 저장 실패:', storageError);
+      // 로컬 저장 실패는 동화 생성 실패로 처리하지 않음
+    }
+
+    // 동화 통합 생성 성공 후 단계별 처리 시작
+    // 1단계: 동화 단락 조회 (삽화 생성을 위한 단락 정보 수집)
+    try {
+      console.log('📖 동화 단락 조회 시작...');
+      const sections = await fetchStorySections(storyData.storyId, request.childId);
+      console.log(`동화 단락 ${sections.length}개 조회 완료`);
+    } catch (sectionsError) {
+      console.error('동화 단락 조회 실패:', sectionsError);
+      // 단락 조회 실패는 삽화 생성 실패로 처리하지 않음
+    }
+
+    // 2단계: 삽화 생성 (DALL·E 기반 단락별 삽화 자동 생성)
+    try {
+      console.log('🎨 삽화 생성 시작...');
+
+      // 삽화 생성 요청 (서버에서 모든 단락에 대해 자동 생성)
+      const illustrationRequest = {
+        storyId: storyData.storyId,
+        // sectionId는 불필요 - 서버에서 storyId 기반으로 모든 단락에 대해 삽화 자동 생성
+      };
+
+      const illustrations = await createIllustration(illustrationRequest, request.childId);
+      console.log('삽화 생성 성공:', {
+        count: illustrations.length,
+        illustrations: illustrations.map((ill) => ({
+          illustrationId: ill.illustrationId,
+          orderIndex: ill.orderIndex,
+          imageUrl: ill.imageUrl,
+        })),
+      });
+
+      // 3개 삽화를 단락 수에 따라 균등하게 배치
+      if (illustrations.length > 0) {
+        try {
+          // 동화 단락 정보 가져오기
+          const sections = await fetchStorySections(storyData.storyId, request.childId);
+          const totalSections = sections.length;
+
+          console.log(`📖 총 ${totalSections}개 단락에 대해 삽화 배치 시작...`);
+
+          // 3개 삽화를 단락 수에 따라 균등하게 분배
+          const illustrationMapping = distributeIllustrationsToSections(
+            totalSections,
+            illustrations
+          );
+
+          // 각 단락에 삽화 정보 추가
+          sections.forEach((section, index) => {
+            const mappedIllustration = illustrationMapping[index];
+            if (mappedIllustration) {
+              section.illustrationId = mappedIllustration.illustrationId;
+              section.imageUrl = mappedIllustration.imageUrl;
+              section.description = mappedIllustration.description;
+            }
+          });
+
+          // 단락별 삽화 정보는 로컬에 저장하지 않음 (서버 데이터 우선)
+          console.log('✅ 단락별 삽화 배치 완료 (로컬 저장 없음)');
+
+          // 첫 번째 삽화를 썸네일로 사용
+          const firstIllustration = illustrations[0];
+          try {
+            const localIllustration = await downloadIllustration(firstIllustration);
+            console.log('첫 번째 삽화 로컬 저장 완료:', localIllustration.localPath);
+            storyData.thumbnailUrl = localIllustration.localPath;
+          } catch (downloadError) {
+            console.error('첫 번째 삽화 다운로드 실패:', downloadError);
+            storyData.thumbnailUrl = firstIllustration.imageUrl;
+          }
+        } catch (mappingError) {
+          console.error('삽화 배치 실패:', mappingError);
+          // 배치 실패 시 첫 번째 삽화만 썸네일로 사용
+          const firstIllustration = illustrations[0];
+          storyData.thumbnailUrl = firstIllustration.imageUrl;
+        }
+      }
+    } catch (illustrationError) {
+      console.debug('삽화 생성 실패:', illustrationError);
+      // 삽화 생성 실패는 동화 생성 실패로 처리하지 않음
+      // 삽화 없이 동화만 반환
+    }
+
+    // 3단계: TTS 생성 (Polly 기반 음성 합성)
+    // 삽화 생성 성공/실패와 관계없이 TTS 생성 시도
+    try {
+      console.log('🔊 TTS 생성 시작...');
+
+      // 동화의 모든 단락 정보 가져오기
+      const sections = await fetchStorySections(storyData.storyId, request.childId);
+
+      if (sections && sections.length > 0) {
+        console.log(`📖 총 ${sections.length}개 단락에 대해 TTS 생성 시작...`);
+
+        // 모든 단락에 대해 TTS 생성 (병렬 처리)
+        const ttsPromises = sections.map(async (section) => {
+          try {
+            const ttsRequest = {
+              childId: request.childId,
+              storyId: storyData.storyId,
+              sectionId: section.sectionId,
+              voiceId: 'Joanna', // 기본 성우 Seoyeon
+              speechRate: 0.8, // 기본 속도
+            };
+
+            const ttsInfo = await requestTTS(ttsRequest);
+            console.log(`✅ 단락 ${section.sectionId} TTS 생성 성공:`, {
+              sectionId: ttsInfo.sectionId,
+              audioPath: ttsInfo.audioPath,
+            });
+            return ttsInfo;
+          } catch (error) {
+            console.error(`❌ 단락 ${section.sectionId} TTS 생성 실패:`, error);
+            return null;
+          }
+        });
+
+        const ttsResults = await Promise.all(ttsPromises);
+        const successfulTTS = ttsResults.filter(Boolean);
+
+        console.log(`🎉 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
+      } else {
+        console.log('⚠️ 동화 단락 정보를 가져올 수 없어 TTS 생성을 건너뜁니다.');
+      }
+    } catch (ttsError) {
+      console.error('TTS 생성 실패:', ttsError);
+      // TTS 생성 실패는 동화 생성 실패로 처리하지 않음
+      // TTS 없이 동화만 반환
+    }
+
+    return storyData; // 실제 동화 데이터 반환
+  } catch (error: any) {
+    console.error('동화 통합 생성 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      isNetworkError: !error.response,
+      url: error.config?.url,
+      method: error.config?.method,
+      data: error.config?.data,
+    });
+
+    // 네트워크 에러인지 확인
+    if (!error.response) {
+      console.error('🔍 Network Error 상세 분석:');
+      console.error('   - 서버 연결 실패 또는 서버 내부 오류');
+      console.error('   - 서버에서 GPT API 호출 중 문제 발생 가능성');
+      console.error('   - 서버 로그 확인 필요 (GPT API 키, 할당량, 응답 시간 등)');
+      console.error('   - 다른 API는 정상 작동하므로 서버 내부 로직 문제일 가능성 높음');
+      throw new Error(
+        '서버에 연결할 수 없습니다. 서버에서 GPT API 호출 중 문제가 발생했을 수 있습니다.'
+      );
+    }
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '동화 통합 생성에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
+};
 
 /**
  * AI 기반 동화 생성 API
@@ -204,7 +451,7 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
         }
       }
     } catch (illustrationError) {
-      console.error('삽화 생성 실패:', illustrationError);
+      console.debug('삽화 생성 실패:', illustrationError);
       // 삽화 생성 실패는 동화 생성 실패로 처리하지 않음
       // 삽화 없이 동화만 반환
     }
@@ -352,7 +599,7 @@ export const createIllustration = async (
     // API 응답에서 삽화 배열 반환
     return response.data.data?.illustrations || [];
   } catch (error: any) {
-    console.error('❌ 삽화 생성 실패 상세:', {
+    console.debug('❌ 삽화 생성 실패 상세:', {
       error: error.response?.data || error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
@@ -376,16 +623,16 @@ export const createIllustration = async (
     }
 
     // 504 오류에 대한 특별한 안내
-    if (error.response?.status === 504) {
-      console.error('🔍 504 Gateway Timeout 상세 분석:');
-      console.error('   - DALL·E API 응답 시간이 너무 오래 걸림');
-      console.error('   - 서버 게이트웨이 타임아웃 설정 초과');
-      console.error('   - 일부 삽화는 생성되었을 수 있음 (서버 로그 확인 필요)');
-      console.error('   - 잠시 후 다시 시도하거나, 서버 관리자에게 문의');
-      throw new Error(
-        '삽화 생성 시간이 너무 오래 걸려서 실패했습니다. 일부 삽화는 생성되었을 수 있습니다. 잠시 후 다시 시도해주세요.'
-      );
-    }
+    // if (error.response?.status === 504) {
+    //   console.error('🔍 504 Gateway Timeout 상세 분석:');
+    //   console.error('   - DALL·E API 응답 시간이 너무 오래 걸림');
+    //   console.error('   - 서버 게이트웨이 타임아웃 설정 초과');
+    //   console.error('   - 일부 삽화는 생성되었을 수 있음 (서버 로그 확인 필요)');
+    //   console.error('   - 잠시 후 다시 시도하거나, 서버 관리자에게 문의');
+    //   throw new Error(
+    //     '삽화 생성 시간이 너무 오래 걸려서 실패했습니다. 일부 삽화는 생성되었을 수 있습니다. 잠시 후 다시 시도해주세요.'
+    //   );
+    // }
 
     // 에러 응답에서 상세 메시지 추출
     const errorMessage =
@@ -1334,320 +1581,3 @@ export const distributeIllustrationsToSections = (
 };
 
 export type { TTSAudioInfo };
-
-/**
- * 자녀가 저장한 모든 단어 목록 조회 API
- * 특정 자녀가 저장한 모든 단어를 반환합니다.
- *
- * @param childId - 자녀 프로필 ID
- * @returns Promise<SavedWord[]> - 저장된 단어 목록
- *
- * API 스펙:
- * - Method: GET
- * - Endpoint: /dictionaries/words/list
- * - Request: child_id (query)
- * - Response: SavedWord[] - 저장된 단어 목록
- */
-export const getAllWordsByChild = async (childId: number): Promise<SavedWord[]> => {
-  try {
-    console.log('🔠 전체 단어 목록 조회 요청 시작:', {
-      url: `/dictionaries/words/list?child_id=${childId}`,
-      method: 'GET',
-      childId,
-    });
-
-    // 인증 토큰 상태 확인
-    console.log('🔐 전체 단어 목록 조회 - 인증 토큰 상태 확인 중...');
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
-    }
-    console.log('✅ 전체 단어 목록 조회 - 인증 토큰 확인 완료');
-
-    // 서버에서 전체 단어 목록 조회
-    console.log('🔠 서버에서 전체 단어 목록 조회 중...');
-    const response = await apiClient.get<SavedWord[]>(
-      `/dictionaries/words/list?child_id=${childId}`,
-      {
-        timeout: 10000, // 10초로 설정
-      }
-    );
-
-    // 응답 데이터 구조 확인 및 안전한 처리
-    console.log('🔍 응답 데이터 구조:', {
-      hasResponse: !!response,
-      hasData: !!response.data,
-      dataType: typeof response.data,
-      isArray: Array.isArray(response.data),
-      dataKeys: response.data ? Object.keys(response.data) : [],
-      rawData: response.data,
-    });
-
-    // 응답 데이터 구조 확인 및 처리
-    let wordsArray: SavedWord[] = [];
-
-    if (Array.isArray(response.data)) {
-      // 직접 배열로 응답된 경우
-      wordsArray = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      const responseData = response.data as any;
-      if (Array.isArray(responseData.data)) {
-        wordsArray = responseData.data;
-      } else {
-        console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
-        wordsArray = [];
-      }
-    } else {
-      console.warn('⚠️ 응답 데이터가 예상과 다름:', response.data);
-      wordsArray = [];
-    }
-
-    console.log('✅ 전체 단어 목록 조회 성공:', {
-      status: response.status,
-      wordCount: wordsArray.length,
-      words: wordsArray.map((word) => ({
-        word: word.word,
-        meaning: word.meaning,
-        savedId: word.savedId,
-      })),
-    });
-
-    return wordsArray;
-  } catch (error: any) {
-    console.error('❌ 전체 단어 목록 조회 실패:', {
-      error: error.response?.data || error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      isNetworkError: !error.response,
-      url: error.config?.url,
-      method: error.config?.method,
-      childId,
-    });
-
-    // 네트워크 에러인지 확인
-    if (!error.response) {
-      throw new Error('서버에 연결할 수 없습니다.');
-    }
-
-    // 에러 응답에서 상세 메시지 추출
-    const errorMessage =
-      error.response?.data?.message || error.message || '전체 단어 목록 조회에 실패했습니다.';
-    throw new Error(errorMessage);
-  }
-};
-
-/**
- * 동화 ID로 단어 추출 및 자녀에게 단어 저장 API
- * 동화 본문에서 **로 감싼 단어들을 추출하고, 단어 정보를 GPT로 조회하여 DB에 저장 후 자녀에게 연동합니다.
- *
- * @param storyId - 동화 ID
- * @param childId - 자녀 프로필 ID
- * @returns Promise<SavedWord[]> - 저장된 단어 목록
- *
- * API 스펙:
- * - Method: POST
- * - Endpoint: /dictionaries/words/save-by-story
- * - Request: storyId (query), childId (query)
- * - Response: SavedWord[] - 저장된 단어 목록
- */
-export const saveWordsByStory = async (storyId: number, childId: number): Promise<SavedWord[]> => {
-  try {
-    console.log('🔠 단어 저장 요청 시작:', {
-      url: `/dictionaries/words/save-by-story?storyId=${storyId}&childId=${childId}`,
-      method: 'POST',
-      params: { storyId, childId },
-    });
-
-    // 인증 토큰 상태 확인
-    console.log('🔐 단어 저장 - 인증 토큰 상태 확인 중...');
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
-    }
-    console.log('✅ 단어 저장 - 인증 토큰 확인 완료');
-
-    // 서버에 단어 저장 요청 (서버가 내부적으로 GPT API 호출하여 단어 정보 조회)
-    console.log('🔠 서버에 단어 저장 요청 전송 중...');
-    console.log('   📝 요청 파라미터:', { storyId, childId });
-    console.log('   ⏱️ 최대 30초 대기 (GPT API 응답 시간 포함)...');
-
-    const response = await apiClient.post<SavedWord[]>(
-      `/dictionaries/words/save-by-story?storyId=${storyId}&childId=${childId}`,
-      {}, // 요청 본문 없음 (쿼리 파라미터만 사용)
-      {
-        timeout: 30000, // 30초로 설정 (GPT API 호출 시간 포함)
-      }
-    );
-
-    // 응답 데이터 구조 확인 및 안전한 처리
-    console.log('🔍 응답 데이터 구조:', {
-      hasResponse: !!response,
-      hasData: !!response.data,
-      dataType: typeof response.data,
-      isArray: Array.isArray(response.data),
-      dataKeys: response.data ? Object.keys(response.data) : [],
-      rawData: response.data,
-    });
-
-    // 응답 데이터 구조 확인 및 처리
-    let wordsArray: SavedWord[] = [];
-
-    if (Array.isArray(response.data)) {
-      // 직접 배열로 응답된 경우
-      wordsArray = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      const responseData = response.data as any;
-      if (Array.isArray(responseData.data)) {
-        wordsArray = responseData.data;
-      } else {
-        console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
-        wordsArray = [];
-      }
-    } else {
-      console.warn('⚠️ 응답 데이터가 예상과 다름:', response.data);
-      wordsArray = [];
-    }
-
-    console.log('✅ 단어 저장 성공:', {
-      status: response.status,
-      wordCount: wordsArray.length,
-      words: wordsArray.map((word) => ({
-        word: word.word,
-        meaning: word.meaning,
-        savedId: word.savedId,
-      })),
-    });
-
-    return wordsArray;
-  } catch (error: any) {
-    console.error('❌ 단어 저장 실패:', {
-      error: error.response?.data || error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      isNetworkError: !error.response,
-      url: error.config?.url,
-      method: error.config?.method,
-      storyId,
-      childId,
-    });
-
-    // 네트워크 에러인지 확인
-    if (!error.response) {
-      throw new Error(
-        '서버에 연결할 수 없습니다. 서버에서 GPT API 호출 중 문제가 발생했을 수 있습니다.'
-      );
-    }
-
-    // 에러 응답에서 상세 메시지 추출
-    const errorMessage =
-      error.response?.data?.message || error.message || '단어 저장에 실패했습니다.';
-    throw new Error(errorMessage);
-  }
-};
-
-/**
- * 동화 ID로 저장된 단어 목록 조회 API
- * 동화에서 추출되어 저장된 단어들의 정보를 조회합니다.
- *
- * @param storyId - 동화 ID
- * @param childId - 자녀 프로필 ID
- * @returns Promise<SavedWord[]> - 저장된 단어 목록
- *
- * API 스펙:
- * - Method: GET
- * - Endpoint: /dictionaries/words/by-story
- * - Request: storyId (query), childId (query)
- * - Response: SavedWord[] - 저장된 단어 목록
- */
-export const getWordsByStory = async (storyId: number, childId: number): Promise<SavedWord[]> => {
-  try {
-    console.log('🔠 단어 목록 조회 요청 시작:', {
-      url: `/dictionaries/words/by-story?storyId=${storyId}&childId=${childId}`,
-      method: 'GET',
-      storyId,
-      childId,
-    });
-
-    // 인증 토큰 상태 확인
-    console.log('🔐 단어 목록 조회 - 인증 토큰 상태 확인 중...');
-    const token = await AsyncStorage.getItem('token');
-    if (!token) {
-      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
-    }
-    console.log('✅ 단어 목록 조회 - 인증 토큰 확인 완료');
-
-    // 서버에서 저장된 단어 목록 조회
-    console.log('🔠 서버에서 단어 목록 조회 중...');
-    const response = await apiClient.get<SavedWord[]>(
-      `/dictionaries/words/by-story?storyId=${storyId}&childId=${childId}`,
-      {
-        timeout: 10000, // 10초로 설정
-      }
-    );
-
-    // 응답 데이터 구조 확인 및 안전한 처리
-    console.log('🔍 응답 데이터 구조:', {
-      hasResponse: !!response,
-      hasData: !!response.data,
-      dataType: typeof response.data,
-      isArray: Array.isArray(response.data),
-      dataKeys: response.data ? Object.keys(response.data) : [],
-      rawData: response.data,
-    });
-
-    // 응답 데이터 구조 확인 및 처리
-    let wordsArray: SavedWord[] = [];
-
-    if (Array.isArray(response.data)) {
-      // 직접 배열로 응답된 경우
-      wordsArray = response.data;
-    } else if (response.data && typeof response.data === 'object') {
-      // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
-      const responseData = response.data as any;
-      if (Array.isArray(responseData.data)) {
-        wordsArray = responseData.data;
-      } else {
-        console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
-        wordsArray = [];
-      }
-    } else {
-      console.warn('⚠️ 응답 데이터가 예상과 다름:', response.data);
-      wordsArray = [];
-    }
-
-    console.log('✅ 단어 목록 조회 성공:', {
-      status: response.status,
-      wordCount: wordsArray.length,
-      words: wordsArray.map((word) => ({
-        word: word.word,
-        meaning: word.meaning,
-        savedId: word.savedId,
-      })),
-    });
-
-    return wordsArray;
-  } catch (error: any) {
-    console.error('❌ 단어 목록 조회 실패:', {
-      error: error.response?.data || error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      isNetworkError: !error.response,
-      url: error.config?.url,
-      method: error.config?.method,
-      storyId,
-      childId,
-    });
-
-    // 네트워크 에러인지 확인
-    if (!error.response) {
-      throw new Error('서버에 연결할 수 없습니다.');
-    }
-
-    // 에러 응답에서 상세 메시지 추출
-    const errorMessage =
-      error.response?.data?.message || error.message || '단어 목록 조회에 실패했습니다.';
-    throw new Error(errorMessage);
-  }
-};

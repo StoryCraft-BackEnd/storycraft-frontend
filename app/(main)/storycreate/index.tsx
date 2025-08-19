@@ -38,6 +38,7 @@ import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import type { CreateStoryRequest, StoryData, Story } from '@/features/storyCreate/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createQuiz } from '@/features/quiz/quizApi';
+import { getAllWordsByChild } from '@/shared/api/dictionaryApi';
 
 // 배경 이미지 파일을 import 합니다.
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -226,6 +227,21 @@ const StoryCreateScreen = () => {
       // 동화 생성 요청 (내부적으로 삽화와 TTS도 함께 생성됨)
       setCurrentStep(1);
       const result: StoryData = await createStory(requestData);
+
+      // 2단계: 삽화 생성 및 단어 조회
+      setCurrentStep(2);
+      console.log('🎨 2단계: 삽화 생성 및 단어 조회 시작...');
+
+      // 단어 조회 (삽화 생성과 병렬로 진행)
+      const wordLoadPromise = getAllWordsByChild(selectedProfile.childId);
+
+      // 단어 조회 완료 대기 (최대 10초)
+      try {
+        const words = await wordLoadPromise;
+        console.log('✅ 단어 조회 완료:', words.length, '개의 단어');
+      } catch (error) {
+        console.warn('⚠️ 단어 조회 실패 (동화 생성에는 영향 없음):', error);
+      }
 
       // 모든 단계 완료
       setCurrentStep(3);
@@ -443,7 +459,7 @@ const StoryCreateScreen = () => {
         totalSteps={totalSteps}
         stepMessages={[
           '동화 생성 중...',
-          '삽화 생성 중... (예상 2-3분)\nDALL-E AI가 14개 단락의 삽화를 생성합니다',
+          '삽화 생성 및 단어 조회 중... (예상 2-3분)\nDALL-E AI가 14개 단락의 삽화를 생성하고\n동화에서 학습할 단어들을 추출합니다',
           '음성 생성 중...',
         ]}
       />

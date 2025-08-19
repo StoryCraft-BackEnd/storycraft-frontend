@@ -89,6 +89,15 @@ export interface SavedWord {
   savedAt: string; // 저장 시간 (ISO 8601 형식)
 }
 
+export interface FavoriteWord {
+  word: string; // 영어 단어
+  meaning: string; // 한국어 뜻
+  exampleEng?: string; // 영어 예문
+  exampleKor?: string; // 한국어 예문
+  storyId: number; // 동화 ID (즐겨찾기한 동화)
+  favoritedAt: string; // 즐겨찾기 추가 시간 (ISO 8601 형식)
+}
+
 // API 응답 타입
 export interface ApiResponse<T> {
   status: number;

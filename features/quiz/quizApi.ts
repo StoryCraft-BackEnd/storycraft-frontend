@@ -97,7 +97,13 @@ export const createQuiz = async (request: CreateQuizRequest): Promise<Quiz[]> =>
     console.log('📤 HTTP 메서드: POST');
 
     // API 호출
-    const response = await apiClient.post(url);
+    const response = await apiClient.post(
+      url,
+      {},
+      {
+        timeout: 60000, // 60초로 설정 (GPT API 호출 시간 포함)
+      }
+    );
 
     console.log('📊 퀴즈 생성 API 응답:', {
       status: response.status,

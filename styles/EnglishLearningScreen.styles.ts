@@ -634,8 +634,9 @@ const englishLearningStyles = StyleSheet.create({
    * 본문 단어들과 동일한 레이아웃 구조
    */
   favoriteWordsContainer: {
-    marginTop: hp(1), // 상단 여백 1% (반응형)
-    width: '100%', // 전체 너비 사용
+    flex: 1,
+    marginTop: hp(1),
+    maxHeight: hp(20), // 최대 높이 제한
   },
 
   /**
@@ -646,62 +647,8 @@ const englishLearningStyles = StyleSheet.create({
   favoriteWordsPage: {
     flexDirection: 'row', // 가로 배치
     flexWrap: 'wrap', // 줄바꿈 허용
-    justifyContent: 'flex-start', // 왼쪽 정렬
+    justifyContent: 'center', // 중앙 정렬
     gap: wp(2), // 단어 간 간격 2% (반응형)
-  },
-
-  /**
-   * 🎴 즐겨찾기 단어 카드
-   * 개별 즐겨찾기 단어를 표시하는 카드
-   * 본문 단어들과 비슷한 크기로 컴팩트하게 배치
-   */
-  favoriteWordItem: {
-    backgroundColor: 'rgba(255, 215, 0, 0.15)', // 연한 황금색 배경
-    paddingHorizontal: wp(2.5), // 좌우 내부 여백 2.5% (반응형)
-    paddingVertical: hp(0.8), // 상하 내부 여백 0.8% (반응형)
-    borderRadius: wp(3), // 둥근 모서리 3% (반응형)
-    borderWidth: 1, // 테두리 두께
-    borderColor: 'rgba(255, 215, 0, 0.3)', // 황금색 테두리
-    minWidth: wp(18), // 최소 너비 18% (반응형)
-    alignItems: 'center', // 중앙 정렬
-    marginBottom: hp(1), // 하단 여백 1% (반응형)
-  },
-
-  /**
-   * 🔤 즐겨찾기 영어 단어
-   * 즐겨찾기 목록의 영어 단어 표시
-   * 본문 단어와 동일한 크기로 일관성 유지
-   */
-  favoriteWordText: {
-    fontSize: wp(3), // 글자 크기 3% (반응형) - 본문 단어와 동일
-    color: '#333', // 어두운 회색
-    fontWeight: 'bold', // 굵은 글꼴
-    textAlign: 'center', // 중앙 정렬
-  },
-
-  /**
-   * 🇰🇷 즐겨찾기 한국어 뜻
-   * 즐겨찾기 목록의 한국어 번역
-   * 본문 단어와 동일한 크기로 일관성 유지
-   */
-  favoriteWordKorean: {
-    fontSize: wp(2.5), // 글자 크기 2.5% (반응형) - 본문 단어와 동일
-    color: '#666', // 중간 회색
-    textAlign: 'center', // 중앙 정렬
-    marginTop: hp(0.2), // 상단 여백 0.2% (반응형)
-  },
-
-  /**
-   * 🔊 즐겨찾기 발음 기호
-   * 즐겨찾기 목록의 발음 표기
-   * 더 작은 크기로 보조 정보 제공
-   */
-  favoriteWordPronunciation: {
-    fontSize: wp(2), // 작은 글자 크기 2% (반응형)
-    color: '#888', // 연한 회색
-    textAlign: 'center', // 중앙 정렬
-    marginTop: hp(0.2), // 상단 여백 0.2% (반응형)
-    fontStyle: 'italic', // 이탤릭체
   },
 
   // ===================================================================
@@ -717,8 +664,8 @@ const englishLearningStyles = StyleSheet.create({
     flexDirection: 'row', // 가로 배치
     justifyContent: 'center', // 중앙 정렬
     alignItems: 'center', // 수직 중앙 정렬
-    marginTop: hp(1.5), // 상단 여백 1.5% (반응형)
-    gap: wp(3), // 요소 간 간격 3% (반응형)
+    marginTop: hp(2), // 상단 여백 2% (반응형)로 증가
+    gap: wp(4), // 요소 간 간격 4% (반응형)로 증가
   },
 
   /**
@@ -727,14 +674,14 @@ const englishLearningStyles = StyleSheet.create({
    * 작고 깔끔한 디자인
    */
   favoritePaginationButton: {
-    backgroundColor: 'rgba(255, 215, 0, 0.2)', // 연한 황금색 배경
-    borderRadius: wp(4), // 원형 버튼 4% (반응형)
-    width: wp(7), // 너비 7% (반응형)
-    height: wp(7), // 높이 7% (반응형)
+    backgroundColor: 'rgba(255, 215, 0, 0.8)', // 더 진한 황금색 배경
+    borderRadius: wp(5), // 원형 버튼 5% (반응형)
+    width: wp(8), // 너비 8% (반응형)
+    height: wp(8), // 높이 8% (반응형)
     alignItems: 'center', // 중앙 정렬
     justifyContent: 'center', // 수직 중앙 정렬
-    borderWidth: 1, // 테두리 두께
-    borderColor: 'rgba(255, 215, 0, 0.4)', // 황금색 테두리
+    borderWidth: 2, // 테두리 두께 증가
+    borderColor: 'rgba(255, 215, 0, 0.9)', // 더 진한 황금색 테두리
   },
 
   /**
@@ -753,8 +700,8 @@ const englishLearningStyles = StyleSheet.create({
    * 작고 명확한 표시
    */
   favoritePaginationButtonText: {
-    color: '#333', // 어두운 회색
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    color: '#ffffff', // 흰색으로 변경하여 가독성 향상
+    fontSize: wp(4), // 글자 크기 4% (반응형)로 증가
     fontWeight: 'bold', // 굵은 글꼴
   },
 
@@ -773,10 +720,10 @@ const englishLearningStyles = StyleSheet.create({
    * 작고 간결한 정보 제공
    */
   favoritePageInfo: {
-    color: '#666', // 중간 회색
-    fontSize: wp(2.5), // 글자 크기 2.5% (반응형)
+    color: '#000000', // 검은색으로 변경하여 가독성 향상
+    fontSize: wp(3), // 글자 크기 3% (반응형)로 증가
     textAlign: 'center', // 중앙 정렬
-    fontWeight: '500', // 약간 굵게
+    fontWeight: '600', // 더 굵게
   },
 
   // ===================================================================
@@ -790,11 +737,11 @@ const englishLearningStyles = StyleSheet.create({
    */
   leftArrowButton: {
     position: 'absolute', // 절대 위치
-    left: wp(2), // 좌측에서 2% (반응형)
-    top: '50%', // 화면 세로 중앙
+    left: 0, // 카드 좌측 끝에 붙임
+    top: '50%', // 카드 세로 중앙
     transform: [{ translateY: -wp(6) }], // 버튼 높이의 절반만큼 위로 이동
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // 반투명 흰색 배경
-    borderRadius: wp(12), // 원형 버튼 12% (반응형)
+    backgroundColor: 'rgba(255, 215, 0, 0.8)', // 황금색 배경
+    borderRadius: wp(6), // 원형 버튼 6% (반응형)
     width: wp(12), // 너비 12% (반응형)
     height: wp(12), // 높이 12% (반응형)
     alignItems: 'center', // 중앙 정렬
@@ -809,11 +756,11 @@ const englishLearningStyles = StyleSheet.create({
    */
   rightArrowButton: {
     position: 'absolute', // 절대 위치
-    right: wp(2), // 우측에서 2% (반응형)
-    top: '50%', // 화면 세로 중앙
+    right: 0, // 카드 우측 끝에 붙임
+    top: '50%', // 카드 세로 중앙
     transform: [{ translateY: -wp(6) }], // 버튼 높이의 절반만큼 위로 이동
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // 반투명 흰색 배경
-    borderRadius: wp(12), // 원형 버튼 12% (반응형)
+    backgroundColor: 'rgba(255, 215, 0, 0.8)', // 황금색 배경
+    borderRadius: wp(6), // 원형 버튼 6% (반응형)
     width: wp(12), // 너비 12% (반응형)
     height: wp(12), // 높이 12% (반응형)
     alignItems: 'center', // 중앙 정렬
@@ -956,6 +903,44 @@ const englishLearningStyles = StyleSheet.create({
     color: '#333', // 어두운 회색 텍스트
     fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
     fontWeight: '600', // 중간 굵기
+  },
+
+  /**
+   * ⭐ 즐겨찾기 단어 아이템
+   * 개별 즐겨찾기 단어를 표시하는 아이템
+   * 영어 단어와 한국어 뜻을 세로로 배치
+   */
+  favoriteWordItem: {
+    backgroundColor: 'rgba(255, 215, 0, 0.1)', // 연한 황금색 배경
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(1),
+    marginBottom: hp(0.5),
+    borderRadius: wp(2),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)', // 황금색 테두리
+  },
+
+  /**
+   * ⭐ 즐겨찾기 단어 영어 텍스트
+   * 즐겨찾기된 단어의 영어 표기
+   * 어두운 색상으로 가독성 향상
+   */
+  favoriteWordEnglish: {
+    color: '#2c3e50', // 어두운 네이비 블루 텍스트
+    fontSize: wp(3), // 글자 크기 3% (반응형)
+    fontWeight: '600',
+    marginBottom: hp(0.3),
+  },
+
+  /**
+   * ⭐ 즐겨찾기 단어 한국어 텍스트
+   * 즐겨찾기된 단어의 한국어 뜻
+   * 어두운 회색으로 표시하여 가독성 향상
+   */
+  favoriteWordKorean: {
+    color: '#34495e', // 어두운 회색 텍스트
+    fontSize: wp(2.5), // 글자 크기 2.5% (반응형)
+    fontWeight: '400',
   },
 });
 

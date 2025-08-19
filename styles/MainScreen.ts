@@ -41,13 +41,15 @@ export const MainScreenStyles = StyleSheet.create({
     width: wp('50%'), // 화면 너비의 20%로 줄여서 3개 정도만 보이도록 조정 (기존 25%)
     height: hp('18%'), // 화면 높이의 18%를 아이템 높이로 사용 (기존 150px)
     marginHorizontal: wp('0.1%'), // 좌우 여백 추가하여 아이템 간격 확보
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'relative', // 절대 위치 배치를 위한 상대 위치 설정
   },
   // 동화 아이템의 표지 이미지
   storyImage: {
     width: wp('48%'), // 화면 너비의 18%로 이미지 크기 조정 (기존 22%)
     height: hp('16%'), // 화면 높이의 17%를 이미지 높이로 사용 (기존 140px)
+    position: 'absolute', // 절대 위치로 설정
+    top: hp('-2%'), // 상단에서 더 위쪽으로 이동
+    left: wp('1%'), // 좌측에서 고정된 위치
     // borderRadius: 10, // 둥근 모서리
   },
   // 동화 아이템의 제목 텍스트
@@ -55,8 +57,12 @@ export const MainScreenStyles = StyleSheet.create({
     color: 'white',
     fontSize: wp('3.5%'), // 화면 너비의 3.5%를 폰트 크기로 사용 (기존 14px)
     fontWeight: 'bold',
-    marginTop: hp('1%'), // 화면 높이의 1%를 상단 여백으로 사용 (기존 8px)
+    position: 'absolute', // 절대 위치로 설정
+    top: hp('14%'), // 삽화 아래 고정된 위치 (삽화 높이 + 여백) - 더 위쪽으로 이동
+    left: 0,
+    right: 0,
     textAlign: 'center',
+    paddingHorizontal: wp('1%'), // 좌우 패딩 추가
   },
   // 화면 하단의 5개 버튼을 감싸는 컨테이너
   buttonContainer: {

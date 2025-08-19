@@ -156,6 +156,8 @@ export type {
 export {
   saveWord, // 단어 조회 및 저장 함수 (POST /dictionaries/words/save)
   saveWordsByStory, // 동화 ID로 단어 추출 및 저장 함수 (POST /dictionaries/words/save-by-story)
+  getAllWordsByChild, // 자녀별 저장된 모든 단어 조회 함수 (GET /dictionaries/words/list)
+  getWordsByStory, // 동화 ID로 저장된 모든 단어 조회 함수 (GET /dictionaries/words/by-story)
 } from './dictionaryApi';
 
 /**

@@ -232,7 +232,16 @@ export default StyleSheet.create({
     color: COLORS.textSuccess,
     textAlign: 'center',
     fontWeight: '600',
+    marginBottom: 12,
+  },
+
+  // 동화 정보
+  storyInfo: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
     marginBottom: 20,
+    fontStyle: 'italic',
   },
 
   // 카드 컨트롤

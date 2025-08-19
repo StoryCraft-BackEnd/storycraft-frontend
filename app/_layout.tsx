@@ -9,6 +9,8 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startTokenRefreshManager, stopTokenRefreshManager } from '@/shared/api/authApi';
 import { checkTermsAgreement, setCachedTermsAgreement } from '@/shared/utils/termsUtils';
+import { configureGoogleSignIn } from '@/shared/config/googleSignIn';
+import * as Linking from 'expo-linking';
 
 // 실제 레이아웃 로직을 처리하는 컴포넌트
 function RootLayout() {
@@ -22,19 +24,40 @@ function RootLayout() {
       try {
         console.log('🔍 약관 동의 상태 확인 중...');
 
+        // 구글 로그인 초기화
+        configureGoogleSignIn();
+        console.log('✅ 구글 로그인 초기화 완료');
+
+        // 딥링크 처리 설정
+        const handleDeepLink = (url: string) => {
+          console.log('🔗 딥링크 수신:', url);
+          // storycraft://redirect 스킴 처리
+          if (url.startsWith('storycraft://redirect')) {
+            console.log('✅ 구글 로그인 딥링크 처리');
+          }
+        };
+
+        // 초기 딥링크 확인
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          handleDeepLink(initialUrl);
+        }
+
+        // 딥링크 리스너 등록
+        const subscription = Linking.addEventListener('url', (event) => {
+          handleDeepLink(event.url);
+        });
+
         // 약관 동의 상태를 먼저 확인
         const termsAgreed = await checkTermsAgreement();
         console.log('📋 약관 동의 상태:', termsAgreed);
 
-        // 개발용: 강제로 약관 미동의 상태로 설정
-        const forceTermsNotAgreed = false;
-        console.log('🔧 개발용 강제 설정:', forceTermsNotAgreed);
-
-        setHasAgreedToTerms(forceTermsNotAgreed);
-        setCachedTermsAgreement(forceTermsNotAgreed);
+        // 약관 동의 상태 설정
+        setHasAgreedToTerms(termsAgreed);
+        setCachedTermsAgreement(termsAgreed);
 
         // 약관에 동의하지 않은 경우 다른 초기화 작업은 건너뛰고 바로 약관 동의 페이지로
-        if (!forceTermsNotAgreed) {
+        if (!termsAgreed) {
           console.log('❌ 약관 미동의 - 약관 동의 페이지로 이동');
           setIsLoading(false);
           return;
@@ -46,6 +69,12 @@ function RootLayout() {
 
         // 토큰 갱신 매니저 시작
         await startTokenRefreshManager();
+
+        // 컴포넌트 언마운트 시 정리
+        return () => {
+          subscription?.remove();
+          stopTokenRefreshManager();
+        };
       } catch (error) {
         console.error('초기화 중 오류:', error);
         setHasAgreedToTerms(false);
@@ -56,11 +85,6 @@ function RootLayout() {
     };
 
     initialize();
-
-    // 컴포넌트 언마운트 시 토큰 갱신 매니저 정리
-    return () => {
-      stopTokenRefreshManager();
-    };
   }, []); // 빈 배열: 컴포넌트 마운트 시에만 실행
 
   // 로딩 중이고 약관 동의 상태가 아직 확인되지 않은 경우에만 로딩 화면 표시

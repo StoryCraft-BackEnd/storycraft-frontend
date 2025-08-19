@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Story, StorySection } from './types';
+import { Story, StorySection, FavoriteWord } from './types';
 
 /**
  * 프로필별 폴더 구조를 위한 키 생성 함수들
@@ -23,6 +23,13 @@ const getStoriesKey = (childId: number): string => {
  */
 const getFavoritesKey = (childId: number): string => {
   return createProfileKey(childId, 'favorites');
+};
+
+/**
+ * 프로필별 동화별 즐겨찾기 단어 폴더 키 생성
+ */
+const getStoryFavoritesKey = (childId: number, storyId: number): string => {
+  return createProfileKey(childId, `story_favorites_${storyId}`);
 };
 
 /**
@@ -287,22 +294,25 @@ export const removeStoryFromStorage = async (childId: number, storyId: number): 
       throw new Error(`유효하지 않은 childId입니다: ${childId}`);
     }
 
+    // 1. 동화 관련 모든 데이터 정리 (단어, 퀴즈, TTS, 즐겨찾기 등)
+    await cleanupStoryRelatedData(childId, storyId);
+
+    // 2. 동화 목록에서 제거
     const existingStories = await loadStoriesFromStorage(childId);
     const updatedStories = existingStories.filter((story) => story.storyId !== storyId);
     await saveStories(childId, updatedStories);
-    console.log(`프로필 ${childId} 동화 삭제 완료:`, storyId);
+
+    console.log(`✅ 프로필 ${childId} 동화 ${storyId} 삭제 완료`);
   } catch (error) {
-    console.error(`프로필 ${childId} 동화 삭제 실패:`, error);
+    console.error(`❌ 프로필 ${childId} 동화 ${storyId} 삭제 실패:`, error);
+    throw error;
   }
 };
 
 /**
  * 프로필별 즐겨찾기 단어 목록 저장
  */
-export const saveFavoriteWords = async (
-  childId: number,
-  words: { word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]
-): Promise<void> => {
+export const saveFavoriteWords = async (childId: number, words: FavoriteWord[]): Promise<void> => {
   try {
     // childId 파라미터 검증 추가
     if (!childId || typeof childId !== 'number' || childId <= 0) {
@@ -326,9 +336,7 @@ export const saveFavoriteWords = async (
 /**
  * 프로필별 즐겨찾기 단어 목록 불러오기
  */
-export const loadFavoriteWords = async (
-  childId: number
-): Promise<{ word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]> => {
+export const loadFavoriteWords = async (childId: number): Promise<FavoriteWord[]> => {
   try {
     // childId 파라미터 검증 추가
     if (!childId || typeof childId !== 'number' || childId <= 0) {
@@ -353,7 +361,7 @@ export const loadFavoriteWords = async (
 };
 
 /**
- * 프로필별 즐겨찾기 단어 추가
+ * 프로필별 즐겨찾기 단어 추가 (동화별 구분)
  */
 export const addFavoriteWord = async (
   childId: number,
@@ -362,14 +370,42 @@ export const addFavoriteWord = async (
     meaning: string;
     exampleEng?: string;
     exampleKor?: string;
+    storyId: number; // 동화 ID 추가
   }
 ): Promise<void> => {
   try {
     const existingWords = await loadFavoriteWords(childId);
-    if (!existingWords.some((w) => w.word === wordData.word)) {
-      const updatedWords = [...existingWords, wordData];
+
+    // 동일한 단어가 이미 있는지 확인 (동화 구분 없이)
+    const existingWordIndex = existingWords.findIndex((w) => w.word === wordData.word);
+
+    if (existingWordIndex === -1) {
+      // 새 단어 추가
+      const newFavoriteWord: FavoriteWord = {
+        ...wordData,
+        favoritedAt: new Date().toISOString(),
+      };
+      const updatedWords = [...existingWords, newFavoriteWord];
       await saveFavoriteWords(childId, updatedWords);
-      console.log(`프로필 ${childId} 즐겨찾기 단어 추가 완료:`, wordData.word);
+      console.log(
+        `프로필 ${childId} 즐겨찾기 단어 추가 완료:`,
+        wordData.word,
+        `(동화 ${wordData.storyId})`
+      );
+    } else {
+      // 기존 단어의 동화 ID 업데이트 (가장 최근에 즐겨찾기한 동화로)
+      const updatedWords = [...existingWords];
+      updatedWords[existingWordIndex] = {
+        ...updatedWords[existingWordIndex],
+        storyId: wordData.storyId,
+        favoritedAt: new Date().toISOString(),
+      };
+      await saveFavoriteWords(childId, updatedWords);
+      console.log(
+        `프로필 ${childId} 즐겨찾기 단어 동화 ID 업데이트:`,
+        wordData.word,
+        `(동화 ${wordData.storyId})`
+      );
     }
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 추가 실패:`, error);
@@ -400,6 +436,28 @@ export const isFavoriteWord = async (childId: number, word: string): Promise<boo
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 확인 실패:`, error);
     return false;
+  }
+};
+
+/**
+ * 특정 동화에서 즐겨찾기한 단어만 조회
+ */
+export const getFavoriteWordsByStory = async (
+  childId: number,
+  storyId: number
+): Promise<FavoriteWord[]> => {
+  try {
+    const allFavorites = await loadFavoriteWords(childId);
+    const storyFavorites = allFavorites.filter((word) => word.storyId === storyId);
+    console.log(
+      `프로필 ${childId} 동화 ${storyId} 즐겨찾기 단어 조회:`,
+      storyFavorites.length,
+      '개'
+    );
+    return storyFavorites;
+  } catch (error) {
+    console.error(`프로필 ${childId} 동화 ${storyId} 즐겨찾기 단어 조회 실패:`, error);
+    return [];
   }
 };
 
@@ -1101,6 +1159,79 @@ export const toggleStoryLikeNew = async (childId: number, storyId: number): Prom
     console.log(`좋아요 토글 완료: storyId ${storyId} = ${newStatus}`);
   } catch (error) {
     console.error('좋아요 토글 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 동화 삭제 시 연관된 모든 데이터 정리
+ * - 동화 정보
+ * - 동화 섹션 정보
+ * - 동화별 단어 데이터
+ * - 동화별 단어 즐겨찾기 상태
+ * - 동화별 퀴즈 데이터
+ */
+export const cleanupStoryRelatedData = async (childId: number, storyId: number): Promise<void> => {
+  try {
+    console.log(`🧹 동화 ${storyId} 연관 데이터 정리 시작...`);
+
+    // 1. 동화별 단어 데이터 정리
+    try {
+      const storyWordsKey = `story_words_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyWordsKey);
+      console.log(`✅ 동화별 단어 데이터 정리 완료: ${storyWordsKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 단어 데이터 정리 실패:`, error);
+    }
+
+    // 2. 동화별 퀴즈 데이터 정리
+    try {
+      const storyQuizzesKey = `story_quizzes_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyQuizzesKey);
+      console.log(`✅ 동화별 퀴즈 데이터 정리 완료: ${storyQuizzesKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 퀴즈 데이터 정리 실패:`, error);
+    }
+
+    // 3. 동화별 TTS 오디오 데이터 정리
+    try {
+      const storyTTSKey = `story_tts_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyTTSKey);
+      console.log(`✅ 동화별 TTS 데이터 정리 완료: ${storyTTSKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 TTS 데이터 정리 실패:`, error);
+    }
+
+    // 4. 동화별 즐겨찾기 단어 상태 정리 (전체 즐겨찾기에서 해당 동화의 단어들 제거)
+    try {
+      const existingFavorites = await loadFavoriteWords(childId);
+      if (existingFavorites.length > 0) {
+        // 현재 동화의 단어 목록을 가져와서 즐겨찾기에서 제거
+        const storyWordsKey = `story_words_${storyId}_${childId}`;
+        const storyWordsData = await AsyncStorage.getItem(storyWordsKey);
+
+        if (storyWordsData) {
+          const storyWords = JSON.parse(storyWordsData);
+          if (storyWords.words && Array.isArray(storyWords.words)) {
+            const wordsToRemove = storyWords.words.map((w: any) => w.word);
+            const updatedFavorites = existingFavorites.filter(
+              (fav) => !wordsToRemove.includes(fav.word)
+            );
+
+            if (updatedFavorites.length !== existingFavorites.length) {
+              await saveFavoriteWords(childId, updatedFavorites);
+              console.log(`✅ 동화별 단어 즐겨찾기 정리 완료: ${wordsToRemove.length}개 단어 제거`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ 동화별 단어 즐겨찾기 정리 실패:`, error);
+    }
+
+    console.log(`✅ 동화 ${storyId} 연관 데이터 정리 완료`);
+  } catch (error) {
+    console.error(`❌ 동화 ${storyId} 연관 데이터 정리 실패:`, error);
     throw error;
   }
 };

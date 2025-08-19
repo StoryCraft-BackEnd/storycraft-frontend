@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ImageBackground, StatusBar, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- 내부 모듈 및 스타일 ---
 import englishLearningStyles from '@/styles/EnglishLearningScreen.styles';
@@ -15,7 +17,6 @@ import {
   fetchStorySections,
   fetchIllustrations,
   syncMissingIllustrations,
-  getAllWordsByChild,
 } from '@/features/storyCreate/storyApi';
 import * as FileSystem from 'expo-file-system';
 import {
@@ -35,6 +36,11 @@ import {
   QuizSubmitRequest,
 } from '@/features/quiz/quizApi';
 import { saveWordsByStory, getStoredUserId } from '@/shared/api';
+import {
+  addFavoriteWord,
+  removeFavoriteWord,
+  getFavoriteWordsByStory,
+} from '@/features/storyCreate/storyStorage';
 
 // --- 이미지 및 리소스 ---
 import defaultBackgroundImage from '@/assets/images/background/night-bg.png';
@@ -58,44 +64,179 @@ export default function EnglishLearningScreen() {
   const [quizAnswers, setQuizAnswers] = useState<QuizSubmitRequest[]>([]);
   const [isQuizLoading, setIsQuizLoading] = useState(false);
 
-  // 동화 로드 시 자동으로 단어를 저장하는 함수
-  const saveWordsFromStory = async (storyId: number, childId: number) => {
+  // TTS 요청 상태 관리
+  const [ttsRequested, setTtsRequested] = useState<Set<number>>(new Set());
+
+  // 즐겨찾기 단어 페이지네이션 상태
+  const [favoriteWordsPage, setFavoriteWordsPage] = useState(1);
+  const [favoriteWordsPerPage] = useState(3); // 한 페이지당 표시할 단어 수 (3개 이상일 때 페이지네이션)
+
+  // 로컬에 동화별 단어 저장하는 함수
+  const saveWordsToLocalStorage = async (storyId: number, childId: number, words: any[]) => {
     try {
-      console.log('📚 동화 기반 단어 자동 저장 시작:', { storyId, childId });
-
-      // 사용자 ID 가져오기
-      const userId = await getStoredUserId();
-      if (!userId) {
-        console.warn('⚠️ 사용자 ID가 없어 단어 저장을 건너뜁니다. 로그인이 필요합니다.');
-        return;
-      }
-
-      // 동화에서 단어 추출 및 저장
-      const savedWords = await saveWordsByStory(storyId, childId);
-      console.log('✅ 동화 기반 단어 저장 완료:', {
+      const key = `story_words_${storyId}_${childId}`;
+      const data = {
         storyId,
         childId,
-        savedWordsCount: savedWords.length,
-        words: savedWords.map((word) => word.word),
+        words,
+        timestamp: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+      console.log('💾 동화 단어 로컬 저장 완료:', {
+        storyId,
+        childId,
+        wordsCount: words.length,
+        key,
       });
-
-      // 저장된 단어를 currentStory에 추가
-      setCurrentStory((prevStory) => {
-        if (!prevStory) return prevStory;
-
-        return {
-          ...prevStory,
-          savedWords: savedWords,
-        };
-      });
-
-      return savedWords;
     } catch (error) {
-      console.error('❌ 동화 기반 단어 저장 실패:', error);
-      // 단어 저장 실패는 동화 로드 실패로 처리하지 않음
+      console.error('❌ 동화 단어 로컬 저장 실패:', error);
+    }
+  };
+
+  // 로컬에서 동화별 단어 불러오는 함수
+  const loadWordsFromLocalStorage = async (storyId: number, childId: number) => {
+    try {
+      const key = `story_words_${storyId}_${childId}`;
+      const storedData = await AsyncStorage.getItem(key);
+
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        const isExpired =
+          new Date().getTime() - new Date(data.timestamp).getTime() > 24 * 60 * 60 * 1000; // 24시간
+
+        if (!isExpired && data.words && data.words.length > 0) {
+          console.log('📖 로컬에서 동화 단어 불러오기 성공:', {
+            storyId,
+            childId,
+            wordsCount: data.words.length,
+            timestamp: data.timestamp,
+            isExpired,
+          });
+          return data.words;
+        } else if (isExpired) {
+          console.log('⏰ 로컬 단어 데이터가 만료되었습니다. API에서 새로 가져옵니다.');
+          await AsyncStorage.removeItem(key); // 만료된 데이터 삭제
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ 로컬에서 동화 단어 불러오기 실패:', error);
+      return null;
+    }
+  };
+
+  // 동화별 단어를 가져오는 통합 함수 (로컬 우선, 없으면 API)
+  const getWordsForStory = async (storyId: number, childId: number) => {
+    try {
+      console.log('🔍 동화 단어 조회 시작:', { storyId, childId });
+
+      // 1. 로컬에서 먼저 확인
+      const localWords = await loadWordsFromLocalStorage(storyId, childId);
+      if (localWords) {
+        console.log('✅ 로컬에서 단어 로드 완료:', localWords.length, '개');
+
+        // 로컬에서 가져온 단어를 currentStory에 추가
+        setCurrentStory((prevStory) => {
+          if (!prevStory) return prevStory;
+          return {
+            ...prevStory,
+            savedWords: localWords,
+          };
+        });
+
+        // 즐겨찾기 상태 로드
+        await loadFavoriteWordsState(childId, localWords, storyId);
+
+        return localWords;
+      }
+
+      // 2. 로컬에 없으면 API에서 가져오기
+      console.log('🌐 로컬에 단어가 없어 API에서 가져옵니다.');
+      const userId = await getStoredUserId();
+      if (!userId) {
+        console.warn('⚠️ 사용자 ID가 없어 단어 저장을 건너뜁니다.');
+        return [];
+      }
+
+      const apiWords = await saveWordsByStory(storyId, childId);
+
+      // 3. API에서 가져온 단어를 로컬에 저장
+      if (apiWords && apiWords.length > 0) {
+        await saveWordsToLocalStorage(storyId, childId, apiWords);
+        console.log('💾 API에서 가져온 단어를 로컬에 저장 완료');
+
+        // API에서 가져온 단어를 currentStory에 추가
+        setCurrentStory((prevStory) => {
+          if (!prevStory) return prevStory;
+          return {
+            ...prevStory,
+            savedWords: apiWords,
+          };
+        });
+
+        // 즐겨찾기 상태 로드
+        await loadFavoriteWordsState(childId, apiWords, storyId);
+      }
+
+      return apiWords;
+    } catch (error) {
+      console.debug('❌ 동화 단어 조회 실패:', error);
       return [];
     }
   };
+
+  // 즐겨찾기 단어 상태 로드 함수
+  const loadFavoriteWordsState = useCallback(
+    async (childId: number, words: any[], storyId?: number) => {
+      try {
+        const targetStoryId = storyId || currentStory?.storyId;
+        if (!targetStoryId) {
+          console.warn('⚠️ storyId가 없어 즐겨찾기 상태를 로드할 수 없습니다.');
+          setWordFavorites(new Array(words.length).fill(false));
+          return;
+        }
+
+        if (!words || words.length === 0) {
+          console.warn('⚠️ 단어 배열이 비어있어 즐겨찾기 상태를 로드할 수 없습니다.');
+          setWordFavorites([]);
+          return;
+        }
+
+        // 1. 현재 동화에서 즐겨찾기한 단어들만 조회
+        const storyFavorites = await getFavoriteWordsByStory(childId, targetStoryId);
+        console.log(
+          '🔍 즐겨찾기된 단어들:',
+          storyFavorites.map((f) => f.word)
+        );
+
+        // 2. 현재 동화의 단어들이 즐겨찾기에 있는지 확인 (더 정확한 매칭)
+        const favoriteStates = words.map((word, index) => {
+          const isFavorite = storyFavorites.some((fav) => fav.word === word.word);
+          // console.log(
+          //   `🔍 단어 "${word.word}" (인덱스 ${index}): 즐겨찾기 ${isFavorite ? '✅' : '❌'}`
+          // );
+          return isFavorite;
+        });
+
+        // 3. 즐겨찾기 상태 설정
+        setWordFavorites(favoriteStates);
+
+        console.log('⭐ 현재 동화 즐겨찾기 상태 로드 완료:', {
+          storyId: targetStoryId,
+          totalWords: words.length,
+          favoriteCount: favoriteStates.filter((f) => f).length,
+          storyFavorites: storyFavorites.length,
+          favoriteWords: words.filter((_, index) => favoriteStates[index]).map((w) => w.word),
+        });
+      } catch (error) {
+        console.error('❌ 즐겨찾기 상태 로드 실패:', error);
+        // 기본값으로 초기화
+        setWordFavorites(new Array(words.length).fill(false));
+      }
+    },
+    [currentStory?.storyId]
+  );
 
   // 컴포넌트 마운트 시 동화 데이터 로드
   useEffect(() => {
@@ -166,26 +307,8 @@ export default function EnglishLearningScreen() {
             setWordFavorites(new Array(learningStory.savedWords?.length || 0).fill(false));
             setWordClicked(new Array(learningStory.savedWords?.length || 0).fill(false));
 
-            // 동화에서 단어 자동 저장
-            await saveWordsFromStory(storyData.storyId, storyData.childId);
-
-            // 저장된 단어 정보 가져오기 (전체 단어 목록 조회)
-            try {
-              console.log(`동화 ${storyData.storyId} 저장된 단어 조회 시작...`);
-              const userId = 1; // 실제로는 로그인 시 저장된 사용자 ID 사용
-              const savedWords = await getAllWordsByChild(userId, storyData.childId);
-              console.log(`동화 ${storyData.storyId} 저장된 단어 ${savedWords.length}개 조회 완료`);
-
-              // 저장된 단어 정보를 LearningStory에 추가
-              const learningStoryWithWords = {
-                ...learningStory,
-                savedWords: savedWords,
-              };
-              setCurrentStory(learningStoryWithWords);
-            } catch (wordsError) {
-              console.error(`동화 ${storyData.storyId} 저장된 단어 조회 실패:`, wordsError);
-              // 단어 조회 실패는 동화 로드 실패로 처리하지 않음
-            }
+            // 동화에서 단어 추출 및 저장 (로컬 우선, 없으면 API)
+            await getWordsForStory(storyData.storyId, storyData.childId);
           } catch (sectionError) {
             console.error(`동화 ${storyData.storyId} 단락 조회 실패:`, {
               error: sectionError,
@@ -388,8 +511,8 @@ export default function EnglishLearningScreen() {
             setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
 
-            // 최신 동화에서 단어 자동 저장
-            await saveWordsFromStory(latestStory.storyId, latestStory.childId);
+            // 최신 동화에서 단어 자동 저장 (로컬 우선, 없으면 API)
+            await getWordsForStory(latestStory.storyId, latestStory.childId);
           } catch (sectionError) {
             console.error(`동화 ${latestStory.storyId} 단락 조회 실패:`, {
               error: sectionError,
@@ -527,6 +650,38 @@ export default function EnglishLearningScreen() {
     loadStoryData();
   }, [params.storyId, params.title, params.content, params.keywords]);
 
+  // 화면이 포커스될 때마다 즐겨찾기 상태 다시 로드
+  useFocusEffect(
+    useCallback(() => {
+      if (currentStory && currentStory.storyId && currentStory.childId) {
+        const words = currentStory.savedWords || currentStory.highlightedWords || [];
+        if (words.length > 0) {
+          console.log('🔄 화면 포커스됨 - 즐겨찾기 상태 다시 로드:', {
+            storyId: currentStory.storyId,
+            childId: currentStory.childId,
+            wordsCount: words.length,
+            wordsType: currentStory.savedWords ? 'savedWords' : 'highlightedWords',
+            currentWordFavoritesLength: wordFavorites.length,
+          });
+
+          // wordFavorites 배열 길이를 현재 단어 수에 맞춰 초기화
+          if (wordFavorites.length !== words.length) {
+            console.log('🔄 wordFavorites 배열 길이 조정:', {
+              from: wordFavorites.length,
+              to: words.length,
+            });
+            setWordFavorites(new Array(words.length).fill(false));
+          }
+
+          loadFavoriteWordsState(currentStory.childId, words, currentStory.storyId);
+        } else {
+          console.log('🔄 화면 포커스됨 - 단어가 없어 즐겨찾기 상태 로드 건너뛰기');
+          setWordFavorites([]);
+        }
+      }
+    }, [currentStory, loadFavoriteWordsState, wordFavorites.length])
+  );
+
   // currentStory 로드 완료 후 퀴즈 로드
   useEffect(() => {
     if (currentStory && currentStory.storyId && currentStory.childId) {
@@ -536,37 +691,61 @@ export default function EnglishLearningScreen() {
   }, [currentStory]);
 
   // currentStory 상태 변경 감지
+  /*
+  {
+    "content": "없음",           // 동화 내용이 없음
+    "contentLength": 0,          // 내용 길이가 0
+    "hasStory": false,           // 동화 데이터가 없음
+    "highlightedWordsCount": 0,  // 하이라이트된 단어가 0개
+    "sections": [],              // 동화 단락이 빈 배열
+    "sectionsCount": 0,          // 단락 수가 0
+    "storyKeys": [],             // 동화 객체의 키가 없음
+    "title": "없음"              // 제목이 없음
+  }
+  */
   useEffect(() => {
-    console.log('🔄 currentStory 상태 변경:', {
-      hasStory: !!currentStory,
-      title: currentStory?.title || '없음',
-      content: currentStory?.content
-        ? currentStory.content.split('\n').slice(0, 3).join('\n') +
-          (currentStory.content.split('\n').length > 3 ? '\n...' : '')
-        : '없음',
-      contentLength: currentStory?.content?.length || 0,
-      sectionsCount: currentStory?.sections?.length || 0,
-      highlightedWordsCount: currentStory?.highlightedWords?.length || 0,
-      storyKeys: currentStory ? Object.keys(currentStory) : [],
-      sections: currentStory?.sections
-        ? currentStory.sections.map((s, i) => ({
-            index: i,
-            orderIndex: s.orderIndex,
-            textPreview: s.paragraphText?.substring(0, 30) + '...',
-          }))
-        : [],
-    });
+    // 실제 동화 데이터가 있을 때만 로그 출력
+    if (currentStory && currentStory.title && currentStory.content) {
+      console.log('🔄 currentStory 상태 변경:', {
+        hasStory: !!currentStory,
+        title: currentStory.title,
+        content: currentStory.content
+          ? currentStory.content.split('\n').slice(0, 3).join('\n') +
+            (currentStory.content.split('\n').length > 3 ? '\n...' : '')
+          : '없음',
+        contentLength: currentStory.content?.length || 0,
+        sectionsCount: currentStory.sections?.length || 0,
+        highlightedWordsCount: currentStory.highlightedWords?.length || 0,
+        storyKeys: Object.keys(currentStory),
+        sections: currentStory.sections
+          ? currentStory.sections.map((s, i) => ({
+              index: i,
+              orderIndex: s.orderIndex,
+              textPreview: s.paragraphText?.substring(0, 30) + '...',
+            }))
+          : [],
+      });
+    }
   }, [currentStory]);
 
   // 기존 useEffect 내부, 동화 단락 조회 성공 후 추가
   useEffect(() => {
     if (currentStory && currentStory.sections && currentStory.sections.length > 0) {
+      // 이미 TTS를 요청한 동화인지 확인
+      if (ttsRequested.has(currentStory.storyId)) {
+        console.log('🎵 TTS 이미 요청됨, 로컬에서만 확인:', currentStory.storyId);
+        return;
+      }
+
       console.log('🎵 TTS 요청 시작:', {
         storyId: currentStory.storyId,
         sectionsCount: currentStory.sections.length,
         voiceId: 'Seoyeon',
         speechRate: 0.8,
       });
+
+      // TTS 요청 상태에 추가
+      setTtsRequested((prev) => new Set(prev).add(currentStory.storyId));
 
       // 로컬에서 TTS 정보 확인
       loadStoryTTSFromStorage(currentStory.childId, currentStory.storyId)
@@ -632,11 +811,11 @@ export default function EnglishLearningScreen() {
           requestTTSFromAPI(currentStory);
         });
     }
-  }, [currentStory?.storyId]);
+  }, [currentStory?.storyId, ttsRequested]);
 
   // API에서 TTS 요청하는 함수
   const requestTTSFromAPI = (story: LearningStoryWithSections) => {
-    requestAllSectionsTTS(story.storyId, story.sections, 'Seoyeon', 0.8)
+    requestAllSectionsTTS(story.childId, story.storyId, story.sections, 'Seoyeon', 0.8)
       .then((ttsList) => {
         console.log('✅ TTS 요청 완료:', ttsList.length, '개 단락');
         const map: { [sectionId: number]: TTSAudioInfo } = {};
@@ -679,14 +858,14 @@ export default function EnglishLearningScreen() {
       return '';
     }
 
-    console.log('🔍 getCurrentPageText 디버깅:', {
-      hasSections: !!currentStory.sections,
-      sectionsLength: currentStory.sections?.length || 0,
-      hasContent: !!currentStory.content,
-      contentLength: currentStory.content?.length || 0,
-      currentPage,
-      storyTitle: currentStory.title,
-    });
+    // console.log('🔍 getCurrentPageText 디버깅:', {
+    //   hasSections: !!currentStory.sections,
+    //   sectionsLength: currentStory.sections?.length || 0,
+    //   hasContent: !!currentStory.content,
+    //   contentLength: currentStory.content?.length || 0,
+    //   currentPage,
+    //   storyTitle: currentStory.title,
+    // });
 
     // API에서 받아온 단락이 있으면 사용
     if (currentStory.sections && currentStory.sections.length > 0) {
@@ -708,7 +887,6 @@ export default function EnglishLearningScreen() {
     }
 
     // 기존 방식 (전체 내용을 현재 페이지로 표시)
-    console.log('📝 전체 내용 사용:', currentStory.content);
     return formatHighlightedText(currentStory.content || '');
   };
 
@@ -728,6 +906,135 @@ export default function EnglishLearningScreen() {
 
     // 기존 방식 (전체 한국어 내용)
     return formatHighlightedText(currentStory.contentKr || '');
+  };
+
+  // 현재 페이지에 있는 단어만 필터링하는 함수
+  const getCurrentPageWords = () => {
+    if (!currentStory?.savedWords) {
+      console.log('📚 getCurrentPageWords: 단어 데이터 로딩 중...', {
+        hasCurrentStory: !!currentStory,
+        storyTitle: currentStory?.title || '없음',
+        currentPage,
+        hasSections: !!currentStory?.sections,
+        sectionsLength: currentStory?.sections?.length || 0,
+      });
+      return [];
+    }
+
+    if (currentStory.savedWords.length === 0) {
+      console.warn('⚠️ getCurrentPageWords: 단어 데이터가 비어있습니다:', {
+        hasCurrentStory: !!currentStory,
+        storyTitle: currentStory?.title || '없음',
+        savedWordsLength: 0,
+        currentPage,
+      });
+      return [];
+    }
+
+    // 원본 텍스트를 가져와서 **로 감싸진 단어들을 찾기
+    let currentPageText = '';
+    if (currentStory.sections && currentStory.sections.length > 0) {
+      const currentSection = currentStory.sections[currentPage - 1];
+      if (currentSection) {
+        currentPageText = currentSection.paragraphText || '';
+      }
+    } else {
+      currentPageText = currentStory.content || '';
+    }
+
+    if (!currentPageText) {
+      console.warn('⚠️ getCurrentPageWords: 현재 페이지 텍스트가 없습니다:', {
+        currentPage,
+        hasSections: !!currentStory.sections,
+        sectionsLength: currentStory.sections?.length || 0,
+        currentSection: currentStory.sections?.[currentPage - 1],
+      });
+      return [];
+    }
+
+    // 현재 페이지 텍스트에서 **로 감싸진 단어들을 찾기
+    const highlightedWords = currentPageText.match(/\*\*(.*?)\*\*/g);
+    if (!highlightedWords) {
+      console.warn('⚠️ getCurrentPageWords: 하이라이트된 단어가 없습니다:', {
+        currentPageText: currentPageText.substring(0, 100) + '...',
+        currentPage,
+      });
+      return [];
+    }
+
+    // ** 제거하고 실제 단어만 추출
+    const wordsInCurrentPage = highlightedWords.map((word) => word.replace(/\*\*/g, ''));
+
+    // savedWords에서 현재 페이지에 있는 단어들만 필터링
+    const currentPageWords = currentStory.savedWords.filter((savedWord) =>
+      wordsInCurrentPage.includes(savedWord.word)
+    );
+
+    console.log('🔍 현재 페이지 단어 필터링:', {
+      currentPage,
+      highlightedWords,
+      wordsInCurrentPage,
+      totalSavedWords: currentStory.savedWords.length,
+      currentPageWordsCount: currentPageWords.length,
+      currentPageWordsList: currentPageWords.map((w) => w.word),
+    });
+
+    return currentPageWords;
+  };
+
+  // 즐겨찾기 단어 페이지네이션 핸들러
+  const handleFavoriteWordsPageChange = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && favoriteWordsPage > 1) {
+      setFavoriteWordsPage(favoriteWordsPage - 1);
+    } else if (direction === 'next') {
+      const totalFavoriteWords =
+        currentStory?.savedWords?.filter((_, index) => wordFavorites[index]).length || 0;
+      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+      if (favoriteWordsPage < maxPage) {
+        setFavoriteWordsPage(favoriteWordsPage + 1);
+      }
+    }
+  };
+
+  // 현재 즐겨찾기 단어 페이지의 단어들 가져오기
+  const getCurrentFavoriteWordsPage = () => {
+    if (!currentStory?.savedWords) return [];
+
+    // 전체 동화에서의 등장 순서를 계산
+    const favoriteWords = currentStory.savedWords
+      .map((wordData, savedIndex) => {
+        // 동화 전체에서 이 단어가 몇 번째로 등장했는지 찾기
+        let globalOrder = Infinity; // 기본값
+
+        if (currentStory.sections) {
+          for (let sectionIndex = 0; sectionIndex < currentStory.sections.length; sectionIndex++) {
+            const section = currentStory.sections[sectionIndex];
+            if (section.paragraphText) {
+              const wordIndex = section.paragraphText
+                .toLowerCase()
+                .indexOf(wordData.word.toLowerCase());
+              if (wordIndex !== -1) {
+                // 이 단어가 이 단락에서 발견됨
+                globalOrder = sectionIndex * 1000 + wordIndex; // 단락 순서 * 1000 + 단어 위치
+                break;
+              }
+            }
+          }
+        }
+
+        return { wordData, savedIndex, globalOrder };
+      })
+      .filter(({ savedIndex }) => wordFavorites[savedIndex])
+      .sort((a, b) => {
+        // 전체 동화에서의 등장 순서로 정렬
+        // globalOrder가 낮을수록(먼저 등장한 단어일수록) 앞에 오도록
+        return a.globalOrder - b.globalOrder;
+      });
+
+    const startIndex = (favoriteWordsPage - 1) * favoriteWordsPerPage;
+    const endIndex = startIndex + favoriteWordsPerPage;
+
+    return favoriteWords.slice(startIndex, endIndex);
   };
 
   // 읽어주기 버튼 핸들러
@@ -776,18 +1083,133 @@ export default function EnglishLearningScreen() {
   };
 
   // 단어 클릭 핸들러
-  const handleWordPress = (index: number) => {
-    const newWordClicked = [...wordClicked];
-    newWordClicked[index] = !newWordClicked[index];
-    setWordClicked(newWordClicked);
-  };
+  const handleWordPress = useCallback(
+    (index: number) => {
+      // 현재 페이지의 단어만 필터링하여 인덱스 매핑
+      const currentPageWords = getCurrentPageWords();
+
+      if (currentPageWords.length === 0) {
+        console.warn('⚠️ 현재 페이지에 단어가 없습니다:', {
+          index,
+          currentPage,
+          hasCurrentStory: !!currentStory,
+          hasSavedWords: !!currentStory?.savedWords,
+          savedWordsLength: currentStory?.savedWords?.length || 0,
+        });
+        return;
+      }
+
+      const wordData = currentPageWords[index];
+
+      if (!wordData) {
+        console.warn('⚠️ 현재 페이지에서 해당 인덱스의 단어 데이터를 찾을 수 없습니다:', {
+          index,
+          currentPageWordsCount: currentPageWords.length,
+          currentPageWords: currentPageWords.map((w) => w.word),
+        });
+        return;
+      }
+
+      // 현재 상태를 직접 복사하여 변경
+      const newWordClicked = [...wordClicked];
+      newWordClicked[index] = !newWordClicked[index];
+
+      // 상태 업데이트를 최적화
+      setWordClicked(newWordClicked);
+
+      console.log('🔍 단어 클릭:', {
+        wordIndex: index,
+        word: wordData.word,
+        isClicked: newWordClicked[index],
+        action: newWordClicked[index] ? '한글 뜻 표시' : '한글 뜻 숨김',
+      });
+    },
+    [wordClicked, currentPage, currentStory] // currentStory 추가하여 의존성 복원
+  );
 
   // 단어 즐겨찾기 토글 핸들러
-  const handleToggleWordFavorite = (index: number) => {
-    const newWordFavorites = [...wordFavorites];
-    newWordFavorites[index] = !newWordFavorites[index];
-    setWordFavorites(newWordFavorites);
-  };
+  const handleToggleWordFavorite = useCallback(
+    async (index: number) => {
+      if (!currentStory?.childId) {
+        console.warn('⚠️ childId가 없어 즐겨찾기를 설정할 수 없습니다.');
+        return;
+      }
+
+      // 현재 페이지의 단어만 필터링
+      const currentPageWords = getCurrentPageWords();
+
+      if (currentPageWords.length === 0) {
+        console.warn('⚠️ 현재 페이지에 단어가 없습니다:', {
+          index,
+          currentPage,
+          hasCurrentStory: !!currentStory,
+          hasSavedWords: !!currentStory?.savedWords,
+          savedWordsLength: currentStory?.savedWords?.length || 0,
+        });
+        return;
+      }
+
+      const wordData = currentPageWords[index];
+
+      if (!wordData) {
+        console.warn('⚠️ 현재 페이지에서 해당 인덱스의 단어 데이터를 찾을 수 없습니다:', {
+          index,
+          currentPageWordsCount: currentPageWords.length,
+          currentPageWords: currentPageWords.map((w) => w.word),
+        });
+        return;
+      }
+
+      try {
+        // 전체 savedWords 배열에서 해당 단어의 인덱스 찾기
+        const globalIndex = currentStory.savedWords.findIndex(
+          (savedWord) => savedWord.word === wordData.word
+        );
+
+        if (globalIndex === -1) {
+          console.warn('⚠️ 단어를 전체 배열에서 찾을 수 없음:', wordData.word);
+          return;
+        }
+
+        const isCurrentlyFavorite = wordFavorites[globalIndex];
+
+        if (isCurrentlyFavorite) {
+          // 즐겨찾기 제거
+          await removeFavoriteWord(currentStory.childId, wordData.word);
+          console.log('⭐ 즐겨찾기 제거:', wordData.word);
+        } else {
+          // 즐겨찾기 추가 (예문 데이터 포함)
+          await addFavoriteWord(currentStory.childId, {
+            word: wordData.word,
+            meaning: wordData.meaning,
+            exampleEng: wordData.exampleEng,
+            exampleKor: wordData.exampleKor,
+            storyId: currentStory.storyId, // 동화 ID 추가
+          });
+          console.log('⭐ 즐겨찾기 추가:', wordData.word);
+        }
+
+        // 로컬 상태 업데이트 - 전체 배열의 인덱스 사용
+        const newWordFavorites = [...wordFavorites];
+        newWordFavorites[globalIndex] = !newWordFavorites[globalIndex];
+        setWordFavorites(newWordFavorites);
+
+        // 즐겨찾기 단어가 변경되면 페이지를 1로 리셋
+        setFavoriteWordsPage(1);
+
+        console.log('🔍 즐겨찾기 상태 업데이트:', {
+          word: wordData.word,
+          currentPageIndex: index,
+          globalIndex,
+          newFavoriteState: newWordFavorites[globalIndex],
+        });
+      } catch (error) {
+        console.error('❌ 즐겨찾기 토글 실패:', error);
+        Alert.alert('오류', '즐겨찾기 설정에 실패했습니다.');
+      }
+    },
+    [wordFavorites, currentStory?.childId, currentPage, currentStory]
+  );
 
   // 페이지 네비게이션 핸들러
   const handleNavigation = (direction: 'prev' | 'next') => {
@@ -867,7 +1289,7 @@ export default function EnglishLearningScreen() {
         childId: currentStory.childId,
       });
 
-      const quizList = await getQuizzesByStory(currentStory.storyId);
+      const quizList = await getQuizzesByStory(currentStory.storyId, currentStory.childId);
       setQuizzes(quizList);
       console.log('✅ 퀴즈 로드 완료:', quizList.length, '개');
     } catch (error) {
@@ -1110,60 +1532,158 @@ export default function EnglishLearningScreen() {
                 )}
 
                 <View style={englishLearningStyles.keyWords}>
-                  {(currentStory?.savedWords || []).map((wordData, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={englishLearningStyles.keyWordItem}
-                      onPress={() => handleWordPress(index)}
-                    >
+                  {!currentStory?.savedWords ? (
+                    <Text style={englishLearningStyles.loadingText}>단어 로딩 중...</Text>
+                  ) : getCurrentPageWords().length === 0 ? (
+                    <Text style={englishLearningStyles.loadingText}>
+                      이 페이지에 단어가 없습니다.
+                    </Text>
+                  ) : (
+                    getCurrentPageWords().map((wordData, index) => (
                       <TouchableOpacity
-                        style={englishLearningStyles.wordFavoriteButton}
-                        onPress={() => handleToggleWordFavorite(index)}
+                        key={index}
+                        style={englishLearningStyles.keyWordItem}
+                        onPress={() => handleWordPress(index)}
                       >
-                        <Text style={englishLearningStyles.wordFavoriteText}>
-                          {wordFavorites[index] ? '⭐' : '☆'}
-                        </Text>
-                      </TouchableOpacity>
-                      <View style={englishLearningStyles.wordTextContainer}>
-                        <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
-                        {wordClicked[index] && (
-                          <Text style={englishLearningStyles.keyWordKorean}>
-                            {wordData.meaning}
+                        <TouchableOpacity
+                          style={englishLearningStyles.wordFavoriteButton}
+                          onPress={() => handleToggleWordFavorite(index)}
+                        >
+                          <Text style={englishLearningStyles.wordFavoriteText}>
+                            {(() => {
+                              // 전체 savedWords 배열에서 해당 단어의 인덱스 찾기
+                              const globalIndex = currentStory?.savedWords?.findIndex(
+                                (savedWord) => savedWord.word === wordData.word
+                              );
+                              return globalIndex !== -1 && wordFavorites[globalIndex] ? '⭐' : '☆';
+                            })()}
                           </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                        </TouchableOpacity>
+                        <View style={englishLearningStyles.wordTextContainer}>
+                          <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
+                          {wordClicked[index] && (
+                            <Text style={englishLearningStyles.keyWordKorean}>
+                              {wordData.meaning}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
-
-                {/* 저장된 단어 표시 */}
-                {currentStory?.savedWords && currentStory.savedWords.length > 0 && (
-                  <View style={englishLearningStyles.savedWordsContainer}>
-                    <Text style={englishLearningStyles.savedWordsTitle}>📚 학습 단어</Text>
-                    {currentStory.savedWords.map((savedWord, index) => (
-                      <View key={index} style={englishLearningStyles.savedWordsContainer}>
-                        <Text style={englishLearningStyles.savedWordText}>{savedWord.word}</Text>
-                        <Text style={englishLearningStyles.savedWordMeaning}>
-                          {savedWord.meaning}
-                        </Text>
-                        <Text style={englishLearningStyles.savedWordExample}>
-                          {savedWord.exampleEng}
-                        </Text>
-                        <Text style={englishLearningStyles.savedWordExampleKr}>
-                          {savedWord.exampleKor}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
               </View>
 
               <View style={englishLearningStyles.vocabularyPanel}>
                 <Text style={englishLearningStyles.vocabularyTitle}>즐겨찾기 단어</Text>
-                <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
-                <Text style={englishLearningStyles.vocabularyDescription}>
-                  영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
-                </Text>
+
+                {currentStory?.savedWords && wordFavorites.some((favorite) => favorite) ? (
+                  <View style={englishLearningStyles.favoriteWordsContainer}>
+                    {/* 즐겨찾기 단어 페이지네이션 - 좌측 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <TouchableOpacity
+                            style={[
+                              englishLearningStyles.leftArrowButton,
+                              favoriteWordsPage === 1 && englishLearningStyles.disabledArrowButton,
+                            ]}
+                            onPress={() => handleFavoriteWordsPageChange('prev')}
+                            disabled={favoriteWordsPage === 1}
+                          >
+                            <Text
+                              style={[
+                                englishLearningStyles.arrowButtonText,
+                                favoriteWordsPage === 1 && englishLearningStyles.disabledArrowText,
+                              ]}
+                            >
+                              ◀
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* 즐겨찾기 단어 목록 */}
+                    <View style={englishLearningStyles.favoriteWordsPage}>
+                      {getCurrentFavoriteWordsPage().map(({ wordData, index }) => (
+                        <View
+                          key={`favorite-${wordData.word}-${index}`}
+                          style={englishLearningStyles.favoriteWordItem}
+                        >
+                          <Text style={englishLearningStyles.favoriteWordEnglish}>
+                            {wordData.word}
+                          </Text>
+                          <Text style={englishLearningStyles.favoriteWordKorean}>
+                            {wordData.meaning}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* 즐겨찾기 단어 페이지네이션 - 우측 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <TouchableOpacity
+                            style={[
+                              englishLearningStyles.rightArrowButton,
+                              favoriteWordsPage === maxPage &&
+                                englishLearningStyles.disabledArrowButton,
+                            ]}
+                            onPress={() => handleFavoriteWordsPageChange('next')}
+                            disabled={favoriteWordsPage === maxPage}
+                          >
+                            <Text
+                              style={[
+                                englishLearningStyles.arrowButtonText,
+                                favoriteWordsPage === maxPage &&
+                                  englishLearningStyles.disabledArrowText,
+                              ]}
+                            >
+                              ▶
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* 페이지 정보 표시 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <Text style={englishLearningStyles.favoritePageInfo}>
+                            {favoriteWordsPage} / {maxPage}
+                          </Text>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </View>
+                ) : (
+                  <>
+                    <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
+                    <Text style={englishLearningStyles.vocabularyDescription}>
+                      영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
 
@@ -1179,7 +1699,7 @@ export default function EnglishLearningScreen() {
                 <Text style={englishLearningStyles.navButtonText}>◀ 이전</Text>
               </TouchableOpacity>
 
-              {/* 마지막 페이지에서만 퀴즈 풀기 버튼 표시 */}
+              {/* 퀴즈 시작 버튼 - 마지막 페이지에서만 표시 */}
               {currentPage === (currentStory?.sections?.length || 1) && (
                 <TouchableOpacity
                   style={[
@@ -1190,7 +1710,7 @@ export default function EnglishLearningScreen() {
                   disabled={isQuizLoading || quizzes.length === 0}
                 >
                   <Text style={englishLearningStyles.navButtonText}>
-                    {isQuizLoading ? '로딩중...' : `🎯 퀴즈 풀기 (${quizzes.length})`}
+                    {isQuizLoading ? '로딩중...' : `🎯 퀴즈 (${quizzes.length})`}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -1256,60 +1776,159 @@ export default function EnglishLearningScreen() {
                 )}
 
                 <View style={englishLearningStyles.keyWords}>
-                  {(currentStory?.savedWords || []).map((wordData, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={englishLearningStyles.keyWordItem}
-                      onPress={() => handleWordPress(index)}
-                    >
+                  {!currentStory?.savedWords ? (
+                    <Text style={englishLearningStyles.loadingText}>단어 로딩 중...</Text>
+                  ) : getCurrentPageWords().length === 0 ? (
+                    <Text style={englishLearningStyles.loadingText}>
+                      이 페이지에 단어가 없습니다.
+                    </Text>
+                  ) : (
+                    getCurrentPageWords().map((wordData, index) => (
                       <TouchableOpacity
-                        style={englishLearningStyles.wordFavoriteButton}
-                        onPress={() => handleToggleWordFavorite(index)}
+                        key={index}
+                        style={englishLearningStyles.keyWordItem}
+                        onPress={() => handleWordPress(index)}
                       >
-                        <Text style={englishLearningStyles.wordFavoriteText}>
-                          {wordFavorites[index] ? '⭐' : '☆'}
-                        </Text>
-                      </TouchableOpacity>
-                      <View style={englishLearningStyles.wordTextContainer}>
-                        <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
-                        {wordClicked[index] && (
-                          <Text style={englishLearningStyles.keyWordKorean}>
-                            {wordData.meaning}
+                        <TouchableOpacity
+                          style={englishLearningStyles.wordFavoriteButton}
+                          onPress={() => handleToggleWordFavorite(index)}
+                        >
+                          <Text style={englishLearningStyles.wordFavoriteText}>
+                            {(() => {
+                              // 전체 savedWords 배열에서 해당 단어의 인덱스 찾기
+                              const globalIndex = currentStory?.savedWords?.findIndex(
+                                (savedWord) => savedWord.word === wordData.word
+                              );
+                              return globalIndex !== -1 && wordFavorites[globalIndex] ? '⭐' : '☆';
+                            })()}
                           </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        </TouchableOpacity>
 
-                {/* 저장된 단어 표시 */}
-                {currentStory?.savedWords && currentStory.savedWords.length > 0 && (
-                  <View style={englishLearningStyles.savedWordsContainer}>
-                    <Text style={englishLearningStyles.savedWordsTitle}>📚 학습 단어</Text>
-                    {currentStory.savedWords.map((savedWord, index) => (
-                      <View key={index} style={englishLearningStyles.savedWordItem}>
-                        <Text style={englishLearningStyles.savedWordText}>{savedWord.word}</Text>
-                        <Text style={englishLearningStyles.savedWordMeaning}>
-                          {savedWord.meaning}
-                        </Text>
-                        <Text style={englishLearningStyles.savedWordExample}>
-                          {savedWord.exampleEng}
-                        </Text>
-                        <Text style={englishLearningStyles.savedWordExampleKr}>
-                          {savedWord.exampleKor}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                        <View style={englishLearningStyles.wordTextContainer}>
+                          <Text style={englishLearningStyles.keyWordText}>{wordData.word}</Text>
+                          {wordClicked[index] && (
+                            <Text style={englishLearningStyles.keyWordKorean}>
+                              {wordData.meaning}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
               </View>
 
               <View style={englishLearningStyles.vocabularyPanel}>
                 <Text style={englishLearningStyles.vocabularyTitle}>즐겨찾기 단어</Text>
-                <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
-                <Text style={englishLearningStyles.vocabularyDescription}>
-                  영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
-                </Text>
+
+                {currentStory?.savedWords && wordFavorites.some((favorite) => favorite) ? (
+                  <View style={englishLearningStyles.favoriteWordsContainer}>
+                    {/* 즐겨찾기 단어 페이지네이션 - 좌측 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <TouchableOpacity
+                            style={[
+                              englishLearningStyles.leftArrowButton,
+                              favoriteWordsPage === 1 && englishLearningStyles.disabledArrowButton,
+                            ]}
+                            onPress={() => handleFavoriteWordsPageChange('prev')}
+                            disabled={favoriteWordsPage === 1}
+                          >
+                            <Text
+                              style={[
+                                englishLearningStyles.arrowButtonText,
+                                favoriteWordsPage === 1 && englishLearningStyles.disabledArrowText,
+                              ]}
+                            >
+                              ◀
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* 즐겨찾기 단어 목록 */}
+                    <View style={englishLearningStyles.favoriteWordsPage}>
+                      {getCurrentFavoriteWordsPage().map(({ wordData, index }) => (
+                        <View
+                          key={`favorite-${wordData.word}-${index}`}
+                          style={englishLearningStyles.favoriteWordItem}
+                        >
+                          <Text style={englishLearningStyles.favoriteWordEnglish}>
+                            {wordData.word}
+                          </Text>
+                          <Text style={englishLearningStyles.favoriteWordKorean}>
+                            {wordData.meaning}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {/* 즐겨찾기 단어 페이지네이션 - 우측 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <TouchableOpacity
+                            style={[
+                              englishLearningStyles.rightArrowButton,
+                              favoriteWordsPage === maxPage &&
+                                englishLearningStyles.disabledArrowButton,
+                            ]}
+                            onPress={() => handleFavoriteWordsPageChange('next')}
+                            disabled={favoriteWordsPage === maxPage}
+                          >
+                            <Text
+                              style={[
+                                englishLearningStyles.arrowButtonText,
+                                favoriteWordsPage === maxPage &&
+                                  englishLearningStyles.disabledArrowText,
+                              ]}
+                            >
+                              ▶
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* 페이지 정보 표시 */}
+                    {(() => {
+                      const totalFavoriteWords = currentStory.savedWords.filter(
+                        (_, index) => wordFavorites[index]
+                      ).length;
+                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                      if (maxPage > 1 && totalFavoriteWords > 3) {
+                        return (
+                          <Text style={englishLearningStyles.favoritePageInfo}>
+                            {favoriteWordsPage} / {maxPage}
+                          </Text>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </View>
+                ) : (
+                  <>
+                    <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
+                    <Text style={englishLearningStyles.vocabularyDescription}>
+                      영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
 
@@ -1325,19 +1944,21 @@ export default function EnglishLearningScreen() {
                 <Text style={englishLearningStyles.navButtonText}>◀ 이전</Text>
               </TouchableOpacity>
 
-              {/* 퀴즈 시작 버튼 */}
-              <TouchableOpacity
-                style={[
-                  englishLearningStyles.navButton,
-                  { backgroundColor: '#FF6B6B', marginHorizontal: 10 },
-                ]}
-                onPress={startQuiz}
-                disabled={isQuizLoading || quizzes.length === 0}
-              >
-                <Text style={englishLearningStyles.navButtonText}>
-                  {isQuizLoading ? '로딩중...' : `🎯 퀴즈 (${quizzes.length})`}
-                </Text>
-              </TouchableOpacity>
+              {/* 퀴즈 시작 버튼 - 마지막 페이지에서만 표시 */}
+              {currentPage === (currentStory?.sections?.length || 1) && (
+                <TouchableOpacity
+                  style={[
+                    englishLearningStyles.navButton,
+                    { backgroundColor: '#FF6B6B', marginHorizontal: 10 },
+                  ]}
+                  onPress={startQuiz}
+                  disabled={isQuizLoading || quizzes.length === 0}
+                >
+                  <Text style={englishLearningStyles.navButtonText}>
+                    {isQuizLoading ? '로딩중...' : `🎯 퀴즈 (${quizzes.length})`}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={[

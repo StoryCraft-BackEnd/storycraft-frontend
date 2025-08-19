@@ -25,6 +25,7 @@ import {
   addFavoriteWord,
   removeFavoriteWord,
 } from '@/features/storyCreate/storyStorage';
+import { FavoriteWord } from '@/features/storyCreate/types';
 
 // --- 이미지 및 리소스 ---
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -66,9 +67,7 @@ export default function EnglishDictionaryScreen() {
   const [filteredWords, setFilteredWords] = useState<Word[]>([]); // 필터링된 단어 목록
   const [searchQuery, setSearchQuery] = useState(''); // 검색어
   const [activeFilter, setActiveFilter] = useState('all'); // 현재 선택된 난이도 필터
-  const [favoriteWords, setFavoriteWords] = useState<
-    { word: string; meaning: string; exampleEng?: string; exampleKor?: string }[]
-  >([]); // 즐겨찾기 단어 목록
+  const [favoriteWords, setFavoriteWords] = useState<FavoriteWord[]>([]); // 즐겨찾기 단어 목록 (동화별 구분)
   const [selectedProfile, setSelectedProfile] = useState<any>(null); // 현재 선택된 프로필
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set()); // 뒤집힌 카드 ID 목록
 
@@ -77,13 +76,6 @@ export default function EnglishDictionaryScreen() {
   useEffect(() => {
     loadFavoriteWordsData();
   }, []);
-
-  // 즐겨찾기 단어가 변경될 때마다 단어 목록 업데이트
-  useEffect(() => {
-    if (favoriteWords.length > 0 && selectedProfile) {
-      updateWordsFromFavorites();
-    }
-  }, [favoriteWords, selectedProfile]);
 
   // 검색어나 필터 변경 시 단어 목록 업데이트
   useEffect(() => {
@@ -164,30 +156,6 @@ export default function EnglishDictionaryScreen() {
   };
 
   // === 즐겨찾기 관리 함수 ===
-  /**
-   * 즐겨찾기 단어 목록을 Word 타입으로 변환하여 words 상태에 업데이트
-   */
-  const updateWordsFromFavorites = () => {
-    if (!favoriteWords || favoriteWords.length === 0) return;
-
-    const favoriteWordObjects = favoriteWords.map((fav, index) => ({
-      id: `fav_${index}`,
-      english: fav.word,
-      pronunciation: `[${fav.word}]`, // 임시 발음
-      korean: fav.meaning,
-      difficulty: 'normal' as const,
-      example: {
-        english: fav.exampleEng || `This is an example sentence with ${fav.word}.`,
-        korean: fav.exampleKor || `${fav.meaning}에 대한 예문입니다.`,
-      },
-      audio: undefined,
-    }));
-
-    // 기존 샘플 단어와 즐겨찾기 단어를 합침
-    const allWords = [...favoriteWordObjects];
-    setWords(allWords);
-    setFilteredWords(allWords);
-  };
 
   /**
    * 즐겨찾기 토글 함수
@@ -206,22 +174,50 @@ export default function EnglishDictionaryScreen() {
       if (isFavorite) {
         // 즐겨찾기 제거
         await removeFavoriteWord(selectedProfile.childId, word);
-        setFavoriteWords((prev) => prev.filter((w) => w.word !== word));
+
+        // 즐겨찾기 목록에서 즉시 제거
+        const updatedFavorites = favoriteWords.filter((w) => w.word !== word);
+        setFavoriteWords(updatedFavorites);
+
+        // 단어 목록에서도 즉시 제거
+        const updatedWords = words.filter((w) => w.english !== word);
+        setWords(updatedWords);
+
+        console.log(`⭐ 즐겨찾기 제거 완료: ${word}`);
       } else {
-        // 즐겨찾기 추가 - 기본값 설정
-        const newFavoriteWord = {
+        // 즐겨찾기 추가 - 기본값 설정 (임시 storyId: 0)
+        const newFavoriteWord: FavoriteWord = {
           word,
           meaning: `Meaning of ${word}`, // 기본 의미
           exampleEng: `This is an example sentence with ${word}.`, // 기본 영어 예문
           exampleKor: `${word}에 대한 예문입니다.`, // 기본 한국어 예문
+          storyId: 0, // 임시 동화 ID (영어 사전에서 직접 추가한 경우)
+          favoritedAt: new Date().toISOString(),
         };
 
         await addFavoriteWord(selectedProfile.childId, newFavoriteWord);
         setFavoriteWords((prev) => [...prev, newFavoriteWord]);
+
+        // 단어 목록에 새 단어 추가
+        const newWord: Word = {
+          id: `fav_${Date.now()}`, // 고유 ID 생성
+          english: word,
+          pronunciation: `[${word}]`,
+          korean: newFavoriteWord.meaning,
+          difficulty: 'normal' as const,
+          example: {
+            english: newFavoriteWord.exampleEng,
+            korean: newFavoriteWord.exampleKor,
+          },
+          audio: undefined,
+        };
+
+        setWords((prev) => [...prev, newWord]);
+        console.log(`⭐ 즐겨찾기 추가 완료: ${word}`);
       }
 
-      // 단어 목록 업데이트
-      updateWordsFromFavorites();
+      // 필터링된 단어 목록도 업데이트
+      filterWords();
     } catch (error) {
       console.error('즐겨찾기 토글 실패:', error);
       Alert.alert('오류', '즐겨찾기 설정에 실패했습니다.');
@@ -283,6 +279,10 @@ export default function EnglishDictionaryScreen() {
   const renderWordCard = ({ item }: { item: Word }) => {
     const isFlipped = flippedCards.has(item.id); // 카드 뒤집힌 상태 확인
     const isFavorite = favoriteWords.some((fav) => fav.word === item.english); // 즐겨찾기 상태 확인
+
+    // 동화 정보 가져오기
+    const favoriteWord = favoriteWords.find((fav) => fav.word === item.english);
+    const storyInfo = favoriteWord?.storyId === 0 ? '직접 추가' : `동화 ${favoriteWord?.storyId}`;
 
     if (isFlipped) {
       // 뒤집힌 카드 (예문 표시) - 반응형 크기 적용
@@ -353,6 +353,9 @@ export default function EnglishDictionaryScreen() {
 
           {/* 한국어 뜻 - 초록색으로 표시 */}
           <Text style={styles.koreanMeaning}>{item.korean}</Text>
+
+          {/* 동화 정보 표시 */}
+          <Text style={styles.storyInfo}>{storyInfo}</Text>
 
           {/* 하단 컨트롤 - 발음 재생 및 뒤집기 안내 */}
           <View style={styles.cardControls}>

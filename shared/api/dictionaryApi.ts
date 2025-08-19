@@ -11,8 +11,10 @@
 
 // ===== 외부 라이브러리 import 섹션 =====
 import { apiClient } from './client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ===== 타입 정의 섹션 =====
+import type { SavedWord } from '@/features/storyCreate/types';
 
 /**
  * 단어 저장 요청 데이터 타입 정의
@@ -244,6 +246,7 @@ export const saveWordsByStory = async (
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: 90000, // 90초로 설정 (GPT API 호출 시간 포함)
       }
     );
 
@@ -344,5 +347,212 @@ export const saveWordsByStory = async (
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
       throw new Error(`요청 설정 오류: ${errorMessage}`);
     }
+  }
+};
+
+/**
+ * 자녀가 저장한 모든 단어 목록 조회 API
+ * 특정 자녀가 저장한 모든 단어를 반환합니다.
+ *
+ * @param childId - 자녀 프로필 ID
+ * @returns Promise<SavedWord[]> - 저장된 단어 목록
+ *
+ * API 스펙:
+ * - Method: GET
+ * - Endpoint: /dictionaries/words/list
+ * - Request: child_id (query)
+ * - Response: SavedWord[] - 저장된 단어 목록
+ */
+export const getAllWordsByChild = async (childId: number): Promise<SavedWord[]> => {
+  try {
+    console.log('🔠 전체 단어 목록 조회 요청 시작:', {
+      url: `/dictionaries/words/list?childId=${childId}`,
+      method: 'GET',
+      childId,
+    });
+
+    // 인증 토큰 상태 확인
+    console.log('🔐 전체 단어 목록 조회 - 인증 토큰 상태 확인 중...');
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
+    }
+    console.log('✅ 전체 단어 목록 조회 - 인증 토큰 확인 완료');
+
+    // 서버에서 전체 단어 목록 조회
+    console.log('🔠 서버에서 전체 단어 목록 조회 중...');
+    const response = await apiClient.get<SavedWord[]>(
+      `/dictionaries/words/list?childId=${childId}`,
+      {
+        timeout: 10000, // 10초로 설정
+      }
+    );
+
+    // 응답 데이터 구조 확인 및 안전한 처리
+    console.log('🔍 응답 데이터 구조:', {
+      hasResponse: !!response,
+      hasData: !!response.data,
+      dataType: typeof response.data,
+      isArray: Array.isArray(response.data),
+      dataKeys: response.data ? Object.keys(response.data) : [],
+      rawData: response.data,
+    });
+
+    // 응답 데이터 구조 확인 및 처리
+    let wordsArray: SavedWord[] = [];
+
+    if (Array.isArray(response.data)) {
+      // 직접 배열로 응답된 경우
+      wordsArray = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
+      const responseData = response.data as any;
+      if (Array.isArray(responseData.data)) {
+        wordsArray = responseData.data;
+      } else {
+        console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
+        wordsArray = [];
+      }
+    } else {
+      console.warn('⚠️ 응답 데이터가 예상과 다름:', response.data);
+      wordsArray = [];
+    }
+
+    console.log('✅ 전체 단어 목록 조회 성공:', {
+      status: response.status,
+      wordCount: wordsArray.length,
+      words: wordsArray.map((word) => ({
+        word: word.word,
+        meaning: word.meaning,
+        savedId: word.savedId,
+      })),
+    });
+
+    return wordsArray;
+  } catch (error: any) {
+    console.error('❌ 전체 단어 목록 조회 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      isNetworkError: !error.response,
+      url: error.config?.url,
+      method: error.config?.method,
+      childId,
+    });
+
+    // 네트워크 에러인지 확인
+    if (!error.response) {
+      throw new Error('서버에 연결할 수 없습니다.');
+    }
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '전체 단어 목록 조회에 실패했습니다.';
+    throw new Error(errorMessage);
+  }
+};
+
+/**
+ * 동화 ID로 저장된 단어 목록 조회 API
+ * 동화에서 추출되어 저장된 단어들의 정보를 조회합니다.
+ *
+ * @param storyId - 동화 ID
+ * @param childId - 자녀 프로필 ID
+ * @returns Promise<SavedWord[]> - 저장된 단어 목록
+ *
+ * API 스펙:
+ * - Method: GET
+ * - Endpoint: /dictionaries/words/by-story
+ * - Request: storyId (query), childId (query)
+ * - Response: SavedWord[] - 저장된 단어 목록
+ */
+export const getWordsByStory = async (storyId: number, childId: number): Promise<SavedWord[]> => {
+  try {
+    console.log('🔠 단어 목록 조회 요청 시작:', {
+      url: `/dictionaries/words/by-story?storyId=${storyId}&childId=${childId}`,
+      method: 'GET',
+      storyId,
+      childId,
+    });
+
+    // 인증 토큰 상태 확인
+    console.log('🔐 단어 목록 조회 - 인증 토큰 상태 확인 중...');
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+      throw new Error('인증 토큰이 없습니다. 로그인이 필요합니다.');
+    }
+    console.log('✅ 단어 목록 조회 - 인증 토큰 확인 완료');
+
+    // 서버에서 저장된 단어 목록 조회
+    console.log('🔠 서버에서 단어 목록 조회 중...');
+    const response = await apiClient.get<SavedWord[]>(
+      `/dictionaries/words/by-story?storyId=${storyId}&childId=${childId}`,
+      {
+        timeout: 10000, // 10초로 설정
+      }
+    );
+
+    // 응답 데이터 구조 확인 및 안전한 처리
+    console.log('🔍 응답 데이터 구조:', {
+      hasResponse: !!response,
+      hasData: !!response.data,
+      dataType: typeof response.data,
+      isArray: Array.isArray(response.data),
+      dataKeys: response.data ? Object.keys(response.data) : [],
+      rawData: response.data,
+    });
+
+    // 응답 데이터 구조 확인 및 처리
+    let wordsArray: SavedWord[] = [];
+
+    if (Array.isArray(response.data)) {
+      // 직접 배열로 응답된 경우
+      wordsArray = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // 객체로 감싸진 응답인 경우 (예: { data: [...], message: "...", status: 200 })
+      const responseData = response.data as any;
+      if (Array.isArray(responseData.data)) {
+        wordsArray = responseData.data;
+      } else {
+        console.warn('⚠️ 응답 데이터의 data 필드가 배열이 아님:', response.data);
+        wordsArray = [];
+      }
+    } else {
+      console.warn('⚠️ 응답 데이터가 예상과 다름:', response.data);
+      wordsArray = [];
+    }
+
+    console.log('✅ 단어 목록 조회 성공:', {
+      status: response.status,
+      wordCount: wordsArray.length,
+      words: wordsArray.map((word) => ({
+        word: word.word,
+        meaning: word.meaning,
+        savedId: word.savedId,
+      })),
+    });
+
+    return wordsArray;
+  } catch (error: any) {
+    console.error('❌ 단어 목록 조회 실패:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      isNetworkError: !error.response,
+      url: error.config?.url,
+      method: error.config?.method,
+      storyId,
+      childId,
+    });
+
+    // 네트워크 에러인지 확인
+    if (!error.response) {
+      throw new Error('서버에 연결할 수 없습니다.');
+    }
+
+    // 에러 응답에서 상세 메시지 추출
+    const errorMessage =
+      error.response?.data?.message || error.message || '단어 목록 조회에 실패했습니다.';
+    throw new Error(errorMessage);
   }
 };
