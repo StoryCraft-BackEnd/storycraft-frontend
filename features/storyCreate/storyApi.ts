@@ -206,31 +206,13 @@ export const createIntegratedStory = async (request: CreateStoryRequest): Promis
       if (sections && sections.length > 0) {
         console.log(`📖 총 ${sections.length}개 단락에 대해 TTS 생성 시작...`);
 
-        // 모든 단락에 대해 TTS 생성 (병렬 처리)
-        const ttsPromises = sections.map(async (section) => {
-          try {
-            const ttsRequest = {
-              childId: request.childId,
-              storyId: storyData.storyId,
-              sectionId: section.sectionId,
-              voiceId: 'Joanna', // 기본 성우 Seoyeon
-              speechRate: 0.8, // 기본 속도
-            };
-
-            const ttsInfo = await requestTTS(ttsRequest);
-            console.log(`✅ 단락 ${section.sectionId} TTS 생성 성공:`, {
-              sectionId: ttsInfo.sectionId,
-              audioPath: ttsInfo.audioPath,
-            });
-            return ttsInfo;
-          } catch (error) {
-            console.error(`❌ 단락 ${section.sectionId} TTS 생성 실패:`, error);
-            return null;
-          }
-        });
-
-        const ttsResults = await Promise.all(ttsPromises);
-        const successfulTTS = ttsResults.filter(Boolean);
+        // requestAllSectionsTTS 함수 사용하여 일괄 처리
+        const successfulTTS = await requestAllSectionsTTS(
+          request.childId,
+          storyData.storyId,
+          sections
+          // voiceId와 speechRate는 디폴트값 사용
+        );
 
         console.log(`🎉 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
       } else {
@@ -467,31 +449,13 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
       if (sections && sections.length > 0) {
         console.log(`📖 총 ${sections.length}개 단락에 대해 TTS 생성 시작...`);
 
-        // 모든 단락에 대해 TTS 생성 (병렬 처리)
-        const ttsPromises = sections.map(async (section) => {
-          try {
-            const ttsRequest = {
-              childId: request.childId,
-              storyId: storyData.storyId,
-              sectionId: section.sectionId,
-              voiceId: 'Seoyeon', // 기본 성우
-              speechRate: 0.8, // 기본 속도
-            };
-
-            const ttsInfo = await requestTTS(ttsRequest);
-            console.log(`✅ 단락 ${section.sectionId} TTS 생성 성공:`, {
-              sectionId: ttsInfo.sectionId,
-              audioPath: ttsInfo.audioPath,
-            });
-            return ttsInfo;
-          } catch (error) {
-            console.error(`❌ 단락 ${section.sectionId} TTS 생성 실패:`, error);
-            return null;
-          }
-        });
-
-        const ttsResults = await Promise.all(ttsPromises);
-        const successfulTTS = ttsResults.filter(Boolean);
+        // requestAllSectionsTTS 함수 사용하여 일괄 처리
+        const successfulTTS = await requestAllSectionsTTS(
+          request.childId,
+          storyData.storyId,
+          sections
+          // voiceId와 speechRate는 디폴트값 사용
+        );
 
         console.log(`🎉 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
       } else {
@@ -965,20 +929,42 @@ export const requestAllSectionsTTS = async (
   childId: number,
   storyId: number,
   sections: StorySection[],
-  voiceId: string = 'Seoyeon',
-  speechRate: number = 0.8
+  voiceId?: string,
+  speechRate?: number
 ): Promise<TTSAudioInfo[]> => {
-  const ttsPromises = sections.map((section) =>
-    requestTTS({
-      childId,
-      storyId,
-      sectionId: section.sectionId,
-      voiceId,
-      speechRate,
-    }).catch(() => null)
-  );
+  // 디폴트값 설정
+  const defaultVoiceId = voiceId || 'Seoyeon';
+  const defaultSpeechRate = speechRate || 0.8;
+
+  console.log('🔊 TTS 일괄 생성 시작:', {
+    storyId,
+    sectionsCount: sections.length,
+    voiceId: defaultVoiceId,
+    speechRate: defaultSpeechRate,
+  });
+
+  const ttsPromises = sections.map(async (section) => {
+    try {
+      const ttsInfo = await requestTTS({
+        childId,
+        storyId,
+        sectionId: section.sectionId,
+        voiceId: defaultVoiceId,
+        speechRate: defaultSpeechRate,
+      });
+      console.log(`✅ 단락 ${section.sectionId} TTS 생성 성공`);
+      return ttsInfo;
+    } catch (error) {
+      console.error(`❌ 단락 ${section.sectionId} TTS 생성 실패:`, error);
+      return null;
+    }
+  });
+
   const results = await Promise.all(ttsPromises);
-  return results.filter(Boolean) as TTSAudioInfo[];
+  const successfulTTS = results.filter(Boolean) as TTSAudioInfo[];
+
+  console.log(`🎉 TTS 일괄 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
+  return successfulTTS;
 };
 
 /**

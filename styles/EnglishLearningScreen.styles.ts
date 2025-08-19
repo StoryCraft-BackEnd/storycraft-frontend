@@ -191,6 +191,19 @@ const englishLearningStyles = StyleSheet.create({
   },
 
   /**
+   * 🎭 TTS 설정 버튼
+   * topControls 그룹 내에서 사용되는 TTS 설정 버튼
+   * 성우 변경 등의 TTS 설정을 위한 버튼
+   */
+  ttsSettingsButton: {
+    backgroundColor: 'rgba(155, 89, 182, 0.9)', // 보라색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    marginRight: wp(2), // 페이지 현황과의 간격 2% (반응형)
+  },
+
+  /**
    * 📄 그룹 내 페이지 진행 상황 표시기
    * topControls 그룹 내에서 사용되는 페이지 현황 표시
    * 다른 버튼들과 일관된 스타일
@@ -941,6 +954,63 @@ const englishLearningStyles = StyleSheet.create({
     color: '#34495e', // 어두운 회색 텍스트
     fontSize: wp(2.5), // 글자 크기 2.5% (반응형)
     fontWeight: '400',
+  },
+
+  // ===================================================================
+  // 🔄 동기화 화면 스타일
+  // ===================================================================
+
+  /**
+   * 🔄 동기화 화면 컨테이너
+   * 전체 화면을 덮는 동기화 화면
+   * 사용자 터치를 막고 동기화 상태를 표시
+   */
+  syncContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+
+  /**
+   * 🔄 동기화 아이콘
+   * 회전하는 동기화 아이콘 (이모지)
+   * 큰 크기로 시각적 강조
+   */
+  syncIcon: {
+    fontSize: wp('15%'),
+    marginBottom: hp('3%'),
+  },
+
+  /**
+   * 🔄 동기화 제목
+   * "동기화 중..." 메인 텍스트
+   * 흰색으로 강조하여 가독성 향상
+   */
+  syncTitle: {
+    color: '#ffffff',
+    fontSize: wp('6%'),
+    fontWeight: 'bold',
+    marginBottom: hp('2%'),
+    textAlign: 'center',
+  },
+
+  /**
+   * 🔄 동기화 설명
+   * 동기화 상태에 대한 상세 설명
+   * 약간 투명하게 처리하여 부드러운 느낌
+   */
+  syncDescription: {
+    color: '#ffffff',
+    fontSize: wp('4%'),
+    textAlign: 'center',
+    lineHeight: wp('6%'),
+    opacity: 0.8,
   },
 });
 

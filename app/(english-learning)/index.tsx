@@ -67,9 +67,16 @@ export default function EnglishLearningScreen() {
   // TTS 요청 상태 관리
   const [ttsRequested, setTtsRequested] = useState<Set<number>>(new Set());
 
+  // TTS 설정 상태
+  const [ttsVoiceId, setTtsVoiceId] = useState<string>('Seoyeon'); // 기본 성우
+  const [ttsSpeechRate, setTtsSpeechRate] = useState<number>(0.8); // 기본 속도
+
   // 즐겨찾기 단어 페이지네이션 상태
   const [favoriteWordsPage, setFavoriteWordsPage] = useState(1);
   const [favoriteWordsPerPage] = useState(3); // 한 페이지당 표시할 단어 수 (3개 이상일 때 페이지네이션)
+
+  // 동기화 화면 상태
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // 로컬에 동화별 단어 저장하는 함수
   const saveWordsToLocalStorage = async (storyId: number, childId: number, words: any[]) => {
@@ -448,6 +455,12 @@ export default function EnglishLearningScreen() {
                 (currentStory.content.split('\n').length > 3 ? '\n...' : '')
               : '없음',
           });
+
+          // 동기화 화면 표시 (5초간)
+          setIsSyncing(true);
+          setTimeout(() => {
+            setIsSyncing(false);
+          }, 5000);
         } else {
           // 기존 로직: 선택된 프로필의 최신 동화 사용
           const selectedProfile = await loadSelectedProfile();
@@ -513,6 +526,12 @@ export default function EnglishLearningScreen() {
 
             // 최신 동화에서 단어 자동 저장 (로컬 우선, 없으면 API)
             await getWordsForStory(latestStory.storyId, latestStory.childId);
+
+            // 동기화 화면 표시 (5초간)
+            setIsSyncing(true);
+            setTimeout(() => {
+              setIsSyncing(false);
+            }, 5000);
           } catch (sectionError) {
             console.error(`동화 ${latestStory.storyId} 단락 조회 실패:`, {
               error: sectionError,
@@ -815,14 +834,28 @@ export default function EnglishLearningScreen() {
 
   // API에서 TTS 요청하는 함수
   const requestTTSFromAPI = (story: LearningStoryWithSections) => {
-    requestAllSectionsTTS(story.childId, story.storyId, story.sections, 'Seoyeon', 0.8)
+    console.log('🔊 TTS API 요청 시작:', {
+      storyId: story.storyId,
+      title: story.title,
+      sectionsCount: story.sections?.length || 0,
+      voiceId: ttsVoiceId,
+      speechRate: ttsSpeechRate,
+    });
+
+    requestAllSectionsTTS(story.childId, story.storyId, story.sections, ttsVoiceId, ttsSpeechRate)
       .then((ttsList) => {
-        console.log('✅ TTS 요청 완료:', ttsList.length, '개 단락');
+        console.log('✅ TTS 요청 완료:', {
+          count: ttsList.length,
+          voiceId: ttsVoiceId,
+          speechRate: ttsSpeechRate,
+        });
+
         const map: { [sectionId: number]: TTSAudioInfo } = {};
         ttsList.forEach((info) => {
           map[info.sectionId] = info;
         });
         setTtsAudioMap(map);
+
         // TTS 정보를 로컬에 저장할 수 있는 형태로 변환
         const ttsInfoForStorage: { [sectionId: number]: { audioPath: string; ttsUrl: string } } =
           {};
@@ -835,7 +868,11 @@ export default function EnglishLearningScreen() {
         saveStoryTTS(story.childId, story.storyId, ttsInfoForStorage);
       })
       .catch((error) => {
-        console.warn('⚠️ TTS 요청 실패, 음성 없이 동화 학습 진행:', error.message);
+        console.warn('⚠️ TTS 요청 실패, 음성 없이 동화 학습 진행:', {
+          error: error.message,
+          voiceId: ttsVoiceId,
+          speechRate: ttsSpeechRate,
+        });
         // TTS 실패해도 동화 학습은 계속 진행
         setTtsAudioMap({});
       });
@@ -1455,6 +1492,17 @@ export default function EnglishLearningScreen() {
     <View style={englishLearningStyles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
+      {/* 동기화 화면 */}
+      {isSyncing && (
+        <View style={englishLearningStyles.syncContainer}>
+          <Text style={englishLearningStyles.syncIcon}>🔄</Text>
+          <Text style={englishLearningStyles.syncTitle}>동기화 중...</Text>
+          <Text style={englishLearningStyles.syncDescription}>
+            동화 데이터를 동기화하고 있습니다{'\n'}잠시만 기다려주세요
+          </Text>
+        </View>
+      )}
+
       {!isStoryLoaded || !currentStory ? (
         // 로딩 상태 또는 데이터가 없을 때
         <ImageBackground
@@ -1494,6 +1542,21 @@ export default function EnglishLearningScreen() {
                 onPress={handleTextToSpeech}
               >
                 <Text style={englishLearningStyles.quizButtonText}>🔊 읽어주기</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={englishLearningStyles.ttsSettingsButton}
+                onPress={() => {
+                  // TTS 설정 변경 (예: 성우 변경)
+                  const voices = ['Seoyeon', 'Joanna', 'Matthew'];
+                  const currentIndex = voices.indexOf(ttsVoiceId);
+                  const nextIndex = (currentIndex + 1) % voices.length;
+                  const newVoiceId = voices[nextIndex];
+                  setTtsVoiceId(newVoiceId);
+                  console.log('🎭 TTS 성우 변경:', { from: ttsVoiceId, to: newVoiceId });
+                }}
+              >
+                <Text style={englishLearningStyles.quizButtonText}>🎭 {ttsVoiceId}</Text>
               </TouchableOpacity>
 
               <View style={englishLearningStyles.progressContainerInGroup}>
@@ -1749,6 +1812,21 @@ export default function EnglishLearningScreen() {
                 onPress={handleTextToSpeech}
               >
                 <Text style={englishLearningStyles.quizButtonText}>🔊 읽어주기</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={englishLearningStyles.ttsSettingsButton}
+                onPress={() => {
+                  // TTS 설정 변경 (예: 성우 변경)
+                  const voices = ['Seoyeon', 'Joanna', 'Matthew'];
+                  const currentIndex = voices.indexOf(ttsVoiceId);
+                  const nextIndex = (currentIndex + 1) % voices.length;
+                  const newVoiceId = voices[nextIndex];
+                  setTtsVoiceId(newVoiceId);
+                  console.log('🎭 TTS 성우 변경:', { from: ttsVoiceId, to: newVoiceId });
+                }}
+              >
+                <Text style={englishLearningStyles.quizButtonText}>🎭 {ttsVoiceId}</Text>
               </TouchableOpacity>
 
               <View style={englishLearningStyles.progressContainerInGroup}>
