@@ -2,6 +2,7 @@
 export interface CreateStoryRequest {
   keywords: string[]; // 키워드 배열 (API 스펙에 맞춤)
   childId: number; // 동화를 생성할 아이의 프로필 ID
+  voice?: string; // 선택된 성우 ID (선택적)
 }
 
 // 서버에서 실제 반환하는 동화 데이터 타입
@@ -206,4 +207,11 @@ export interface TTSAudioInfo {
   sectionId: number;
   audioPath: string;
   ttsUrl: string;
+}
+
+// 음성별 TTS 정보를 저장하는 타입
+export interface VoiceBasedTTSInfo {
+  [voiceId: string]: {
+    [sectionId: number]: TTSAudioInfo;
+  };
 }

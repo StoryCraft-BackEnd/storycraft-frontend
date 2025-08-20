@@ -428,7 +428,16 @@ export const getAllWordsByChild = async (childId: number): Promise<SavedWord[]> 
       })),
     });
 
-    return wordsArray;
+    // 삭제된 동화의 단어 필터링
+    const filteredWords = await filterValidWordsByStories(wordsArray, childId);
+
+    console.log('✅ 필터링된 단어 목록:', {
+      originalCount: wordsArray.length,
+      filteredCount: filteredWords.length,
+      removedCount: wordsArray.length - filteredWords.length,
+    });
+
+    return filteredWords;
   } catch (error: any) {
     console.error('❌ 전체 단어 목록 조회 실패:', {
       error: error.response?.data || error.message,
@@ -554,5 +563,36 @@ export const getWordsByStory = async (storyId: number, childId: number): Promise
     const errorMessage =
       error.response?.data?.message || error.message || '단어 목록 조회에 실패했습니다.';
     throw new Error(errorMessage);
+  }
+};
+
+/**
+ * 삭제된 동화의 단어를 필터링하는 함수
+ * 현재 존재하는 동화 목록과 비교하여 유효한 단어만 반환
+ */
+export const filterValidWordsByStories = async (words: any[], childId: number): Promise<any[]> => {
+  try {
+    // 현재 존재하는 동화 목록 가져오기
+    const { loadStoriesByChildId } = require('@/features/storyCreate/storyStorage');
+    const existingStories = await loadStoriesByChildId(childId);
+    const existingStoryIds = new Set(existingStories.map((story) => story.storyId));
+
+    // 단어 데이터에서 storyId가 존재하는 동화에 속한 단어만 필터링
+    const validWords = words.filter((word) => {
+      if (word.storyId && !existingStoryIds.has(word.storyId)) {
+        console.log(`🗑️ 삭제된 동화 ${word.storyId}의 단어 제거: ${word.word}`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(
+      `✅ 단어 필터링 완료: ${words.length}개 → ${validWords.length}개 (삭제된 동화 단어 제거)`
+    );
+    return validWords;
+  } catch (error) {
+    console.error('❌ 단어 필터링 실패:', error);
+    // 필터링 실패 시 원본 단어 반환
+    return words;
   }
 };

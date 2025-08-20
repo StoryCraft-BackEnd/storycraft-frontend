@@ -17,6 +17,7 @@ console.log('📦 BookmarkedQuiz 인터페이스 정의됨');
 
 /**
  * 북마크된 퀴즈 목록을 로컬에서 불러옵니다.
+ * 삭제된 동화의 퀴즈들은 자동으로 필터링됨
  */
 export const loadBookmarkedQuizzes = async (): Promise<BookmarkedQuiz[]> => {
   try {
@@ -33,6 +34,9 @@ export const loadBookmarkedQuizzes = async (): Promise<BookmarkedQuiz[]> => {
         length: Array.isArray(bookmarks) ? bookmarks.length : 'N/A',
         data: bookmarks,
       });
+
+      // storyId가 없는 퀴즈는 유지 (이전 버전 호환성)
+      // 삭제된 동화의 퀴즈는 cleanupStoryRelatedData에서 처리됨
       console.log('✅ 북마크된 퀴즈 로드 완료:', bookmarks.length, '개');
       return bookmarks;
     }
@@ -139,5 +143,53 @@ export const clearAllQuizBookmarks = async (): Promise<void> => {
   } catch (error) {
     console.error('❌ 모든 퀴즈 북마크 제거 실패:', error);
     throw error;
+  }
+};
+
+/**
+ * 구버전 퀴즈 데이터 정리 (id 사용, storyId 없음)
+ * 새로운 형식: quizId와 storyId를 모두 가져야 함
+ */
+export const cleanupLegacyQuizData = async (): Promise<void> => {
+  try {
+    const quizBookmarksKey = 'quiz_bookmarks';
+    const quizBookmarksData = await AsyncStorage.getItem(quizBookmarksKey);
+
+    if (quizBookmarksData) {
+      const existingBookmarks = JSON.parse(quizBookmarksData);
+
+      if (Array.isArray(existingBookmarks) && existingBookmarks.length > 0) {
+        // 구버전 데이터 필터링 (quizId와 storyId 모두 있어야 함)
+        const validBookmarks = existingBookmarks.filter((bookmark: any) => {
+          return bookmark.quizId && bookmark.storyId; // quizId와 storyId 모두 있어야 함
+        });
+
+        const removedCount = existingBookmarks.length - validBookmarks.length;
+
+        if (removedCount > 0) {
+          await AsyncStorage.setItem(quizBookmarksKey, JSON.stringify(validBookmarks));
+          console.log(`🧹 구버전 퀴즈 데이터 정리 완료: ${removedCount}개 제거`);
+
+          // 제거된 구버전 데이터 로깅
+          const removedBookmarks = existingBookmarks.filter((bookmark: any) => {
+            return !bookmark.quizId || !bookmark.storyId;
+          });
+
+          console.log(
+            '🗑️ 제거된 구버전 퀴즈:',
+            removedBookmarks.map((b: any) => ({
+              id: b.id,
+              quizId: b.quizId,
+              storyId: b.storyId,
+              question: b.question?.substring(0, 30) + '...',
+            }))
+          );
+        } else {
+          console.log('✅ 구버전 퀴즈 데이터 없음 - 모든 데이터가 유효함');
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ 구버전 퀴즈 데이터 정리 실패:', error);
   }
 };

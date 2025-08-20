@@ -14,6 +14,8 @@ import {
   TTSResponse,
   TTSAudioInfo,
   SavedWord,
+  Story,
+  VoiceBasedTTSInfo,
 } from './types';
 import {
   addStoryToStorage,
@@ -26,6 +28,70 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { saveWordsByStory, getAllWordsByChild, getWordsByStory } from '@/shared/api/dictionaryApi';
+import { cleanupLegacyQuizData } from '@/features/quiz/quizStorage';
+import { loadFavoriteWords, saveFavoriteWords } from '@/features/storyCreate/storyStorage';
+
+/**
+ * TTS 생성을 위한 공통 함수
+ * 동화의 모든 단락에 대해 Joanna와 Seoyeon(세연) 두 음성으로 TTS 요청 및 오디오 다운로드
+ */
+export const generateTTSForStory = async (
+  childId: number,
+  storyId: number
+): Promise<{ [voiceId: string]: TTSAudioInfo[] }> => {
+  try {
+    console.log('🔊 TTS 생성 시작 (두 음성 모두)...');
+
+    // 동화의 모든 단락 정보 가져오기
+    const sections = await fetchStorySections(storyId, childId);
+
+    if (sections && sections.length > 0) {
+      console.log(`📖 총 ${sections.length}개 단락에 대해 두 음성 TTS 생성 시작...`);
+
+      // Joanna와 Seoyeon(세연) 두 음성으로 TTS 생성
+      const voices = ['Joanna', 'Seoyeon'];
+      const ttsResults: { [voiceId: string]: TTSAudioInfo[] } = {};
+
+      for (const voice of voices) {
+        console.log(`🎵 ${voice} 음성 TTS 생성 시작...`);
+
+        try {
+          const successfulTTS = await requestAllSectionsTTS(
+            childId,
+            storyId,
+            sections,
+            voice,
+            0.8 // 기본 속도
+          );
+
+          ttsResults[voice] = successfulTTS;
+          console.log(
+            `✅ ${voice} 음성 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`
+          );
+        } catch (voiceError) {
+          console.warn(`⚠️ ${voice} 음성 TTS 생성 실패:`, voiceError);
+          ttsResults[voice] = [];
+        }
+      }
+
+      console.log(`🎉 전체 TTS 생성 완료:`, {
+        Joanna: ttsResults['Joanna']?.length || 0,
+        Seoyeon: ttsResults['Seoyeon']?.length || 0,
+        totalSections: sections.length,
+      });
+
+      return ttsResults;
+    } else {
+      console.log('⚠️ 동화 단락 정보를 가져올 수 없어 TTS 생성을 건너뜁니다.');
+      return { Joanna: [], Seoyeon: [] };
+    }
+  } catch (ttsError) {
+    console.error('TTS 생성 실패:', ttsError);
+    // TTS 생성 실패는 동화 생성 실패로 처리하지 않음
+    // TTS 없이 동화만 반환
+    return { Joanna: [], Seoyeon: [] };
+  }
+};
 
 /**
  * AI 기반 동화 통합 생성 API
@@ -88,7 +154,6 @@ export const createIntegratedStory = async (request: CreateStoryRequest): Promis
       storyId: response.data.data?.storyId,
       title: response.data.data?.title,
       keywords: response.data.data?.keywords,
-      hasProgress: !!response.data.data?.progress,
     });
 
     const storyData = response.data.data;
@@ -153,11 +218,21 @@ export const createIntegratedStory = async (request: CreateStoryRequest): Promis
 
           console.log(`📖 총 ${totalSections}개 단락에 대해 삽화 배치 시작...`);
 
-          // 3개 삽화를 단락 수에 따라 균등하게 분배
-          const illustrationMapping = distributeIllustrationsToSections(
-            totalSections,
-            illustrations
-          );
+          // 3개 삽화를 단락 수에 따라 균등하게 분배 (간단한 로직으로 대체)
+          // const illustrationMapping = distributeIllustrationsToSections(
+          //   totalSections,
+          //   illustrations
+          // );
+
+          // 간단한 삽화 배치 로직
+          const illustrationMapping: any[] = [];
+          for (let i = 0; i < totalSections; i++) {
+            const illustrationIndex = Math.min(
+              Math.floor((i / totalSections) * illustrations.length),
+              illustrations.length - 1
+            );
+            illustrationMapping.push(illustrations[illustrationIndex]);
+          }
 
           // 각 단락에 삽화 정보 추가
           sections.forEach((section, index) => {
@@ -195,34 +270,8 @@ export const createIntegratedStory = async (request: CreateStoryRequest): Promis
       // 삽화 없이 동화만 반환
     }
 
-    // 3단계: TTS 생성 (Polly 기반 음성 합성)
-    // 삽화 생성 성공/실패와 관계없이 TTS 생성 시도
-    try {
-      console.log('🔊 TTS 생성 시작...');
-
-      // 동화의 모든 단락 정보 가져오기
-      const sections = await fetchStorySections(storyData.storyId, request.childId);
-
-      if (sections && sections.length > 0) {
-        console.log(`📖 총 ${sections.length}개 단락에 대해 TTS 생성 시작...`);
-
-        // requestAllSectionsTTS 함수 사용하여 일괄 처리
-        const successfulTTS = await requestAllSectionsTTS(
-          request.childId,
-          storyData.storyId,
-          sections
-          // voiceId와 speechRate는 디폴트값 사용
-        );
-
-        console.log(`🎉 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
-      } else {
-        console.log('⚠️ 동화 단락 정보를 가져올 수 없어 TTS 생성을 건너뜁니다.');
-      }
-    } catch (ttsError) {
-      console.error('TTS 생성 실패:', ttsError);
-      // TTS 생성 실패는 동화 생성 실패로 처리하지 않음
-      // TTS 없이 동화만 반환
-    }
+    // 3단계: TTS 생성 제거 (동화 리스트에서 조회 시 생성)
+    console.log('🎵 TTS 생성 건너뛰기 - 동화 리스트에서 조회 시 생성됨');
 
     return storyData; // 실제 동화 데이터 반환
   } catch (error: any) {
@@ -396,11 +445,21 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
 
           console.log(`📖 총 ${totalSections}개 단락에 대해 삽화 배치 시작...`);
 
-          // 3개 삽화를 단락 수에 따라 균등하게 분배
-          const illustrationMapping = distributeIllustrationsToSections(
-            totalSections,
-            illustrations
-          );
+          // 3개 삽화를 단락 수에 따라 균등하게 분배 (간단한 로직으로 대체)
+          // const illustrationMapping = distributeIllustrationsToSections(
+          //   totalSections,
+          //   illustrations
+          // );
+
+          // 간단한 삽화 배치 로직
+          const illustrationMapping: any[] = [];
+          for (let i = 0; i < totalSections; i++) {
+            const illustrationIndex = Math.min(
+              Math.floor((i / totalSections) * illustrations.length),
+              illustrations.length - 1
+            );
+            illustrationMapping.push(illustrations[illustrationIndex]);
+          }
 
           // 각 단락에 삽화 정보 추가
           sections.forEach((section, index) => {
@@ -438,34 +497,8 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
       // 삽화 없이 동화만 반환
     }
 
-    // 4단계: TTS 생성 (Polly 기반 음성 합성)
-    // 삽화 생성 성공/실패와 관계없이 TTS 생성 시도
-    try {
-      console.log('🔊 TTS 생성 시작...');
-
-      // 동화의 모든 단락 정보 가져오기
-      const sections = await fetchStorySections(storyData.storyId, request.childId);
-
-      if (sections && sections.length > 0) {
-        console.log(`📖 총 ${sections.length}개 단락에 대해 TTS 생성 시작...`);
-
-        // requestAllSectionsTTS 함수 사용하여 일괄 처리
-        const successfulTTS = await requestAllSectionsTTS(
-          request.childId,
-          storyData.storyId,
-          sections
-          // voiceId와 speechRate는 디폴트값 사용
-        );
-
-        console.log(`🎉 TTS 생성 완료: ${successfulTTS.length}/${sections.length}개 단락 성공`);
-      } else {
-        console.log('⚠️ 동화 단락 정보를 가져올 수 없어 TTS 생성을 건너뜁니다.');
-      }
-    } catch (ttsError) {
-      console.error('TTS 생성 실패:', ttsError);
-      // TTS 생성 실패는 동화 생성 실패로 처리하지 않음
-      // TTS 없이 동화만 반환
-    }
+    // 4단계: TTS 생성 제거 (동화 리스트에서 조회 시 생성)
+    console.log('🎵 TTS 생성 건너뛰기 - 동화 리스트에서 조회 시 생성됨');
 
     return storyData; // 실제 동화 데이터 반환
   } catch (error: any) {
@@ -818,107 +851,60 @@ export const downloadIllustration = async (
  * Polly TTS API 호출 (POST /speech/tts)
  * 단락별 TTS 음성 생성 및 오디오 파일 다운로드
  */
-export const requestTTS = async (request: TTSRequest): Promise<TTSAudioInfo> => {
+export const requestTTS = async (
+  childId: number,
+  storyId: number,
+  sectionId: number,
+  voiceId: string = 'Joanna',
+  speechRate: number = 0.8
+): Promise<TTSAudioInfo | null> => {
   try {
-    console.log('🔊 TTS API 요청:', request);
+    console.log(`🎵 TTS 요청 시작: ${voiceId} 음성, ${speechRate} 속도`);
 
-    // 요청 파라미터 검증
-    if (!request.childId || !request.storyId || !request.sectionId || !request.voiceId) {
-      throw new Error(
-        'TTS 요청 파라미터가 누락되었습니다: childId, storyId, sectionId, voiceId가 필요합니다.'
-      );
-    }
-
-    if (request.speechRate < 0.1 || request.speechRate > 2.0) {
-      console.warn('⚠️ speechRate가 범위를 벗어남 (0.1-2.0), 기본값 0.8 사용');
-      request.speechRate = 0.8;
-    }
-
-    // 쿼리 파라미터로 전송 (POST 요청이지만 body는 없음)
-    const { childId, storyId, sectionId, voiceId, speechRate } = request;
-    const response = await apiClient.post<TTSResponse>(
+    // 올바른 API 엔드포인트와 쿼리 파라미터 사용
+    const response = await apiClient.post(
       `/speech/tts?child_id=${childId}&story_id=${storyId}&section_id=${sectionId}&voice_id=${voiceId}&speech_rate=${speechRate}`,
       {} // 빈 body (POST 요청이지만 데이터는 쿼리 파라미터로 전송)
     );
-    console.log('🔊 TTS API 응답:', {
-      status: response.status,
-      data: response.data,
-    });
 
-    // 응답 데이터 구조 확인 (중첩된 data 필드에서 추출)
-    const ttsData = response.data.data;
-    if (!ttsData) {
-      throw new Error('TTS 응답 데이터가 없습니다.');
-    }
+    if (response.data?.status === 201) {
+      const ttsData = response.data.data;
+      console.log('✅ TTS URL 확인됨:', ttsData.ttsUrl);
 
-    // TTS URL 확인 및 검증
-    if (!ttsData.ttsUrl || typeof ttsData.ttsUrl !== 'string' || ttsData.ttsUrl.trim() === '') {
-      console.error('❌ TTS URL이 유효하지 않습니다. 응답 데이터:', ttsData);
-      console.error('   - ttsUrl 값:', ttsData.ttsUrl);
-      console.error('   - ttsUrl 타입:', typeof ttsData.ttsUrl);
-      console.error('   - ttsUrl 길이:', ttsData.ttsUrl?.length);
-      throw new Error('TTS URL이 유효하지 않거나 비어있습니다.');
-    }
+      // TTS 파일명에 voiceId 추가 (text는 제거)
+      const fileName = `tts_${storyId}_${sectionId}_${voiceId}.mp3`;
+      const fileUri = `${FileSystem.documentDirectory}tts/${fileName}`;
 
-    // URL 형식 검증
-    try {
-      new URL(ttsData.ttsUrl);
-    } catch {
-      console.error('❌ TTS URL 형식이 올바르지 않습니다:', ttsData.ttsUrl);
-      throw new Error('TTS URL 형식이 올바르지 않습니다.');
-    }
-
-    console.log('✅ TTS URL 확인됨:', ttsData.ttsUrl);
-
-    // 오디오 파일 다운로드
-    const audioFileName = `tts_${request.storyId}_${request.sectionId}.mp3`;
-    const audioPath = `${FileSystem.documentDirectory}tts/${audioFileName}`;
-    const audioDir = `${FileSystem.documentDirectory}tts`;
-
-    // TTS 디렉토리 생성
-    const dirInfo = await FileSystem.getInfoAsync(audioDir);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(audioDir, { intermediates: true });
-      console.log('📁 TTS 디렉토리 생성 완료:', audioDir);
-    }
-
-    console.log('📥 TTS 오디오 다운로드 시작:', ttsData.ttsUrl);
-    const downloadResult = await FileSystem.downloadAsync(ttsData.ttsUrl, audioPath);
-
-    if (downloadResult.status !== 200) {
-      throw new Error(`TTS 오디오 다운로드 실패: ${downloadResult.status}`);
-    }
-
-    console.log('✅ TTS 오디오 다운로드 완료:', downloadResult.uri);
-
-    return {
-      storyId: request.storyId,
-      sectionId: request.sectionId,
-      audioPath: downloadResult.uri,
-      ttsUrl: ttsData.ttsUrl,
-    };
-  } catch (error: any) {
-    console.error('❌ TTS 생성 중 오류 발생:', error);
-
-    // API 에러 상세 정보 로깅
-    if (error.response) {
-      console.error('🔍 API 에러 상세 정보:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
-        headers: error.response.headers,
-      });
-
-      // 400 에러의 경우 요청 데이터 재검증
-      if (error.response.status === 400) {
-        console.error('🔍 400 에러 - 요청 데이터 검증:', {
-          request,
-          errorMessage: error.response.data?.message || '알 수 없는 400 에러',
-        });
+      // TTS 디렉토리 생성
+      const ttsDir = `${FileSystem.documentDirectory}tts`;
+      const dirInfo = await FileSystem.getInfoAsync(ttsDir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(ttsDir, { intermediates: true });
       }
-    }
 
-    throw error;
+      // TTS 오디오 다운로드
+      console.log('📥 TTS 오디오 다운로드 시작:', ttsData.ttsUrl);
+      const downloadResult = await FileSystem.downloadAsync(ttsData.ttsUrl, fileUri);
+
+      if (downloadResult.status === 200) {
+        console.log(`✅ TTS 오디오 다운로드 완료: ${fileName}`);
+        return {
+          storyId,
+          sectionId,
+          audioPath: fileUri,
+          ttsUrl: ttsData.ttsUrl,
+        };
+      } else {
+        console.warn('⚠️ TTS 오디오 다운로드 실패:', downloadResult.status);
+        return null;
+      }
+    } else {
+      console.warn('⚠️ TTS API 응답 실패:', response.data);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ TTS 요청 실패:', error);
+    return null;
   }
 };
 
@@ -933,7 +919,7 @@ export const requestAllSectionsTTS = async (
   speechRate?: number
 ): Promise<TTSAudioInfo[]> => {
   // 디폴트값 설정
-  const defaultVoiceId = voiceId || 'Seoyeon';
+  const defaultVoiceId = voiceId || 'Joanna'; // Joanna, Seoyeon
   const defaultSpeechRate = speechRate || 0.8;
 
   console.log('🔊 TTS 일괄 생성 시작:', {
@@ -945,17 +931,17 @@ export const requestAllSectionsTTS = async (
 
   const ttsPromises = sections.map(async (section) => {
     try {
-      const ttsInfo = await requestTTS({
+      const ttsInfo = await requestTTS(
         childId,
         storyId,
-        sectionId: section.sectionId,
-        voiceId: defaultVoiceId,
-        speechRate: defaultSpeechRate,
-      });
+        section.sectionId,
+        defaultVoiceId,
+        defaultSpeechRate
+      );
       console.log(`✅ 단락 ${section.sectionId} TTS 생성 성공`);
       return ttsInfo;
     } catch (error) {
-      console.error(`❌ 단락 ${section.sectionId} TTS 생성 실패:`, error);
+      console.warn(`⚠️ 단락 ${section.sectionId} TTS 생성 실패:`, error);
       return null;
     }
   });
@@ -1040,6 +1026,7 @@ export const deleteIllustration = async (
  * 동화 삭제 API
  * 서버에서 동화를 삭제하고 로컬에서도 동시에 삭제
  * 서버에서 동화 삭제 시 삽화와 TTS가 자동으로 삭제됨
+ * 관련된 단어와 퀴즈도 함께 삭제
  *
  * @param childId - 사용자 프로필 ID (로컬 삭제용)
  * @param storyId - 삭제할 동화 ID
@@ -1101,9 +1088,23 @@ export const deleteStory = async (childId: number, storyId: number): Promise<boo
     }
 
     // 2단계: 서버 삭제 성공 시 로컬 데이터 정리
+    console.log('로컬 데이터 정리 시작...');
+
+    // 동화 및 단락 데이터 삭제
     await removeStoryFromStorage(childId, storyId);
     await removeStorySections(childId, storyId);
     console.log(`동화 ${storyId} 로컬 삭제 완료`);
+
+    // 3단계: 관련된 단어와 퀴즈 데이터 정리 (로컬에서만)
+    try {
+      console.log('관련 단어 및 퀴즈 데이터 정리 시작...');
+
+      // 새로운 통합 정리 함수 사용
+      await cleanupStoryRelatedData(childId, storyId);
+    } catch (dataCleanupError) {
+      console.warn('관련 데이터 정리 중 오류 발생:', dataCleanupError);
+      // 데이터 정리 실패는 전체 삭제를 중단하지 않음
+    }
 
     return true;
   } catch (error: any) {
@@ -1493,77 +1494,104 @@ export const fetchStorySections = async (
   }
 };
 
-/**
- * 키워드 배열을 프롬프트 문자열로 변환
- * 예: ['용사', '동물', '모험'] → "용사와 동물 친구들의 모험"
- */
-export const convertKeywordsToPrompt = (keywords: string[]): string => {
-  if (keywords.length === 0) {
-    return '';
-  }
+export const cleanupStoryRelatedData = async (childId: number, storyId: number): Promise<void> => {
+  try {
+    console.log(`🧹 동화 ${storyId} 연관 데이터 정리 시작...`);
 
-  if (keywords.length === 1) {
-    return keywords[0];
-  }
-
-  if (keywords.length === 2) {
-    return `${keywords[0]}와 ${keywords[1]}`;
-  }
-
-  // 3개 이상일 때는 "A, B, C의 모험" 형태로 변환
-  const lastKeyword = keywords[keywords.length - 1];
-  const otherKeywords = keywords.slice(0, -1);
-
-  return `${otherKeywords.join(', ')}와 ${lastKeyword}의 모험`;
-};
-
-/**
- * 3개 삽화를 단락 수에 따라 균등하게 분배
- * 예: 14개 단락이면 1-5번 단락은 1번 그림, 6-10번 단락은 2번 그림, 11-14번 단락은 3번 그림
- *
- * @param totalSections - 총 단락 수
- * @param illustrations - 삽화 배열 (3개)
- * @returns 각 단락에 매핑된 삽화 배열
- */
-export const distributeIllustrationsToSections = (
-  totalSections: number,
-  illustrations: Illustration[]
-): Illustration[] => {
-  if (illustrations.length === 0 || totalSections === 0) {
-    return [];
-  }
-
-  const result: Illustration[] = [];
-  const illustrationsCount = Math.min(illustrations.length, 3); // 최대 3개만 사용
-
-  // 각 단락에 삽화 배치
-  for (let i = 0; i < totalSections; i++) {
-    // 단락 인덱스를 삽화 인덱스로 매핑
-    let illustrationIndex: number;
-
-    if (illustrationsCount === 1) {
-      // 삽화가 1개면 모든 단락에 동일한 삽화
-      illustrationIndex = 0;
-    } else if (illustrationsCount === 2) {
-      // 삽화가 2개면 절반씩 분배
-      illustrationIndex = i < Math.ceil(totalSections / 2) ? 0 : 1;
-    } else {
-      // 삽화가 3개면 3등분으로 분배
-      const sectionPerIllustration = Math.ceil(totalSections / 3);
-      if (i < sectionPerIllustration) {
-        illustrationIndex = 0;
-      } else if (i < sectionPerIllustration * 2) {
-        illustrationIndex = 1;
-      } else {
-        illustrationIndex = 2;
-      }
+    // 1. 동화별 단어 데이터 정리
+    try {
+      const storyWordsKey = `story_words_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyWordsKey);
+      console.log(`✅ 동화별 단어 데이터 정리 완료: ${storyWordsKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 단어 데이터 정리 실패:`, error);
     }
 
-    result.push(illustrations[illustrationIndex]);
+    // 2. 동화별 퀴즈 데이터 정리
+    try {
+      const storyQuizzesKey = `story_quizzes_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyQuizzesKey);
+      console.log(`✅ 동화별 퀴즈 데이터 정리 완료: ${storyQuizzesKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 퀴즈 데이터 정리 실패:`, error);
+    }
+
+    // 3. 동화별 TTS 오디오 데이터 정리
+    try {
+      const storyTTSKey = `story_tts_${storyId}_${childId}`;
+      await AsyncStorage.removeItem(storyTTSKey);
+      console.log(`✅ 동화별 TTS 데이터 정리 완료: ${storyTTSKey}`);
+    } catch (error) {
+      console.warn(`⚠️ 동화별 TTS 데이터 정리 실패:`, error);
+    }
+
+    // 4. 동화별 즐겨찾기 단어 상태 정리 (전체 즐겨찾기에서 해당 동화의 단어들 제거)
+    try {
+      const existingFavorites = await loadFavoriteWords(childId);
+      if (existingFavorites.length > 0) {
+        // 현재 동화의 단어 목록을 가져와서 즐겨찾기에서 제거
+        const storyWordsKey = `story_words_${storyId}_${childId}`;
+        const storyWordsData = await AsyncStorage.getItem(storyWordsKey);
+
+        if (storyWordsData) {
+          const storyWords = JSON.parse(storyWordsData);
+          if (storyWords.words && Array.isArray(storyWords.words)) {
+            const wordsToRemove = storyWords.words.map((w: any) => w.word);
+            const updatedFavorites = existingFavorites.filter(
+              (fav) => !wordsToRemove.includes(fav.word)
+            );
+
+            if (updatedFavorites.length !== existingFavorites.length) {
+              await saveFavoriteWords(childId, updatedFavorites);
+              console.log(`✅ 동화별 단어 즐겨찾기 정리 완료: ${wordsToRemove.length}개 단어 제거`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ 동화별 단어 즐겨찾기 정리 실패:`, error);
+    }
+
+    // 5. 동화별 퀴즈 즐겨찾기 정리 (전체 퀴즈 북마크에서 해당 동화의 퀴즈들 제거)
+    try {
+      // 퀴즈 북마크 데이터를 직접 AsyncStorage에서 읽어와서 처리
+      const quizBookmarksKey = 'quiz_bookmarks';
+      const quizBookmarksData = await AsyncStorage.getItem(quizBookmarksKey);
+
+      if (quizBookmarksData) {
+        const existingQuizBookmarks = JSON.parse(quizBookmarksData);
+
+        if (Array.isArray(existingQuizBookmarks) && existingQuizBookmarks.length > 0) {
+          // 해당 동화의 퀴즈들만 필터링하여 제거
+          const quizzesToRemove = existingQuizBookmarks.filter(
+            (bookmark: any) => bookmark.storyId === storyId
+          );
+
+          if (quizzesToRemove.length > 0) {
+            const updatedQuizBookmarks = existingQuizBookmarks.filter(
+              (bookmark: any) => bookmark.storyId !== storyId
+            );
+
+            // 업데이트된 퀴즈 북마크 저장
+            await AsyncStorage.setItem(quizBookmarksKey, JSON.stringify(updatedQuizBookmarks));
+            console.log(`✅ 동화별 퀴즈 즐겨찾기 정리 완료: ${quizzesToRemove.length}개 퀴즈 제거`);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ 동화별 퀴즈 즐겨찾기 정리 실패:`, error);
+    }
+
+    // 6. 구버전 퀴즈 데이터 정리 (id 사용, storyId 없음)
+    try {
+      await cleanupLegacyQuizData();
+    } catch (error) {
+      console.warn(`⚠️ 구버전 퀴즈 데이터 정리 실패:`, error);
+    }
+
+    console.log(`✅ 동화 ${storyId} 연관 데이터 정리 완료`);
+  } catch (error) {
+    console.error(`❌ 동화 ${storyId} 연관 데이터 정리 실패:`, error);
+    throw error;
   }
-
-  console.log(`🎨 삽화 배치 완료: ${totalSections}개 단락에 ${illustrationsCount}개 삽화 분배`);
-  return result;
 };
-
-export type { TTSAudioInfo };

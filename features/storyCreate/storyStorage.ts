@@ -26,13 +26,6 @@ const getFavoritesKey = (childId: number): string => {
 };
 
 /**
- * 프로필별 동화별 즐겨찾기 단어 폴더 키 생성
- */
-const getStoryFavoritesKey = (childId: number, storyId: number): string => {
-  return createProfileKey(childId, `story_favorites_${storyId}`);
-};
-
-/**
  * 프로필별 학습 진행도 폴더 키 생성
  */
 const getProgressKey = (childId: number): string => {
@@ -335,6 +328,7 @@ export const saveFavoriteWords = async (childId: number, words: FavoriteWord[]):
 
 /**
  * 프로필별 즐겨찾기 단어 목록 불러오기
+ * 삭제된 동화의 단어들은 자동으로 필터링됨
  */
 export const loadFavoriteWords = async (childId: number): Promise<FavoriteWord[]> => {
   try {
@@ -352,8 +346,32 @@ export const loadFavoriteWords = async (childId: number): Promise<FavoriteWord[]
     const key = getFavoritesKey(childId);
     const wordsJson = await AsyncStorage.getItem(key);
     const words = wordsJson ? JSON.parse(wordsJson) : [];
-    // console.log(`프로필 ${childId} 즐겨찾기 단어 불러오기 완료:`, words.length, '개'); // 로그 제거
-    return words;
+
+    // 삭제된 동화의 단어들 필터링
+    try {
+      const existingStories = await loadStoriesByChildId(childId);
+      const existingStoryIds = existingStories.map((story) => story.storyId);
+
+      const filteredWords = words.filter((word: FavoriteWord) => {
+        // storyId가 없는 단어는 유지 (이전 버전 호환성)
+        if (!word.storyId) return true;
+        // 존재하는 동화의 단어만 유지
+        return existingStoryIds.includes(word.storyId);
+      });
+
+      // 필터링된 결과가 원본과 다르면 저장소 업데이트
+      if (filteredWords.length !== words.length) {
+        await AsyncStorage.setItem(key, JSON.stringify(filteredWords));
+        console.log(
+          `🧹 삭제된 동화의 즐겨찾기 단어 ${words.length - filteredWords.length}개 자동 정리됨`
+        );
+      }
+
+      return filteredWords;
+    } catch (filterError) {
+      console.warn('즐겨찾기 단어 필터링 중 오류:', filterError);
+      return words; // 필터링 실패 시 원본 반환
+    }
   } catch (error) {
     console.error(`프로필 ${childId} 즐겨찾기 단어 불러오기 실패:`, error);
     return [];
@@ -826,12 +844,13 @@ export const loadStorySectionsFromStorage = async (
 };
 
 /**
- * 프로필별 동화 TTS 정보를 로컬 스토리지에 저장
+ * 프로필별 로컬 스토리지에 동화 TTS 정보 저장하기
+ * 새로운 형식: voiceId를 키로 하여 모든 음성 정보 저장
  */
 export const saveStoryTTS = async (
   childId: number,
   storyId: number,
-  ttsInfo: { [sectionId: number]: { audioPath: string; ttsUrl: string } }
+  ttsInfo: { [voiceId: string]: { [sectionId: number]: { audioPath: string; ttsUrl: string } } }
 ): Promise<void> => {
   try {
     // childId 파라미터 검증 추가
@@ -850,7 +869,7 @@ export const saveStoryTTS = async (
     console.log(
       `프로필 ${childId} 동화 ${storyId} TTS 정보 저장 완료:`,
       Object.keys(ttsInfo).length,
-      '개 단락'
+      '개 음성'
     );
   } catch (error) {
     console.error(`프로필 ${childId} 동화 ${storyId} TTS 정보 저장 실패:`, error);
@@ -859,11 +878,14 @@ export const saveStoryTTS = async (
 
 /**
  * 프로필별 로컬 스토리지에서 동화 TTS 정보 불러오기
+ * 새로운 형식: voiceId를 키로 하여 모든 음성 정보 불러오기
  */
 export const loadStoryTTSFromStorage = async (
   childId: number,
   storyId: number
-): Promise<{ [sectionId: number]: { audioPath: string; ttsUrl: string } }> => {
+): Promise<{
+  [voiceId: string]: { [sectionId: number]: { audioPath: string; ttsUrl: string } };
+}> => {
   try {
     // childId 파라미터 검증 추가
     if (!childId || typeof childId !== 'number' || childId <= 0) {
@@ -882,7 +904,7 @@ export const loadStoryTTSFromStorage = async (
     console.log(
       `프로필 ${childId} 동화 ${storyId} TTS 정보 불러오기 완료:`,
       Object.keys(ttsInfo).length,
-      '개 단락'
+      '개 음성'
     );
     return ttsInfo;
   } catch (error) {
@@ -1227,6 +1249,36 @@ export const cleanupStoryRelatedData = async (childId: number, storyId: number):
       }
     } catch (error) {
       console.warn(`⚠️ 동화별 단어 즐겨찾기 정리 실패:`, error);
+    }
+
+    // 5. 동화별 퀴즈 즐겨찾기 정리 (전체 퀴즈 북마크에서 해당 동화의 퀴즈들 제거)
+    try {
+      // 퀴즈 북마크 데이터를 직접 AsyncStorage에서 읽어와서 처리
+      const quizBookmarksKey = 'quiz_bookmarks';
+      const quizBookmarksData = await AsyncStorage.getItem(quizBookmarksKey);
+
+      if (quizBookmarksData) {
+        const existingQuizBookmarks = JSON.parse(quizBookmarksData);
+
+        if (Array.isArray(existingQuizBookmarks) && existingQuizBookmarks.length > 0) {
+          // 해당 동화의 퀴즈들만 필터링하여 제거
+          const quizzesToRemove = existingQuizBookmarks.filter(
+            (bookmark: any) => bookmark.storyId === storyId
+          );
+
+          if (quizzesToRemove.length > 0) {
+            const updatedQuizBookmarks = existingQuizBookmarks.filter(
+              (bookmark: any) => bookmark.storyId !== storyId
+            );
+
+            // 업데이트된 퀴즈 북마크 저장
+            await AsyncStorage.setItem(quizBookmarksKey, JSON.stringify(updatedQuizBookmarks));
+            console.log(`✅ 동화별 퀴즈 즐겨찾기 정리 완료: ${quizzesToRemove.length}개 퀴즈 제거`);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ 동화별 퀴즈 즐겨찾기 정리 실패:`, error);
     }
 
     console.log(`✅ 동화 ${storyId} 연관 데이터 정리 완료`);

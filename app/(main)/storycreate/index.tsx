@@ -309,6 +309,7 @@ const StoryCreateScreen = () => {
             createdAt: storyData.createdAt,
             updatedAt: storyData.updatedAt,
             childId: selectedProfile.childId.toString(),
+            isNewStory: 'true', // 동화 생성 후 넘어온 경우를 표시
           },
         });
       }, 1500);
