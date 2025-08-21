@@ -375,7 +375,9 @@ export default function StoryListScreen() {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                  {item.title.length > 15 ? `${item.title.substring(0, 15)}...` : item.title}
+                </Text>
                 <View style={styles.statusIcons}>
                   <TouchableOpacity
                     onPress={() => toggleBookmark(item.storyId)}
