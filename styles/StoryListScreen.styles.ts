@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     alignItems: 'center',
     marginTop: hp('2%'), // 화면 높이의 2%로 더 위로 올림
-    marginBottom: hp('1%'), // 화면 높이의 1%로 더 줄임
+    marginBottom: hp('0.5%'), // 화면 높이의 0.5%로 더 줄임
     paddingHorizontal: wp('5%'), // 화면 너비의 5%
   },
   headerTitle: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: hp('2%'), // 화면 높이의 2%
+    marginTop: hp('1%'), // 화면 높이의 1%로 줄임
     marginBottom: hp('2%'), // 화면 높이의 2%
     paddingHorizontal: wp('5%'), // 화면 너비의 5%
   },

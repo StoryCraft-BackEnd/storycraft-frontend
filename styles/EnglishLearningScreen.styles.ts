@@ -52,7 +52,7 @@ const englishLearningStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)', // 반투명 검정 오버레이
     paddingHorizontal: wp(5), // 좌우 여백 5% (반응형)
     paddingTop: hp(2), // 상단 여백 2% (반응형) - 상단 요소들을 위한 공간
-    paddingBottom: hp(5), // 하단 여백 5% (반응형)
+    paddingBottom: hp(4), // 하단 여백 5% (반응형)
   },
 
   // ===================================================================
@@ -165,19 +165,6 @@ const englishLearningStyles = StyleSheet.create({
   },
 
   /**
-   * 📝 퀴즈 버튼
-   * 퀴즈 팝업을 열기 위한 버튼
-   * 읽어주기 버튼과 일관된 스타일
-   */
-  quizButton: {
-    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
-    marginRight: wp(2), // 읽어주기 버튼과의 간격 2% (반응형)
-  },
-
-  /**
    * 🔊 그룹 내 읽어주기 버튼
    * topControls 그룹 내에서 사용되는 읽어주기 버튼
    * 퀴즈 버튼과 일관된 스타일
@@ -196,7 +183,7 @@ const englishLearningStyles = StyleSheet.create({
    * 성우 변경 등의 TTS 설정을 위한 버튼
    */
   ttsSettingsButton: {
-    backgroundColor: 'rgba(155, 89, 182, 0.9)', // 보라색 배경
+    backgroundColor: 'rgba(183, 155, 229, 0.85)', // 귀여운 라벤더 파스텔 보라색 배경 (#B79BE5와 유사)
     paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
     paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
@@ -213,17 +200,6 @@ const englishLearningStyles = StyleSheet.create({
     paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
     paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
-  },
-
-  /**
-   * 📝 퀴즈 버튼 텍스트
-   * 연필 이모지와 텍스트 조합
-   * 퀴즈 기능 직관적 인식
-   */
-  quizButtonText: {
-    color: '#333', // 어두운 회색 텍스트
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
-    fontWeight: '600', // 중간 굵기
   },
 
   // ===================================================================
@@ -272,29 +248,6 @@ const englishLearningStyles = StyleSheet.create({
     opacity: 0.8, // 약간 투명하게 처리
   },
 
-  /**
-   * 🏷️ 페이지 표시기 (사용되지 않음)
-   * 별도의 페이지 표시용 컴포넌트
-   * 현재는 상단 progressContainer가 이 역할을 담당
-   */
-  pageIndicator: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', // 흰색 배경
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(4), // 둥근 모서리 4% (반응형)
-    marginBottom: hp(1.5), // 하단 여백 1.5% (반응형)
-  },
-
-  /**
-   * 🏷️ 페이지 표시 텍스트
-   * pageIndicator 내부의 텍스트 스타일
-   */
-  pageText: {
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
-    color: '#333', // 어두운 회색
-    fontWeight: '600', // 중간 굵기
-  },
-
   // ===================================================================
   // 📖 메인 콘텐츠 영역
   // ===================================================================
@@ -315,14 +268,14 @@ const englishLearningStyles = StyleSheet.create({
   /**
    * 📜 동화 내용 섹션
    * 메인 스토리 텍스트와 단어 학습 요소들을 포함
-   * 전체 콘텐츠의 65%를 차지하는 주요 영역
+   * 토글 상태에 따라 크기 조정
    */
   storyContentSection: {
-    flex: 0.65, // 전체 너비의 65%
+    flex: 0.65, // 기본 크기로 복원 (즐겨찾기 패널과 함께 사용)
     backgroundColor: 'rgba(0, 0, 0, 0.7)', // 반투명 검정 배경
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
     padding: wp(6), // 내부 여백 6% (반응형)
-    marginRight: wp(4), // 우측 여백 4% (패널과의 간격, 반응형)
+    marginRight: wp(4), // 우측 여백 4%로 복원 (반응형)
     minHeight: hp(25), // 최소 높이 25% (반응형)
   },
 
@@ -449,45 +402,6 @@ const englishLearningStyles = StyleSheet.create({
     color: '#cccccc', // 밝은 회색
     fontSize: wp(2.5), // 작은 글자 크기 2.5% (반응형)
     marginTop: hp(0.3), // 상단 여백 0.3% (반응형)
-  },
-
-  // ===================================================================
-  // 📝 사용되지 않는 레거시 스타일들
-  // ===================================================================
-
-  /**
-   * 🔘 단어 버튼 컨테이너 (사용되지 않음)
-   * 구 버전의 단어 버튼 레이아웃
-   * 현재는 keyWords로 대체됨
-   */
-  wordButtons: {
-    flexDirection: 'row', // 가로 방향 배치
-    flexWrap: 'wrap', // 자동 줄바꿈
-    justifyContent: 'center', // 중앙 정렬
-    gap: wp(2.5), // 버튼 간 간격 2.5% (반응형)
-  },
-
-  /**
-   * 🔘 단어 버튼 (사용되지 않음)
-   * 구 버전의 개별 단어 버튼 스타일
-   */
-  wordButton: {
-    backgroundColor: 'rgba(255, 215, 0, 0.8)', // 황금색 배경
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
-    borderWidth: 1, // 테두리 두께
-    borderColor: '#ffd700', // 황금색 테두리
-  },
-
-  /**
-   * 🔘 단어 버튼 텍스트 (사용되지 않음)
-   * 구 버전의 단어 버튼 내부 텍스트
-   */
-  wordButtonText: {
-    color: '#333', // 어두운 회색
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
-    fontWeight: '600', // 중간 굵기
   },
 
   // ===================================================================
@@ -850,7 +764,7 @@ const englishLearningStyles = StyleSheet.create({
     flexDirection: 'row', // 가로 방향 배치
     justifyContent: 'space-between', // 양쪽 끝 정렬
     alignItems: 'center', // 수직 중앙 정렬
-    marginTop: hp(2), // 상단 여백 2% (반응형)
+    marginTop: hp(12), // 상단 여백 4%로 증가 (반응형) - 버튼을 더 아래로 이동
     paddingHorizontal: wp(2), // 좌우 내부 여백 2% (반응형)
   },
 
@@ -862,7 +776,7 @@ const englishLearningStyles = StyleSheet.create({
   navButton: {
     backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
     paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1.5), // 상하 내부 여백 1.5% (반응형)
+    paddingVertical: hp(1.2), // 상하 내부 여백 1.5% (반응형)
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
     borderWidth: 1, // 테두리 두께
     borderColor: '#ffd700', // 황금색 테두리
@@ -913,6 +827,50 @@ const englishLearningStyles = StyleSheet.create({
    * 별표 이모지와 함께 직관적인 기능 표시
    */
   favoritePageButtonText: {
+    color: '#333', // 어두운 회색 텍스트
+    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontWeight: '600', // 중간 굵기
+  },
+
+  /**
+   * 🎯 퀴즈 시작 버튼
+   * 마지막 페이지에서 표시되는 퀴즈 시작 버튼
+   * 빨간색 배경으로 시각적 강조
+   */
+  quizStartButton: {
+    backgroundColor: '#FFB3A7', // 파스텔 살구색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
+    paddingVertical: hp(1.2), // 상하 내부 여백 1.2% (반응형)
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    borderWidth: 1, // 테두리 두께
+    borderColor: '#FFB3A7', // 빨간색 테두리
+    minWidth: wp(20), // 최소 너비 20% (반응형)
+    alignItems: 'center', // 중앙 정렬
+    marginHorizontal: wp(2.5), // 좌우 여백 2.5% (반응형)
+  },
+
+  /**
+   * 🎯 마지막 페이지 퀴즈 버튼
+   * 마지막 페이지에서 '다음' 버튼 대신 표시되는 퀴즈 버튼
+   * 기존 navButton과 동일한 크기와 모양, 배경만 퀴즈 스타일
+   */
+  lastPageQuizButton: {
+    backgroundColor: '#FFB3A7', // 파스텔 살구색 배경
+    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형) - navButton과 동일
+    paddingVertical: hp(1.2), // 상하 내부 여백 1.2% (반응형) - navButton과 동일
+    borderRadius: wp(5), // 둥근 모서리 5% (반응형) - navButton과 동일
+    borderWidth: 1, // 테두리 두께 - navButton과 동일
+    borderColor: '#FFB3A7', // 파스텔 살구색 테두리
+    minWidth: wp(20), // 최소 너비 20% (반응형) - navButton과 동일
+    alignItems: 'center', // 중앙 정렬 - navButton과 동일
+  },
+
+  /**
+   * 📝 상단 컨트롤 버튼 텍스트
+   * 읽어주기, TTS 설정 등 상단 컨트롤 버튼의 텍스트 스타일
+   * 어두운 색상으로 명확한 가독성
+   */
+  quizButtonText: {
     color: '#333', // 어두운 회색 텍스트
     fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
     fontWeight: '600', // 중간 굵기
@@ -979,12 +937,15 @@ const englishLearningStyles = StyleSheet.create({
 
   /**
    * 🔄 동기화 아이콘
-   * 회전하는 동기화 아이콘 (이모지)
-   * 큰 크기로 시각적 강조
+   * 랜덤 캐릭터 이미지
+   * 화면 크기에 맞춤 조절
    */
   syncIcon: {
-    fontSize: wp('15%'),
-    marginBottom: hp('3%'),
+    width: wp('30%'), // 화면 너비의 20%로 설정
+    height: wp('30%'), // 화면 너비의 20%로 설정 (정사각형 유지)
+    marginBottom: hp('1%'),
+    resizeMode: 'contain', // 이미지 비율 유지하면서 컨테이너에 맞춤
+    alignSelf: 'center', // 중앙 정렬
   },
 
   /**
@@ -1011,6 +972,58 @@ const englishLearningStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: wp('6%'),
     opacity: 0.8,
+  },
+
+  // ===================================================================
+  // 🔘 토글 버튼 스타일
+  // ===================================================================
+
+  /**
+   * 🔘 토글 버튼
+   * 즐겨찾기 패널을 표시/숨김하는 동그란 버튼
+   * 위아래로 움직이는 애니메이션 적용
+   */
+  toggleButton: {
+    position: 'absolute',
+    right: wp(2),
+    top: hp(2), // 패널 상단에서 2% 여백
+    width: wp(12),
+    height: wp(12),
+    borderRadius: wp(6),
+    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    borderWidth: 2,
+    borderColor: '#ffd700',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 10,
+  },
+
+  /**
+   * 🔘 토글 버튼 - 패널 숨김 상태
+   * 화면 우측 중앙보다 위쪽에 위치
+   */
+  toggleButtonHidden: {
+    right: wp(2),
+    top: '30%',
+    transform: [{ translateY: -wp(10) }], // 중앙보다 10% 위쪽
+  },
+
+  /**
+   * 🔘 토글 버튼 텍스트
+   * 토글 버튼 내부의 아이콘 텍스트
+   */
+  toggleButtonText: {
+    fontSize: wp(6),
+    color: '#333',
+    fontWeight: 'bold',
   },
 });
 

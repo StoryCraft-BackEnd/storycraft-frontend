@@ -717,13 +717,18 @@ export const fetchIllustrations = async (childId: number): Promise<Illustration[
 /**
  * 삽화 목록을 확인하고 누락된 삽화를 다시 다운로드
  * @param userStoryIds - 사용자가 보유한 동화 ID 목록
+ * @param childId - 프로필 ID
  * @param onProgress - 진행 상황 콜백 함수 (선택사항)
+ * @param forceDownload - 기존 파일이 있어도 강제로 다시 다운로드할지 여부 (새 동화인 경우 true)
+ * @param storyTitleMap - 동화 ID와 제목의 매핑 (파일명에 제목 포함용)
  * @returns Promise<void>
  */
 export const syncMissingIllustrations = async (
   userStoryIds: number[],
   childId: number,
-  onProgress?: (message: string, current?: number, total?: number) => void
+  onProgress?: (message: string, current?: number, total?: number) => void,
+  forceDownload: boolean = false,
+  storyTitleMap?: { [storyId: number]: string }
 ): Promise<void> => {
   try {
     // childId 파라미터 검증 추가
@@ -763,19 +768,32 @@ export const syncMissingIllustrations = async (
     for (let i = 0; i < userIllustrations.length; i++) {
       const illustration = userIllustrations[i];
       try {
-        const fileName = `illustration_${illustration.illustrationId}.jpg`;
+        // 동화 제목을 포함한 파일명 생성
+        const storyTitle = storyTitleMap?.[illustration.storyId];
+        let fileName: string;
+        if (storyTitle) {
+          const sanitizedTitle = sanitizeFilename(storyTitle);
+          fileName = `illustration_${illustration.illustrationId}_story${illustration.storyId}_${sanitizedTitle}.jpg`;
+        } else {
+          // 기존 방식 (호환성 유지)
+          fileName = `illustration_${illustration.illustrationId}.jpg`;
+        }
         const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
 
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
 
-        if (!fileInfo.exists) {
-          console.log(`삽화 ${illustration.illustrationId} 로컬 파일 없음, 다운로드 시작...`);
+        if (!fileInfo.exists || forceDownload) {
+          if (forceDownload && fileInfo.exists) {
+            console.log(`삽화 ${illustration.illustrationId} 강제 재다운로드 시작...`);
+          } else {
+            console.log(`삽화 ${illustration.illustrationId} 로컬 파일 없음, 다운로드 시작...`);
+          }
           onProgress?.(
             `삽화 ${i + 1}/${userIllustrations.length} 다운로드 중...`,
             i + 1,
             userIllustrations.length
           );
-          await downloadIllustration(illustration);
+          await downloadIllustration(illustration, storyTitle);
           console.log(`삽화 ${illustration.illustrationId} 다운로드 완료`);
         } else {
           console.log(`삽화 ${illustration.illustrationId} 이미 존재함`);
@@ -800,19 +818,40 @@ export const syncMissingIllustrations = async (
 };
 
 /**
+ * 파일명에서 사용할 수 없는 문자들을 제거하는 함수
+ * @param title - 원본 제목
+ * @returns 파일명에 사용 가능한 제목
+ */
+const sanitizeFilename = (title: string): string => {
+  return title
+    .replace(/[<>:"/\\|?*]/g, '') // 파일명에 사용할 수 없는 문자 제거
+    .replace(/\s+/g, '_') // 공백을 언더스코어로 변경
+    .substring(0, 50); // 파일명 길이 제한
+};
+
+/**
  * 삽화 다운로드 및 로컬 저장
  * @param illustration - 삽화 정보 (illustrationId 포함)
+ * @param storyTitle - 동화 제목 (파일명에 포함용)
  * @returns Promise<LocalIllustration> - 로컬 저장된 삽화 정보
  */
 export const downloadIllustration = async (
-  illustration: Illustration
+  illustration: Illustration,
+  storyTitle?: string
 ): Promise<LocalIllustration> => {
   try {
     console.log(`삽화 ${illustration.illustrationId} 다운로드 시작...`);
     console.log('삽화 URL:', illustration.imageUrl);
 
-    // illustrationId 기반 파일명 생성
-    const fileName = `illustration_${illustration.illustrationId}.jpg`;
+    // 동화 ID, 제목, illustrationId를 포함한 파일명 생성
+    let fileName: string;
+    if (storyTitle) {
+      const sanitizedTitle = sanitizeFilename(storyTitle);
+      fileName = `illustration_${illustration.illustrationId}_story${illustration.storyId}_${sanitizedTitle}.jpg`;
+    } else {
+      // 기존 방식 (호환성 유지)
+      fileName = `illustration_${illustration.illustrationId}.jpg`;
+    }
     const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
 
     // 디렉토리가 없으면 생성
@@ -1354,11 +1393,28 @@ export const downloadStoryIllustrations = async (
 
     onProgress?.('삽화를 다운로드하는 중...', 0, downloadCount);
 
+    // 동화 제목 매핑 생성
+    const storyTitleMap: { [storyId: number]: string } = {};
+    stories.forEach((story) => {
+      storyTitleMap[story.storyId] = story.title;
+    });
+
     // 각 삽화 다운로드
     let downloadedCount = 0;
     for (let i = 0; i < storyIllustrations.length; i++) {
       const illustration = storyIllustrations[i];
-      const localPath = `${illustrationsDir}illustration_${illustration.illustrationId}.jpg`;
+
+      // 동화 제목을 포함한 파일명 생성
+      const storyTitle = storyTitleMap[illustration.storyId];
+      let fileName: string;
+      if (storyTitle) {
+        const sanitizedTitle = sanitizeFilename(storyTitle);
+        fileName = `illustration_${illustration.illustrationId}_story${illustration.storyId}_${sanitizedTitle}.jpg`;
+      } else {
+        // 기존 방식 (호환성 유지)
+        fileName = `illustration_${illustration.illustrationId}.jpg`;
+      }
+      const localPath = `${illustrationsDir}${fileName}`;
 
       try {
         // 파일이 이미 존재하는지 확인
@@ -1377,7 +1433,7 @@ export const downloadStoryIllustrations = async (
         );
 
         console.log(`삽화 ${illustration.illustrationId} 다운로드 시작:`, illustration.imageUrl);
-        await FileSystem.downloadAsync(illustration.imageUrl, localPath);
+        await downloadIllustration(illustration, storyTitle);
         console.log(`삽화 ${illustration.illustrationId} 다운로드 완료:`, localPath);
       } catch (downloadError) {
         console.error(`삽화 ${illustration.illustrationId} 다운로드 실패:`, downloadError);

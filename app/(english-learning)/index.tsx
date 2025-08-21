@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, StatusBar, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ImageBackground,
+  StatusBar,
+  Alert,
+  Image,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // --- 내부 모듈 및 스타일 ---
 import englishLearningStyles from '@/styles/EnglishLearningScreen.styles';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import {
   loadStoriesByChildId,
@@ -27,6 +36,7 @@ import {
 } from '@/features/storyCreate/storyUtils';
 import { Story, LearningStoryWithSections } from '@/features/storyCreate/types';
 import QuizModal from '@/components/ui/QuizModal';
+import AnimatedToggleButton from '@/components/ui/AnimatedToggleButton';
 import { Audio } from 'expo-av';
 import { TTSAudioInfo } from '@/features/storyCreate/types';
 import {
@@ -46,6 +56,13 @@ import { VoiceBasedTTSInfo } from '@/features/storyCreate/types';
 
 // --- 이미지 및 리소스 ---
 import defaultBackgroundImage from '@/assets/images/background/night-bg.png';
+
+// 캐릭터 이미지들
+import penguinSad from '@/assets/images/character/penguin_sad_transparent.png';
+import penguinQuestion from '@/assets/images/character/penguin_question_transparent.png';
+import penguinCry from '@/assets/images/character/penguin_cry_transparent.png';
+import penguinLollipop from '@/assets/images/character/penguin_lollipop_transparent.png';
+import sleepCharacter from '@/assets/images/character/sleep.png';
 
 export default function EnglishLearningScreen() {
   const params = useLocalSearchParams();
@@ -79,6 +96,22 @@ export default function EnglishLearningScreen() {
 
   // 동기화 화면 상태
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // 즐겨찾기 패널 표시 상태 (true: 보임, false: 숨김)
+  const [showVocabularyPanel, setShowVocabularyPanel] = useState(false);
+
+  // 랜덤 캐릭터 이미지 선택
+  const characterImages = [
+    penguinSad,
+    penguinQuestion,
+    penguinCry,
+    penguinLollipop,
+    sleepCharacter,
+  ];
+  const randomCharacterImage = useMemo(() => {
+    const randomIndex = Math.floor(Math.random() * characterImages.length);
+    return characterImages[randomIndex];
+  }, []);
 
   // 로컬에 동화별 단어 저장하는 함수
   const saveWordsToLocalStorage = async (storyId: number, childId: number, words: any[]) => {
@@ -249,6 +282,17 @@ export default function EnglishLearningScreen() {
 
   // 컴포넌트 마운트 시 모든 로직을 한 번에 실행
   useEffect(() => {
+    // 동기화 화면 표시 (새 동화: 5초, 기존 동화: 1초)
+    if (params.isNewStory === 'true') {
+      setIsSyncing(true);
+      // 5초 후 동기화 화면 숨김
+      setTimeout(() => setIsSyncing(false), 5000);
+    } else {
+      setIsSyncing(true);
+      // 1초 후 동기화 화면 숨김
+      setTimeout(() => setIsSyncing(false), 1000);
+    }
+
     const initializeStoryAndTTS = async () => {
       try {
         if (params.storyId && params.title && params.content) {
@@ -546,8 +590,16 @@ export default function EnglishLearningScreen() {
               try {
                 console.log(`동화 ${storyData.storyId} 삽화 이미지 로드 시작...`);
 
-                // 삽화 동기화
-                await syncMissingIllustrations([storyData.storyId], storyData.childId);
+                // 삽화 동기화 (새 동화인 경우 강제 다운로드)
+                const isNewStory = params.isNewStory === 'true';
+                const storyTitleMap = { [storyData.storyId]: storyData.title };
+                await syncMissingIllustrations(
+                  [storyData.storyId],
+                  storyData.childId,
+                  undefined,
+                  isNewStory,
+                  storyTitleMap
+                );
 
                 // 삽화 목록 조회
                 const illustrations = await fetchIllustrations(storyData.childId);
@@ -568,7 +620,10 @@ export default function EnglishLearningScreen() {
                       illustrationId: illustration.illustrationId,
                       storyId: illustration.storyId,
                       orderIndex: illustration.orderIndex,
-                      localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
+                      localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${storyData.title
+                        .replace(/[<>:"/\\|?*]/g, '')
+                        .replace(/\s+/g, '_')
+                        .substring(0, 50)}.jpg`,
                       imageUrl: illustration.imageUrl,
                       description: illustration.description,
                       createdAt: illustration.createdAt,
@@ -628,14 +683,7 @@ export default function EnglishLearningScreen() {
               console.log('삽화 로드 건너뛰기 - childId가 유효하지 않음');
             }
 
-            // === 12. 동기화 화면 표시 ===
-            if (params.isNewStory === 'true') {
-              setIsSyncing(true);
-              setTimeout(() => setIsSyncing(false), 5000);
-            } else {
-              setIsSyncing(true);
-              setTimeout(() => setIsSyncing(false), 1000);
-            }
+            // === 12. 동기화 화면 타이머는 useEffect에서 설정됨 ===
           } catch (sectionError) {
             console.error(`동화 ${storyData.storyId} 단락 조회 실패:`, sectionError);
 
@@ -656,12 +704,12 @@ export default function EnglishLearningScreen() {
 
             console.log('🎵 TTS 생성 건너뛰기 - fallback 케이스');
 
-            // 동기화 화면 표시
+            // 동기화 화면 타이머 설정
             if (params.isNewStory === 'true') {
-              setIsSyncing(true);
+              // 새 동화인 경우 5초 후 동기화 화면 숨김
               setTimeout(() => setIsSyncing(false), 5000);
             } else {
-              setIsSyncing(true);
+              // 기존 동화인 경우 1초 후 동기화 화면 숨김
               setTimeout(() => setIsSyncing(false), 1000);
             }
           }
@@ -703,14 +751,7 @@ export default function EnglishLearningScreen() {
 
             await getWordsForStory(latestStory.storyId, latestStory.childId);
 
-            // 동기화 화면 표시
-            if (params.isNewStory === 'true') {
-              setIsSyncing(true);
-              setTimeout(() => setIsSyncing(false), 5000);
-            } else {
-              setIsSyncing(true);
-              setTimeout(() => setIsSyncing(false), 1000);
-            }
+            // 동기화 화면 타이머는 useEffect에서 설정됨
           } catch (sectionError) {
             console.error(`최신 동화 ${latestStory.storyId} 단락 조회 실패:`, sectionError);
 
@@ -731,7 +772,15 @@ export default function EnglishLearningScreen() {
           // 최신 동화 삽화 로드
           if (latestStory.childId && latestStory.childId > 0) {
             try {
-              await syncMissingIllustrations([latestStory.storyId], latestStory.childId);
+              const isNewStory = params.isNewStory === 'true';
+              const storyTitleMap = { [latestStory.storyId]: latestStory.title };
+              await syncMissingIllustrations(
+                [latestStory.storyId],
+                latestStory.childId,
+                undefined,
+                isNewStory,
+                storyTitleMap
+              );
               const illustrations = await fetchIllustrations(latestStory.childId);
               const storyIllustrations = illustrations.filter(
                 (illustration) => illustration.storyId === latestStory.storyId
@@ -744,7 +793,10 @@ export default function EnglishLearningScreen() {
                     illustrationId: illustration.illustrationId,
                     storyId: illustration.storyId,
                     orderIndex: illustration.orderIndex,
-                    localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
+                    localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${latestStory.title
+                      .replace(/[<>:"/\\|?*]/g, '')
+                      .replace(/\s+/g, '_')
+                      .substring(0, 50)}.jpg`,
                     imageUrl: illustration.imageUrl,
                     description: illustration.description,
                     createdAt: illustration.createdAt,
@@ -1458,7 +1510,7 @@ export default function EnglishLearningScreen() {
       {/* 동기화 화면 */}
       {isSyncing && (
         <View style={englishLearningStyles.syncContainer}>
-          <Text style={englishLearningStyles.syncIcon}>🔄</Text>
+          <Image source={randomCharacterImage} style={englishLearningStyles.syncIcon} />
           <Text style={englishLearningStyles.syncTitle}>동기화 중...</Text>
           <Text style={englishLearningStyles.syncDescription}>
             동화 데이터를 동기화하고 있습니다{'\n'}잠시만 기다려주세요
@@ -1597,7 +1649,7 @@ export default function EnglishLearningScreen() {
                   }
                 }}
               >
-                <Text style={englishLearningStyles.quizButtonText}>🎭 {ttsVoiceId}</Text>
+                <Text style={englishLearningStyles.quizButtonText}>🎤 {ttsVoiceId}</Text>
               </TouchableOpacity>
 
               <View style={englishLearningStyles.progressContainerInGroup}>
@@ -1620,7 +1672,12 @@ export default function EnglishLearningScreen() {
             </View>
 
             <View style={englishLearningStyles.mainContent}>
-              <View style={englishLearningStyles.storyContentSection}>
+              <View
+                style={[
+                  englishLearningStyles.storyContentSection,
+                  !showVocabularyPanel && { flex: 0.95, marginRight: wp(2) }, // 패널이 숨겨져 있을 때 크기 확장
+                ]}
+              >
                 {/* 현재 페이지 정보 디버깅 */}
                 {currentStory?.sections && currentStory.sections.length > 0 && (
                   <Text style={englishLearningStyles.storyText}>
@@ -1677,119 +1734,135 @@ export default function EnglishLearningScreen() {
                 </View>
               </View>
 
-              <View style={englishLearningStyles.vocabularyPanel}>
-                <Text style={englishLearningStyles.vocabularyTitle}>즐겨찾기 단어</Text>
+              {/* 애니메이션 토글 버튼 - 패널 외부에 배치 (패널이 숨겨져 있을 때도 표시) */}
+              <AnimatedToggleButton
+                isActive={showVocabularyPanel}
+                onPress={() => setShowVocabularyPanel(!showVocabularyPanel)}
+                activeIcon="📖"
+                inactiveIcon="⭐"
+                style={[
+                  englishLearningStyles.toggleButton,
+                  !showVocabularyPanel && englishLearningStyles.toggleButtonHidden,
+                ]}
+              />
 
-                {currentStory?.savedWords && wordFavorites.some((favorite) => favorite) ? (
-                  <View style={englishLearningStyles.favoriteWordsContainer}>
-                    {/* 즐겨찾기 단어 페이지네이션 - 좌측 */}
-                    {(() => {
-                      const totalFavoriteWords = currentStory.savedWords.filter(
-                        (_, index) => wordFavorites[index]
-                      ).length;
-                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+              {/* 즐겨찾기 단어 패널 - 토글 상태에 따라 표시/숨김 */}
+              {showVocabularyPanel && (
+                <View style={englishLearningStyles.vocabularyPanel}>
+                  <Text style={englishLearningStyles.vocabularyTitle}>즐겨찾기 단어</Text>
 
-                      if (maxPage > 1 && totalFavoriteWords > 3) {
-                        return (
-                          <TouchableOpacity
-                            style={[
-                              englishLearningStyles.leftArrowButton,
-                              favoriteWordsPage === 1 && englishLearningStyles.disabledArrowButton,
-                            ]}
-                            onPress={() => handleFavoriteWordsPageChange('prev')}
-                            disabled={favoriteWordsPage === 1}
-                          >
-                            <Text
+                  {currentStory?.savedWords && wordFavorites.some((favorite) => favorite) ? (
+                    <View style={englishLearningStyles.favoriteWordsContainer}>
+                      {/* 즐겨찾기 단어 페이지네이션 - 좌측 */}
+                      {(() => {
+                        const totalFavoriteWords = currentStory.savedWords.filter(
+                          (_, index) => wordFavorites[index]
+                        ).length;
+                        const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                        if (maxPage > 1 && totalFavoriteWords > 3) {
+                          return (
+                            <TouchableOpacity
                               style={[
-                                englishLearningStyles.arrowButtonText,
+                                englishLearningStyles.leftArrowButton,
                                 favoriteWordsPage === 1 &&
                                   englishLearningStyles.disabledArrowButton,
                               ]}
+                              onPress={() => handleFavoriteWordsPageChange('prev')}
+                              disabled={favoriteWordsPage === 1}
                             >
-                              ◀
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      }
-                      return null;
-                    })()}
+                              <Text
+                                style={[
+                                  englishLearningStyles.arrowButtonText,
+                                  favoriteWordsPage === 1 &&
+                                    englishLearningStyles.disabledArrowButton,
+                                ]}
+                              >
+                                ◀
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        }
+                        return null;
+                      })()}
 
-                    {/* 즐겨찾기 단어 목록 */}
-                    <View style={englishLearningStyles.favoriteWordsPage}>
-                      {getCurrentFavoriteWordsPage().map(({ wordData, savedIndex }) => (
-                        <View
-                          key={`favorite-${wordData.word}-${savedIndex}`}
-                          style={englishLearningStyles.favoriteWordItem}
-                        >
-                          <Text style={englishLearningStyles.favoriteWordEnglish}>
-                            {wordData.word}
-                          </Text>
-                          <Text style={englishLearningStyles.favoriteWordKorean}>
-                            {wordData.meaning}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    {/* 즐겨찾기 단어 페이지네이션 - 우측 */}
-                    {(() => {
-                      const totalFavoriteWords = currentStory.savedWords.filter(
-                        (_, index) => wordFavorites[index]
-                      ).length;
-                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
-
-                      if (maxPage > 1 && totalFavoriteWords > 3) {
-                        return (
-                          <TouchableOpacity
-                            style={[
-                              englishLearningStyles.rightArrowButton,
-                              favoriteWordsPage === maxPage &&
-                                englishLearningStyles.disabledArrowButton,
-                            ]}
-                            onPress={() => handleFavoriteWordsPageChange('next')}
-                            disabled={favoriteWordsPage === maxPage}
+                      {/* 즐겨찾기 단어 목록 */}
+                      <View style={englishLearningStyles.favoriteWordsPage}>
+                        {getCurrentFavoriteWordsPage().map(({ wordData, savedIndex }) => (
+                          <View
+                            key={`favorite-${wordData.word}-${savedIndex}`}
+                            style={englishLearningStyles.favoriteWordItem}
                           >
-                            <Text
-                              style={[
-                                englishLearningStyles.arrowButtonText,
-                                favoriteWordsPage === maxPage &&
-                                  englishLearningStyles.disabledArrowText,
-                              ]}
-                            >
-                              ▶
+                            <Text style={englishLearningStyles.favoriteWordEnglish}>
+                              {wordData.word}
                             </Text>
-                          </TouchableOpacity>
-                        );
-                      }
-                      return null;
-                    })()}
+                            <Text style={englishLearningStyles.favoriteWordKorean}>
+                              {wordData.meaning}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
 
-                    {/* 페이지 정보 표시 */}
-                    {(() => {
-                      const totalFavoriteWords = currentStory.savedWords.filter(
-                        (_, index) => wordFavorites[index]
-                      ).length;
-                      const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+                      {/* 즐겨찾기 단어 페이지네이션 - 우측 */}
+                      {(() => {
+                        const totalFavoriteWords = currentStory.savedWords.filter(
+                          (_, index) => wordFavorites[index]
+                        ).length;
+                        const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
 
-                      if (maxPage > 1 && totalFavoriteWords > 3) {
-                        return (
-                          <Text style={englishLearningStyles.favoritePageInfo}>
-                            {favoriteWordsPage} / {maxPage}
-                          </Text>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </View>
-                ) : (
-                  <>
-                    <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
-                    <Text style={englishLearningStyles.vocabularyDescription}>
-                      영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
-                    </Text>
-                  </>
-                )}
-              </View>
+                        if (maxPage > 1 && totalFavoriteWords > 3) {
+                          return (
+                            <TouchableOpacity
+                              style={[
+                                englishLearningStyles.rightArrowButton,
+                                favoriteWordsPage === maxPage &&
+                                  englishLearningStyles.disabledArrowButton,
+                              ]}
+                              onPress={() => handleFavoriteWordsPageChange('next')}
+                              disabled={favoriteWordsPage === maxPage}
+                            >
+                              <Text
+                                style={[
+                                  englishLearningStyles.arrowButtonText,
+                                  favoriteWordsPage === maxPage &&
+                                    englishLearningStyles.disabledArrowText,
+                                ]}
+                              >
+                                ▶
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* 페이지 정보 표시 */}
+                      {(() => {
+                        const totalFavoriteWords = currentStory.savedWords.filter(
+                          (_, index) => wordFavorites[index]
+                        ).length;
+                        const maxPage = Math.ceil(totalFavoriteWords / favoriteWordsPerPage);
+
+                        if (maxPage > 1 && totalFavoriteWords > 3) {
+                          return (
+                            <Text style={englishLearningStyles.favoritePageInfo}>
+                              {favoriteWordsPage} / {maxPage}
+                            </Text>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={englishLearningStyles.vocabularyIcon}>⭐</Text>
+                      <Text style={englishLearningStyles.vocabularyDescription}>
+                        영어 학습 화면에서 단어를 즐겨찾기에 추가하면{'\n'}여기에 표시됩니다.
+                      </Text>
+                    </>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={englishLearningStyles.navigationSection}>
@@ -1804,32 +1877,28 @@ export default function EnglishLearningScreen() {
                 <Text style={englishLearningStyles.navButtonText}>◀ 이전</Text>
               </TouchableOpacity>
 
-              {/* 퀴즈 시작 버튼 - 마지막 페이지에서만 표시 */}
-              {currentPage === (currentStory?.sections?.length || 1) && (
-                <TouchableOpacity
-                  style={[
-                    englishLearningStyles.navButton,
-                    { backgroundColor: '#FF6B6B', marginHorizontal: 10 },
-                  ]}
-                  onPress={startQuiz}
-                  disabled={isQuizLoading || quizzes.length === 0}
-                >
-                  <Text style={englishLearningStyles.navButtonText}>
-                    {isQuizLoading ? '로딩중...' : `🎯 퀴즈 (${quizzes.length})`}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
               <TouchableOpacity
                 style={[
-                  englishLearningStyles.navButton,
-                  currentPage === (currentStory?.sections?.length || 1) &&
-                    englishLearningStyles.navButtonDisabled,
+                  // 마지막 페이지면 퀴즈 버튼, 아니면 일반 다음 버튼
+                  currentPage === (currentStory?.sections?.length || 1)
+                    ? englishLearningStyles.quizStartButton
+                    : englishLearningStyles.navButton,
                 ]}
-                onPress={() => handleNavigation('next')}
-                disabled={currentPage === (currentStory?.sections?.length || 1)}
+                onPress={() => {
+                  // 마지막 페이지면 퀴즈 시작, 아니면 다음 페이지로
+                  if (currentPage === (currentStory?.sections?.length || 1)) {
+                    startQuiz();
+                  } else {
+                    handleNavigation('next');
+                  }
+                }}
+                disabled={false}
               >
-                <Text style={englishLearningStyles.navButtonText}>다음 ▶</Text>
+                <Text style={englishLearningStyles.navButtonText}>
+                  {currentPage === (currentStory?.sections?.length || 1)
+                    ? `🎯 퀴즈 (${quizzes.length})`
+                    : '다음 ▶'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

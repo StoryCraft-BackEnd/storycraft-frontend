@@ -298,32 +298,60 @@ export async function getStoryIllustrationPath(storyId: number): Promise<string 
 
 /**
  * illustrationId 기반으로 저장된 삽화 이미지 경로 가져오기 (새로운 방식)
+ * 새로운 파일명 형식과 기존 파일명 형식을 모두 지원
  * @param illustrationId 삽화 ID
+ * @param storyId 동화 ID (선택사항, 새로운 파일명 검색용)
+ * @param storyTitle 동화 제목 (선택사항, 새로운 파일명 검색용)
  * @returns 로컬 파일 경로 또는 null
  */
-export async function getIllustrationPathById(illustrationId: number): Promise<string | null> {
+export async function getIllustrationPathById(
+  illustrationId: number,
+  storyId?: number,
+  storyTitle?: string
+): Promise<string | null> {
   try {
-    const fileName = `illustration_${illustrationId}.jpg`;
-    const fileUri = `${FileSystem.documentDirectory}illustrations/${fileName}`;
+    const illustrationsDir = `${FileSystem.documentDirectory}illustrations/`;
 
     console.log(`삽화 ${illustrationId} 경로 확인:`, {
-      fileName,
-      fileUri,
+      illustrationId,
+      storyId,
+      storyTitle,
       documentDirectory: FileSystem.documentDirectory,
     });
 
-    const fileInfo = await FileSystem.getInfoAsync(fileUri);
-    console.log(`삽화 ${illustrationId} 파일 정보:`, {
-      exists: fileInfo.exists,
-      size: 'size' in fileInfo ? fileInfo.size : 'N/A',
-      uri: fileInfo.uri,
+    // 1. 새로운 파일명 형식으로 먼저 검색 (동화 ID와 제목 포함)
+    if (storyId && storyTitle) {
+      const sanitizedTitle = storyTitle
+        .replace(/[<>:"/\\|?*]/g, '') // 파일명에 사용할 수 없는 문자 제거
+        .replace(/\s+/g, '_') // 공백을 언더스코어로 변경
+        .substring(0, 50); // 파일명 길이 제한
+
+      const newFormatFileName = `illustration_${illustrationId}_story${storyId}_${sanitizedTitle}.jpg`;
+      const newFormatFileUri = `${illustrationsDir}${newFormatFileName}`;
+
+      const newFormatFileInfo = await FileSystem.getInfoAsync(newFormatFileUri);
+      if (newFormatFileInfo.exists) {
+        console.log(`삽화 ${illustrationId} 새로운 형식 파일 발견:`, newFormatFileUri);
+        return newFormatFileUri;
+      }
+    }
+
+    // 2. 기존 파일명 형식으로 검색 (호환성 유지)
+    const oldFormatFileName = `illustration_${illustrationId}.jpg`;
+    const oldFormatFileUri = `${illustrationsDir}${oldFormatFileName}`;
+
+    const oldFormatFileInfo = await FileSystem.getInfoAsync(oldFormatFileUri);
+    console.log(`삽화 ${illustrationId} 기존 형식 파일 정보:`, {
+      exists: oldFormatFileInfo.exists,
+      size: 'size' in oldFormatFileInfo ? oldFormatFileInfo.size : 'N/A',
+      uri: oldFormatFileInfo.uri,
     });
 
-    if (fileInfo.exists) {
-      console.log(`삽화 ${illustrationId} 파일 발견:`, fileUri);
-      return fileUri;
+    if (oldFormatFileInfo.exists) {
+      console.log(`삽화 ${illustrationId} 기존 형식 파일 발견:`, oldFormatFileUri);
+      return oldFormatFileUri;
     } else {
-      console.log(`삽화 ${illustrationId} 파일이 존재하지 않음:`, fileUri);
+      console.log(`삽화 ${illustrationId} 파일이 존재하지 않음`);
       return null;
     }
   } catch (error) {
@@ -395,8 +423,12 @@ export async function getStoryIllustrationPathFromStory(story: any): Promise<str
         imageUrl: firstIllustration.imageUrl,
       });
 
-      // illustrationId 기반으로 삽화 경로 확인
-      const illustrationPath = await getIllustrationPathById(firstIllustration.illustrationId);
+      // illustrationId 기반으로 삽화 경로 확인 (동화 ID와 제목 포함)
+      const illustrationPath = await getIllustrationPathById(
+        firstIllustration.illustrationId,
+        story.storyId,
+        story.title
+      );
       if (illustrationPath) {
         console.log(
           `동화 ${story.storyId}의 삽화 ${firstIllustration.illustrationId} (orderIndex: ${firstIllustration.orderIndex}) 발견:`,
