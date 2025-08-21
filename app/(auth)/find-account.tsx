@@ -314,7 +314,7 @@ export default function FindAccountScreen() {
                 style={[
                   styles.mainButton,
                   {
-                    backgroundColor: primaryColor,
+                    backgroundColor: '#2D5016',
                     alignSelf: 'stretch',
                     opacity:
                       !newPassword || !confirmPassword || passwordError || confirmPasswordError

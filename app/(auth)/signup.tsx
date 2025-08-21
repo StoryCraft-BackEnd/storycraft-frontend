@@ -271,7 +271,7 @@ export default function SignupScreen() {
                 keyboardType="email-address"
               />
               <TouchableOpacity
-                style={[styles.checkButton, { backgroundColor: primaryColor }]}
+                style={[styles.checkButton, { backgroundColor: '#2D5016' }]}
                 onPress={handleEmailCheck}
                 disabled={isEmailChecking}
               >
@@ -316,7 +316,7 @@ export default function SignupScreen() {
                 }}
               />
               <TouchableOpacity
-                style={[styles.checkButton, { backgroundColor: primaryColor }]}
+                style={[styles.checkButton, { backgroundColor: '#2D5016' }]}
                 onPress={handleNicknameCheck}
                 disabled={isNicknameChecking}
               >
@@ -336,8 +336,8 @@ export default function SignupScreen() {
                 style={[
                   styles.roleButton,
                   {
-                    backgroundColor: role === 'admin' ? primaryColor : cardColor,
-                    borderColor: primaryColor,
+                    backgroundColor: role === 'admin' ? '#2D5016' : cardColor,
+                    borderColor: '#2D5016',
                   },
                 ]}
                 onPress={() => setRole('admin')}
@@ -350,8 +350,8 @@ export default function SignupScreen() {
                 style={[
                   styles.roleButton,
                   {
-                    backgroundColor: role === 'parent' ? primaryColor : cardColor,
-                    borderColor: primaryColor,
+                    backgroundColor: role === 'parent' ? '#2D5016' : cardColor,
+                    borderColor: '#2D5016',
                   },
                 ]}
                 onPress={() => setRole('parent')}
@@ -390,7 +390,7 @@ export default function SignupScreen() {
                     ]}
                     onPress={handlePrev}
                   >
-                    <ThemedText style={[styles.signupButtonText, { color: primaryColor }]}>
+                    <ThemedText style={[styles.signupButtonText, { color: '#5A7C65' }]}>
                       이전
                     </ThemedText>
                   </TouchableOpacity>
@@ -398,7 +398,7 @@ export default function SignupScreen() {
                 <TouchableOpacity
                   style={[
                     styles.signupButton,
-                    { backgroundColor: primaryColor, flex: 1, marginLeft: step > 1 ? 8 : 0 },
+                    { backgroundColor: '#2D5016', flex: 1, marginLeft: step > 1 ? 8 : 0 },
                   ]}
                   onPress={handleNext}
                   disabled={step === 5 && isLoading}
@@ -412,7 +412,7 @@ export default function SignupScreen() {
               {/* 로그인 페이지로 이동 */}
               <View style={styles.linkContainer}>
                 <TouchableOpacity onPress={() => router.back()}>
-                  <ThemedText style={[styles.linkText, { color: primaryColor }]}>
+                  <ThemedText style={[styles.linkText, { color: '#5A7C65' }]}>
                     로그인으로 돌아가기
                   </ThemedText>
                 </TouchableOpacity>

@@ -352,7 +352,7 @@ export default function LoginScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.loginButton, { backgroundColor: primaryColor }]}
+            style={[styles.loginButton, { backgroundColor: '#2D5016' }]}
             onPress={handleLogin}
             disabled={isLoading}
           >
@@ -374,11 +374,11 @@ export default function LoginScreen() {
 
           <View style={styles.linkContainer}>
             <TouchableOpacity onPress={() => router.push('./signup')}>
-              <ThemedText style={[styles.linkText, { color: primaryColor }]}>회원가입</ThemedText>
+              <ThemedText style={[styles.linkText, { color: '#2D5016' }]}>회원가입</ThemedText>
             </TouchableOpacity>
             <ThemedText style={{ color: dividerColor }}> | </ThemedText>
             <TouchableOpacity onPress={() => router.push('./find-account')}>
-              <ThemedText style={[styles.linkText, { color: primaryColor }]}>
+              <ThemedText style={[styles.linkText, { color: '#2D5016' }]}>
                 아이디/비밀번호 찾기
               </ThemedText>
             </TouchableOpacity>
