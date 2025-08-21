@@ -17,6 +17,7 @@ import { ThemedView } from '../../components/ui/ThemedView';
 import { ThemedText } from '../../components/ui/ThemedText';
 import { signupScreenStyles as styles } from '../../styles/SignupScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useColorScheme } from '../../hooks/useColorScheme';
 import { signup, checkEmail } from '@/features/auth/authApi';
 import { checkNicknameExists } from '@/shared/api/authApi';
 import type { SignupRequest } from '@/features/auth/types';
@@ -45,6 +46,10 @@ export default function SignupScreen() {
   const primaryColor = useThemeColor('primary');
   const cardColor = useThemeColor('card');
   const borderColor = useThemeColor('border');
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const colorScheme = useColorScheme();
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
   // 회원가입 처리
   const handleSignup = async () => {
@@ -362,7 +367,7 @@ export default function SignupScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
+    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

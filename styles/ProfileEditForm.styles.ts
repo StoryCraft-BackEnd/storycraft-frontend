@@ -23,16 +23,9 @@ export const createProfileEditFormStyles = (isDark: boolean, insets: { top: numb
       paddingTop: insets.top, // 상단 안전 영역만큼 패딩 추가
     },
 
-    // 헤더 영역 - 상단 네비게이션 바
+    // 헤더 영역 (제거됨)
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      height: hp('8%'), // 화면 높이의 8%를 헤더 높이로 사용
-      paddingHorizontal: wp('5%'), // 화면 너비의 5%를 좌우 패딩으로 사용
-      backgroundColor: theme.colors.primary,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
+      display: 'none', // 헤더를 숨김
     },
 
     // 헤더 제목 - 화면 중앙에 표시되는 제목
@@ -42,9 +35,17 @@ export const createProfileEditFormStyles = (isDark: boolean, insets: { top: numb
       color: theme.colors.text,
     },
 
-    // 뒤로가기 버튼 - 헤더 좌측에 위치
+    // 뒤로가기 버튼 - 배지 화면과 동일한 스타일
     backButton: {
-      padding: wp('2%'), // 화면 너비의 2%를 패딩으로 사용
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 8,
+      position: 'absolute',
+      top: 34,
+      left: 26,
+      zIndex: 10,
+      backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+      borderRadius: 20,
     },
 
     // 뒤로가기 버튼 텍스트 - 큰 폰트 크기로 터치하기 쉽게
@@ -59,8 +60,14 @@ export const createProfileEditFormStyles = (isDark: boolean, insets: { top: numb
       padding: wp('5%'), // 화면 너비의 5%를 패딩으로 사용
     },
 
+    // ScrollView의 contentContainerStyle용
+    contentContainer: {
+      alignItems: 'center', // 중앙 정렬
+    },
+
     // 폼 컨테이너 - 입력 필드들을 감싸는 카드 형태의 영역
     formContainer: {
+      width: wp('80%'), // 화면 너비의 80%로 제한
       backgroundColor: theme.colors.card,
       borderRadius: wp('4%'), // 화면 너비의 4%를 모서리 둥글기로 사용
       padding: wp('6%'), // 화면 너비의 6%를 패딩으로 사용

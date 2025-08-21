@@ -10,15 +10,22 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createProfileEditFormStyles } from '@/styles/ProfileEditForm.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { Ionicons } from '@expo/vector-icons';
 import { ChildProfile, LearningLevel } from '@/features/profile/types';
 import { updateProfile } from '@/features/profile/profileApi';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 export default function ProfileEditScreen() {
   const backgroundColor = useThemeColor('background');
+  const colorScheme = useColorScheme();
   const isDark = backgroundColor === '#0d1b1e';
   const insets = useSafeAreaInsets();
   const styles = createProfileEditFormStyles(isDark, insets);
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
   // URL 파라미터에서 프로필 정보 받아오기
   const params = useLocalSearchParams();
@@ -130,21 +137,21 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
 
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ThemedText style={styles.backButtonText}>←</ThemedText>
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>프로필 수정</ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
+      {/* 뒤로가기 버튼 */}
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Ionicons name="arrow-back" size={24} color={colorScheme === 'light' ? '#333' : '#fff'} />
+      </TouchableOpacity>
 
       {/* 메인 콘텐츠 */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.formContainer}>
           {/* 이름 입력 */}
           <View style={styles.inputContainer}>

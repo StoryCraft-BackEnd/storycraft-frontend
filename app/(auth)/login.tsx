@@ -18,6 +18,7 @@ import { ThemedView } from '../../components/ui/ThemedView';
 import { ThemedText } from '../../components/ui/ThemedText';
 import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useColorScheme } from '../../hooks/useColorScheme';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
 import { login, startTokenRefreshManager, refreshAccessToken } from '@/shared/api/authApi';
@@ -41,6 +42,10 @@ export default function LoginScreen() {
   const primaryColor = useThemeColor('primary');
   const cardColor = useThemeColor('card');
   const borderColor = useThemeColor('border');
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const colorScheme = useColorScheme();
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
   // 뒤로가기 버튼 처리 - 로그인 화면에서 뒤로가기 시 StoryCraft Dev 화면으로 이동
   useFocusEffect(
@@ -303,7 +308,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor }]}>
+    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
       <Stack.Screen
         options={{
           headerShown: true,

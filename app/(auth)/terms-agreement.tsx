@@ -137,7 +137,12 @@ const TermsAgreementScreen = () => {
   console.log('🎨 TermsAgreementScreen 렌더링 시작');
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: colorScheme === 'light' ? '#FFF8F0' : colors.background },
+      ]}
+    >
       <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
 
       <View style={styles.header}>

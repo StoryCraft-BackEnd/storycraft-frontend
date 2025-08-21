@@ -7,6 +7,10 @@ import { MainScreenStyles } from '@/styles/MainScreen';
 import { createProfile } from '@/features/profile/profileApi';
 import { LearningLevel } from '@/features/profile/types';
 import { createProfileCreateScreenStyles } from '@/styles/ProfileCreateScreen.styles';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CreateProfileScreen() {
   const [name, setName] = useState('');
@@ -15,6 +19,13 @@ export default function CreateProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const styles = createProfileCreateScreenStyles();
+
+  // 테마 색상 가져오기
+  const backgroundColor = useThemeColor('background');
+  const colorScheme = useColorScheme();
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
   const handleCreateProfile = async () => {
     // 입력값 검증
@@ -61,7 +72,13 @@ export default function CreateProfileScreen() {
   };
 
   return (
-    <ThemedView style={[MainScreenStyles.container, styles.container]}>
+    <ThemedView
+      style={[
+        MainScreenStyles.container,
+        styles.container,
+        { backgroundColor: finalBackgroundColor },
+      ]}
+    >
       <Stack.Screen
         options={{
           headerShown: false,
@@ -70,14 +87,10 @@ export default function CreateProfileScreen() {
       />
       <StatusBar hidden />
 
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ThemedText style={styles.backButton}>← 뒤로</ThemedText>
-        </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>새 프로필 추가</ThemedText>
-        <View style={{ width: 40 }} />
-      </View>
+      {/* 뒤로가기 버튼 */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color={colorScheme === 'light' ? '#333' : '#fff'} />
+      </TouchableOpacity>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contentContainer}>
         <View style={styles.formContainer}>

@@ -216,6 +216,7 @@ export {
   testGetChild, // 특정 프로필 조회 API 테스트 함수
   testUpdateChild, // 프로필 수정 API 테스트 함수
   testDeleteChild, // 프로필 삭제 API 테스트 함수
+  testSaveLearningTime, // 학습시간 저장 API 테스트 함수
   runAllApiTests, // 모든 API 종합 테스트 실행 함수
   quickCreateTest, // 빠른 프로필 생성 테스트 함수
 } from './apiTest';

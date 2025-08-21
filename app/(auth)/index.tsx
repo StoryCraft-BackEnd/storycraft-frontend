@@ -234,6 +234,14 @@ export default function HomeScreen() {
         <ThemedText style={styles.buttonText}>홈으로 돌아가기</ThemedText>
       </TouchableOpacity>
 
+      {/* 약관 동의 페이지로 이동 버튼 */}
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 10, backgroundColor: '#28a745' }]}
+        onPress={() => router.push('/(auth)/terms-agreement')}
+      >
+        <ThemedText style={styles.buttonText}>약관 동의 페이지로 이동</ThemedText>
+      </TouchableOpacity>
+
       {/* 약관 동의 초기화 버튼 (개발용) */}
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#FF9800' }]}

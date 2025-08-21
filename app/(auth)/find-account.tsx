@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { ThemedView } from '../../components/ui/ThemedView';
 import { useThemeColor } from '../../hooks/useThemeColor';
+import { useColorScheme } from '../../hooks/useColorScheme';
 import { findAccountScreenStyles as styles } from '../../styles/FindAccountScreen.styles';
 import { sendEmailVerificationCode, verifyEmailCode, resetPassword } from '@/features/auth/authApi';
 import { useRouter } from 'expo-router';
@@ -31,6 +32,11 @@ export default function FindAccountScreen() {
   const borderColor = useThemeColor('border');
   const textColor = useThemeColor('text');
   const placeholderColor = useThemeColor('secondary');
+  const backgroundColor = useThemeColor('background');
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const colorScheme = useColorScheme();
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
   // 라우터
   const router = useRouter();
@@ -170,7 +176,7 @@ export default function FindAccountScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

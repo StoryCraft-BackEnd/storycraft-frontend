@@ -29,13 +29,18 @@ import {
 } from '@/features/profile/profileStorage';
 import { clearAllProfileData } from '@/features/storyCreate/storyStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { stopLearningTimeTracking } from '@/shared/api';
 
 export default function ProfileScreen() {
   const backgroundColor = useThemeColor('background');
+  const colorScheme = useColorScheme();
   const isDark = backgroundColor === '#0d1b1e';
   const insets = useSafeAreaInsets();
+
+  // 화이트모드에서만 크림베이지 색상 적용
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
   const [styles, setStyles] = useState(createProfileScreenStyles(isDark, insets));
   const [profiles, setProfiles] = useState<ChildProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,6 +185,7 @@ export default function ProfileScreen() {
 
   // 로그아웃 버튼 클릭 시
   const handleLogout = async () => {
+    console.log('🔘 로그아웃 버튼 클릭됨');
     try {
       console.log('🚪 로그아웃 시작');
 
@@ -214,7 +220,7 @@ export default function ProfileScreen() {
       console.log('✅ 로그아웃 완료 - 로그인 화면으로 이동');
 
       // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
-      router.replace('/login');
+      router.replace('/(auth)/login');
     } catch (error) {
       console.error('❌ 로그아웃 중 오류 발생:', error);
 
@@ -235,7 +241,7 @@ export default function ProfileScreen() {
       }
 
       // 화면 방향 변경에 실패하더라도 로그아웃은 진행
-      router.replace('/login');
+      router.replace('/(auth)/login');
     }
   };
 
@@ -246,22 +252,17 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
 
       {/* 프로필 선택 로딩 팝업 */}
       <LoadingPopup visible={isProfileLoading} title="프로필 선택" message={loadingMessage} />
 
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <ThemedText style={styles.headerTitle}>프로필 선택</ThemedText>
-        </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <ThemedText style={styles.logoutText}>로그아웃</ThemedText>
-        </TouchableOpacity>
-      </View>
+      {/* 로그아웃 버튼 */}
+      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton} activeOpacity={0.7}>
+        <ThemedText style={styles.logoutText}>로그아웃</ThemedText>
+      </TouchableOpacity>
 
       <View style={styles.content}>
         {isLoading ? (

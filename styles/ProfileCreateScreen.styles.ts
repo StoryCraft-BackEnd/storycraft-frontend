@@ -29,16 +29,9 @@ export const createProfileCreateScreenStyles = () => {
       backgroundColor,
     },
 
-    // 상단 헤더 스타일 - 앱바 형태의 헤더 영역
+    // 상단 헤더 스타일 (제거됨)
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      height: hp('10%'), // 화면 높이의 10%를 헤더 높이로 사용
-      paddingHorizontal: wp('5%'), // 화면 너비의 5%를 좌우 패딩으로 사용
-      backgroundColor: theme.colors.primary,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
+      display: 'none', // 헤더를 숨김
     },
 
     // 헤더 제목 - 화면 중앙에 표시되는 제목
@@ -48,10 +41,17 @@ export const createProfileCreateScreenStyles = () => {
       color: theme.colors.text,
     },
 
-    // 뒤로가기 버튼 - 헤더 좌측에 위치
+    // 뒤로가기 버튼 - 배지 화면과 동일한 스타일
     backButton: {
-      fontSize: wp('4%'), // 화면 너비의 4%를 폰트 크기로 사용
-      color: theme.colors.text,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 8,
+      position: 'absolute',
+      top: 34,
+      left: 26,
+      zIndex: 10,
+      backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+      borderRadius: 20,
     },
 
     // 스크롤 뷰 컨텐츠 컨테이너 스타일 - 메인 콘텐츠 영역
