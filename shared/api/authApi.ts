@@ -362,17 +362,10 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
     // 서버 응답 데이터를 그대로 반환합니다
     return response.data;
   } catch (error: any) {
-    // 로그인 실패 시 에러 정보를 로깅합니다
-    console.error('❌ 로그인 실패:', error);
-
     // 에러 타입별로 적절한 메시지를 생성합니다
     if (error.response) {
       // 서버 응답이 있지만 에러 상태인 경우 (잘못된 인증 정보 등)
       const status = error.response.status;
-      const serverMessage = error.response.data?.message || '알 수 없는 오류';
-
-      // 개발용 로그에는 전체 정보 포함
-      console.log('🔍 서버 에러 응답:', { status, message: serverMessage });
 
       // 사용자에게는 상태 코드 없이 간단한 메시지 전달
       if (status === 401) {

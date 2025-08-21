@@ -130,8 +130,6 @@ export default function LoginScreen() {
         setShowErrorPopup(true);
       }
     } catch (error) {
-      console.error('❌ 로그인 에러:', error);
-
       // 사용자에게는 기술적인 에러 대신 이해하기 쉬운 메시지 표시
       let userFriendlyMessage = '로그인 중 문제가 발생했습니다.';
 
