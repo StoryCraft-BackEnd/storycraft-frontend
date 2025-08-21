@@ -19,6 +19,7 @@ import { ThemedText } from '../../components/ui/ThemedText';
 import { loginScreenStyles as styles } from '../../styles/LoginScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
 import facebookIcon from '../../assets/images/facebook.png';
 import googleIcon from '../../assets/images/google.png';
 import { login, startTokenRefreshManager, refreshAccessToken } from '@/shared/api/authApi';
@@ -309,23 +310,27 @@ export default function LoginScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: '로그인',
-          headerTitleAlign: 'center',
-          headerBackTitle: '뒤로',
-          headerBackVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.replace('/(auth)')}
-              style={styles.headerBackButton}
-            >
-              <ThemedText style={[styles.headerBackText, { color: textColor }]}>← 뒤로</ThemedText>
-            </TouchableOpacity>
-          ),
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* 뒤로가기 버튼 */}
+      <TouchableOpacity
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: 8,
+          position: 'absolute',
+          top: 34,
+          left: 26,
+          zIndex: 10,
+          backgroundColor:
+            colorScheme === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.3)',
+          borderRadius: 20,
         }}
-      />
+        onPress={() => router.replace('/(auth)')}
+      >
+        <Ionicons name="arrow-back" size={24} color={colorScheme === 'light' ? '#333' : '#fff'} />
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} //ios 키보드 대응
         style={{ flex: 1 }}

@@ -12,12 +12,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { ThemedView } from '../../components/ui/ThemedView';
 import { ThemedText } from '../../components/ui/ThemedText';
 import { signupScreenStyles as styles } from '../../styles/SignupScreen.styles';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
 import { signup, checkEmail } from '@/features/auth/authApi';
 import { checkNicknameExists } from '@/shared/api/authApi';
 import type { SignupRequest } from '@/features/auth/types';
@@ -368,6 +369,8 @@ export default function SignupScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

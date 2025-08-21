@@ -12,9 +12,10 @@ import {
 import { ThemedView } from '../../components/ui/ThemedView';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { useColorScheme } from '../../hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
 import { findAccountScreenStyles as styles } from '../../styles/FindAccountScreen.styles';
 import { sendEmailVerificationCode, verifyEmailCode, resetPassword } from '@/features/auth/authApi';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 
 export default function FindAccountScreen() {
   // 상태 관리
@@ -177,6 +178,8 @@ export default function FindAccountScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -331,6 +334,17 @@ export default function FindAccountScreen() {
               </TouchableOpacity>
             </>
           )}
+
+          {/* 로그인으로 돌아가기 링크 */}
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16, width: '100%' }}
+          >
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#5A7C65' }}>
+                로그인으로 돌아가기
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
