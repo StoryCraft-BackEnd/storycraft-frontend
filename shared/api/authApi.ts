@@ -73,6 +73,7 @@ export interface LoginResponse {
     // 로그인 성공 시 반환되는 데이터 (필수)
     access_token: string; // JWT 액세스 토큰 (API 인증에 사용, 짧은 유효기간)
     refresh_token: string; // JWT 리프레시 토큰 (토큰 갱신에 사용, 긴 유효기간)
+    user_id: number; // 로그인한 사용자의 고유 ID
   };
 }
 
@@ -317,7 +318,7 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
     const response = await apiClient.post<LoginResponse>('/auth/login', loginData);
 
     // 응답에서 토큰 정보를 추출합니다 (서버는 snake_case 사용)
-    const { access_token, refresh_token } = response.data.data;
+    const { access_token, refresh_token, user_id } = response.data.data;
 
     // 토큰 유효성 검사 및 저장
     if (access_token && refresh_token) {
@@ -325,6 +326,12 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
       // 이 토큰들은 향후 API 요청 시 자동으로 인증 헤더에 포함됩니다
       await AsyncStorage.setItem('token', access_token); // 액세스 토큰 저장
       await AsyncStorage.setItem('refreshToken', refresh_token); // 리프레시 토큰 저장
+
+      // user_id도 저장합니다 (사용자 식별에 필요)
+      if (user_id) {
+        await AsyncStorage.setItem('userId', user_id.toString());
+        console.log('👤 사용자 ID 저장:', user_id);
+      }
 
       // 토큰 발급 시간을 저장합니다 (현재 시간)
       const issuedAt = Date.now().toString();
@@ -336,6 +343,7 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
       console.warn('⚠️ 토큰이 서버 응답에 포함되지 않았습니다:', {
         access_token: access_token ? '있음' : '없음',
         refresh_token: refresh_token ? '있음' : '없음',
+        user_id: user_id ? '있음' : '없음',
       });
       throw new Error('서버에서 토큰을 발급받지 못했습니다.');
     }
@@ -347,6 +355,7 @@ export const login = async (loginData: LoginRequest): Promise<LoginResponse> => 
       data: {
         access_token: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
         refresh_token: 'SAVED_TO_STORAGE', // 토큰은 저장 완료 메시지로 대체
+        user_id: user_id || 'NOT_PROVIDED', // 사용자 ID 정보
       },
     });
 
@@ -408,9 +417,11 @@ export const logout = async (): Promise<boolean> => {
     // 로그아웃 시작을 콘솔에 알립니다
     console.log('🚪 로그아웃 요청...');
 
-    // 디바이스에 저장된 모든 인증 토큰을 삭제합니다
+    // 디바이스에 저장된 모든 인증 토큰과 사용자 정보를 삭제합니다
     await AsyncStorage.removeItem('token'); // 액세스 토큰 삭제
     await AsyncStorage.removeItem('refreshToken'); // 리프레시 토큰 삭제
+    await AsyncStorage.removeItem('userId'); // 사용자 ID 삭제
+    await AsyncStorage.removeItem('tokenIssuedAt'); // 토큰 발급 시간 삭제
 
     // 로그아웃 성공을 콘솔에 기록합니다
     console.log('✅ 로그아웃 성공');

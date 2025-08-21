@@ -171,7 +171,7 @@ export default function LoginScreen() {
         password: 'password123',
         name: '테스트 사용자',
         nickname: '테스트',
-        role: 'user', // 'parent' 대신 'user'로 변경
+        role: 'parent', // API 문서에 따르면 'parent'여야 함
       };
 
       console.log('📝 회원가입 요청 데이터:', signupData);
