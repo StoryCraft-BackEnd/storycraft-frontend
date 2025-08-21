@@ -490,6 +490,41 @@ export const setToken = async (token: string): Promise<void> => {
 };
 
 /**
+ * 저장된 사용자 ID 확인 API 함수
+ *
+ * 현재 디바이스에 저장되어 있는 사용자 ID를 확인합니다.
+ * 로그인 시 저장된 사용자 ID를 반환합니다.
+ *
+ * @returns Promise<number | null> - 저장된 사용자 ID 또는 null
+ *
+ * @example
+ * ```typescript
+ * const userId = await getStoredUserId();
+ * if (userId) {
+ *   console.log("사용자 ID:", userId);
+ * } else {
+ *   console.log("사용자 ID가 저장되지 않았습니다");
+ * }
+ * ```
+ */
+export const getStoredUserId = async (): Promise<number | null> => {
+  try {
+    // AsyncStorage에서 저장된 사용자 ID를 읽어옵니다
+    const userId = await AsyncStorage.getItem('userId');
+
+    // 사용자 ID 확인 결과를 콘솔에 로깅합니다
+    console.log('🔍 저장된 사용자 ID 확인:', userId ? `ID: ${userId}` : 'ID 없음');
+
+    // 사용자 ID를 숫자로 변환하여 반환합니다 (없으면 null)
+    return userId ? parseInt(userId, 10) : null;
+  } catch (error) {
+    // 사용자 ID 확인 중 오류 발생 시 에러를 로깅하고 null 반환
+    console.error('❌ 사용자 ID 확인 실패:', error);
+    return null;
+  }
+};
+
+/**
  * 리프레시 토큰을 이용한 액세스 토큰 갱신 API 함수
  *
  * 액세스 토큰이 만료되었을 때 리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.

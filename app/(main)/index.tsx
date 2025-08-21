@@ -47,6 +47,7 @@ import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { loadSelectedProfile } from '@/features/profile/profileStorage';
 import { ChildProfile } from '@/features/profile/types';
 import { addStoryToStorage } from '@/features/storyCreate/storyStorage';
+import { startLearningTimeTracking, stopLearningTimeTracking } from '@/shared/api';
 import { Story, LocalIllustration } from '@/features/storyCreate/types';
 import { getStoryIllustrationPathFromStory } from '@/features/storyCreate/storyUtils';
 import {
@@ -105,6 +106,10 @@ export default function MainScreen() {
 
         // 프로필이 있으면 초기 로딩 시작
         if (profile) {
+          // 학습시간 측정 시작
+          await startLearningTimeTracking(profile.childId);
+          console.log('⏰ 학습시간 측정 시작:', profile.childId);
+
           await loadStories(profile.childId, true);
         } else {
           // 프로필이 없으면 프로필 선택 화면으로 이동
@@ -160,6 +165,8 @@ export default function MainScreen() {
       NavigationBar.setVisibilityAsync('visible');
       // 뒤로가기 핸들러 제거
       backHandler.remove();
+      // 학습시간 측정 중단
+      stopLearningTimeTracking();
     };
   }, []);
 

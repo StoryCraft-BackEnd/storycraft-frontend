@@ -145,6 +145,25 @@ export type {
   SaveLearningTimeResponse, // 학습 시간 저장 응답 데이터 타입
 } from './statisticsApi';
 
+// ===== 학습시간 추적 관련 유틸리티 함수들 export =====
+
+/**
+ * 학습시간 측정 및 추적 함수들
+ *
+ * 프로필 선택 후 메인화면 진입부터 앱 종료까지의 학습시간을 측정하고
+ * 백엔드에 자동으로 저장하는 기능을 제공합니다.
+ */
+export {
+  startLearningTimeTracking, // 학습시간 측정 시작
+  stopLearningTimeTracking, // 학습시간 측정 중단
+  getCurrentLearningData, // 현재 학습시간 데이터 조회
+  isLearningTimeTracking, // 학습시간 측정 상태 확인
+  getCurrentTotalLearningTime, // 현재까지의 총 학습시간 조회
+  formatLearningTime, // 학습시간 포맷팅
+  initializeLearningTimeTracker, // 학습시간 추적기 초기화
+  loadLearningTimeFromStorage, // 로컬에서 학습시간 데이터 불러오기
+} from '../utils/learningTimeTracker';
+
 // ===== 단어 조회 및 저장 관련 API 함수들 export =====
 
 /**

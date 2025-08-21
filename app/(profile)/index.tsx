@@ -30,6 +30,7 @@ import {
 import { clearAllProfileData } from '@/features/storyCreate/storyStorage';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { stopLearningTimeTracking } from '@/shared/api';
 
 export default function ProfileScreen() {
   const backgroundColor = useThemeColor('background');
@@ -113,7 +114,7 @@ export default function ProfileScreen() {
       // 로딩 팝업 표시
       setIsProfileLoading(true);
       setLoadingMessage('프로필을 선택하는 중...');
-      
+
       // 선택된 프로필 찾기 (profiles가 null일 수 있으므로 안전하게 처리)
       const selectedProfile = (profiles || []).find((profile) => profile.childId === profileId);
       if (selectedProfile) {
@@ -124,6 +125,11 @@ export default function ProfileScreen() {
       }
 
       setLoadingMessage('메인 화면으로 이동하는 중...');
+
+      // 기존 학습시간 측정 중단
+      await stopLearningTimeTracking();
+      console.log('⏰ 기존 학습시간 측정 중단');
+
       // 메인 화면으로 이동 (화면 방향은 이미 가로 모드로 고정되어 있음)
       router.replace('/(main)');
     } catch (error) {
@@ -201,6 +207,10 @@ export default function ProfileScreen() {
       await clearAllProfileData();
       console.log('✅ 모든 프로필 데이터 삭제 완료');
 
+      // 학습시간 측정 중단
+      await stopLearningTimeTracking();
+      console.log('⏰ 학습시간 측정 중단');
+
       console.log('✅ 로그아웃 완료 - 로그인 화면으로 이동');
 
       // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
@@ -239,14 +249,10 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar hidden />
-      
+
       {/* 프로필 선택 로딩 팝업 */}
-      <LoadingPopup
-        visible={isProfileLoading}
-        title="프로필 선택"
-        message={loadingMessage}
-      />
-      
+      <LoadingPopup visible={isProfileLoading} title="프로필 선택" message={loadingMessage} />
+
       {/* 헤더 */}
       <View style={styles.header}>
         <View style={{ flex: 1, alignItems: 'center' }}>

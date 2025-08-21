@@ -9,7 +9,9 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startTokenRefreshManager, stopTokenRefreshManager } from '@/shared/api/authApi';
 import { checkTermsAgreement, setCachedTermsAgreement } from '@/shared/utils/termsUtils';
-import { configureGoogleSignIn } from '@/shared/config/googleSignIn';
+//import { configureGoogleSignIn } from '@/shared/config/googleSignIn';
+import { initializeLearningTimeTracker } from '@/shared/api';
+
 import * as Linking from 'expo-linking';
 
 // 실제 레이아웃 로직을 처리하는 컴포넌트
@@ -24,8 +26,8 @@ function RootLayout() {
       try {
         console.log('🔍 약관 동의 상태 확인 중...');
 
-        // 구글 로그인 초기화
-        configureGoogleSignIn();
+        // 구글 로그인 초기화 (임시 비활성화)
+        // configureGoogleSignIn();
         console.log('✅ 구글 로그인 초기화 완료');
 
         // 딥링크 처리 설정
@@ -69,6 +71,9 @@ function RootLayout() {
 
         // 토큰 갱신 매니저 시작
         await startTokenRefreshManager();
+
+        // 학습시간 추적기 초기화
+        await initializeLearningTimeTracker();
 
         // 컴포넌트 언마운트 시 정리
         return () => {
