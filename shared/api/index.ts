@@ -118,6 +118,29 @@ export type {
   EventDetailResponse, // 이벤트 상세 응답 타입
 } from './noticeEventApi';
 
+// ===== 단어 사전 관련 API 함수들 export =====
+
+/**
+ * 영어 단어 정의 및 예문 조회 함수들
+ *
+ * 영어 단어의 뜻과 예문을 조회하는 기능을 제공하는 API 함수들을 export합니다.
+ * 단일 단어 조회와 다중 단어 일괄 조회를 모두 지원합니다.
+ */
+export {
+  getWordDefinition, // 단일 단어 정의 조회 함수 (GET /dictionaries/words?word={word})
+  getMultipleWordDefinitions, // 다중 단어 정의 일괄 조회 함수
+} from './dictionaryApi';
+
+/**
+ * 단어 사전 관련 TypeScript 타입 정의들
+ *
+ * 단어 사전 API의 응답에 사용되는 타입들을 export합니다.
+ * 단어 ID, 의미, 영어/한국어 예문 등의 정보를 포함합니다.
+ */
+export type {
+  WordDefinition, // 단어 정의 및 예문 데이터 타입
+} from './dictionaryApi';
+
 // ===== 자녀별 학습 통계 관련 API 함수들 export =====
 
 /**

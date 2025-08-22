@@ -158,8 +158,8 @@ const englishLearningStyles = StyleSheet.create({
    */
   topControls: {
     position: 'absolute', // 절대 위치
-    top: hp(2), // 상단에서 2% (반응형) - 기존 4%에서 2%로 변경
-    right: wp(5), // 우측에서 5% (반응형)
+    top: hp(2), // 상단에서 2% (반응형)
+    right: wp(8), // 우측에서 15% (반응형) - 햄버거 메뉴 공간 확보
     flexDirection: 'row', // 가로 방향 정렬
     zIndex: 10, // 다른 요소 위에 표시
   },
@@ -171,9 +171,9 @@ const englishLearningStyles = StyleSheet.create({
    */
   readAloudButtonInGroup: {
     backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    paddingHorizontal: wp(3), // 좌우 내부 여백 3% (반응형) - 원래 크기로 복원
+    paddingVertical: hp(0.8), // 상하 내부 여백 0.8% (반응형) - 원래 크기로 복원
+    borderRadius: wp(4), // 둥근 모서리 4% (반응형) - 원래 크기로 복원
     marginRight: wp(2), // 페이지 현황과의 간격 2% (반응형)
   },
 
@@ -184,9 +184,9 @@ const englishLearningStyles = StyleSheet.create({
    */
   ttsSettingsButton: {
     backgroundColor: 'rgba(183, 155, 229, 0.85)', // 귀여운 라벤더 파스텔 보라색 배경 (#B79BE5와 유사)
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    paddingHorizontal: wp(3), // 좌우 내부 여백 3% (반응형) - 원래 크기로 복원
+    paddingVertical: hp(0.8), // 상하 내부 여백 0.8% (반응형) - 원래 크기로 복원
+    borderRadius: wp(4), // 둥근 모서리 4% (반응형) - 원래 크기로 복원
     marginRight: wp(2), // 페이지 현황과의 간격 2% (반응형)
   },
 
@@ -197,9 +197,9 @@ const englishLearningStyles = StyleSheet.create({
    */
   progressContainerInGroup: {
     backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경 (90% 투명도)
-    paddingHorizontal: wp(4), // 좌우 내부 여백 4% (반응형)
-    paddingVertical: hp(1), // 상하 내부 여백 1% (반응형)
-    borderRadius: wp(5), // 둥근 모서리 5% (반응형)
+    paddingHorizontal: wp(3), // 좌우 내부 여백 3% (반응형) - 원래 크기로 복원
+    paddingVertical: hp(0.8), // 상하 내부 여백 0.8% (반응형) - 원래 크기로 복원
+    borderRadius: wp(4), // 둥근 모서리 4% (반응형) - 원래 크기로 복원
   },
 
   // ===================================================================
@@ -258,7 +258,7 @@ const englishLearningStyles = StyleSheet.create({
    * 2:1 비율로 균형있는 레이아웃 구성
    */
   mainContent: {
-    flex: 1, // 남은 공간 모두 차지
+    flex: 1.0, // 남은 공간 모두 차지
     flexDirection: 'row', // 가로 방향 배치
     justifyContent: 'space-between', // 양쪽 끝 정렬
     alignItems: 'flex-start', // 상단 정렬로 변경
@@ -271,12 +271,14 @@ const englishLearningStyles = StyleSheet.create({
    * 토글 상태에 따라 크기 조정
    */
   storyContentSection: {
-    flex: 0.65, // 기본 크기로 복원 (즐겨찾기 패널과 함께 사용)
+    flex: 0.67, // 즐겨찾기 패널이 나타났을 때 우측 여백 조정
     backgroundColor: 'rgba(0, 0, 0, 0.7)', // 반투명 검정 배경
     borderRadius: wp(5), // 둥근 모서리 5% (반응형)
     padding: wp(6), // 내부 여백 6% (반응형)
-    marginRight: wp(4), // 우측 여백 4%로 복원 (반응형)
-    minHeight: hp(25), // 최소 높이 25% (반응형)
+    marginLeft: wp(8), // 좌측 여백을 8%로 증가 (오른쪽으로 이동)
+    marginRight: wp(1), // 우측 여백을 1%로 설정 (매우 작게)
+    minHeight: hp(25), // 최소 높이를 30%로 증가 (기존 25%에서)
+    maxHeight: hp(60), // 최대 높이 제한 추가
   },
 
   /**
@@ -872,7 +874,7 @@ const englishLearningStyles = StyleSheet.create({
    */
   quizButtonText: {
     color: '#333', // 어두운 회색 텍스트
-    fontSize: wp(3.5), // 글자 크기 3.5% (반응형)
+    fontSize: wp(3), // 글자 크기 3% (반응형) - 원래 크기로 복원
     fontWeight: '600', // 중간 굵기
   },
 

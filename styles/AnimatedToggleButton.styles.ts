@@ -26,10 +26,10 @@ export const animatedToggleButtonStyles = StyleSheet.create({
 
   // 비활성 상태일 때 표시되는 별 이미지 (boxstar.png)
   starImage: {
-    width: 35, // 이미지 너비 35px
-    height: 35, // 이미지 높이 35px
+    width: 38, // 이미지 너비 35px
+    height: 38, // 이미지 높이 35px
     resizeMode: 'contain', // 이미지 비율 유지하며 컨테이너에 맞춤
-    marginLeft: -21, // 왼쪽으로 21px 이동
+    marginLeft: 5, // 오른쪽으로 21px 이동 (음수에서 양수로 변경)
     marginTop: 0, // 위아래 위치 조절 (양수: 아래로, 음수: 위로)
   },
 });

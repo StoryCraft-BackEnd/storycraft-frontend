@@ -103,6 +103,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     // 정상적인 응답(2xx 상태 코드)인 경우 응답을 그대로 반환합니다
+    console.log('✅ API 응답 성공:', {
+      url: response.config.url,
+      status: response.status,
+      statusText: response.statusText,
+      data: response.data,
+      headers: response.headers,
+    });
     return response;
   },
   async (error) => {
@@ -181,6 +188,14 @@ apiClient.interceptors.response.use(
     }
 
     // 401 에러가 아니거나 이미 재시도한 요청인 경우 에러를 그대로 전파합니다
+    console.error('❌ API 응답 에러:', {
+      url: originalRequest?.url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code,
+    });
     return Promise.reject(error);
   }
 );

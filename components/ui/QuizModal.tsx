@@ -26,6 +26,8 @@ interface QuizModalProps {
   quiz: Quiz | null;
   onSubmit: (selectedAnswer: string) => void;
   isLastQuiz?: boolean;
+  currentQuizIndex?: number;
+  totalQuizzes?: number;
 }
 
 /**
@@ -41,6 +43,8 @@ export default function QuizModal({
   quiz,
   onSubmit,
   isLastQuiz,
+  currentQuizIndex,
+  totalQuizzes,
 }: QuizModalProps) {
   // === 상태 관리 ===
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -184,7 +188,11 @@ export default function QuizModal({
         <View style={styles.modalContainer}>
           {/* 헤더 */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>동화 퀴즈</Text>
+            <Text style={styles.modalTitle}>
+              {currentQuizIndex !== undefined && totalQuizzes !== undefined
+                ? `${currentQuizIndex + 1}/${totalQuizzes}`
+                : '동화 퀴즈'}
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               {/* 북마크 버튼 */}
               <TouchableOpacity

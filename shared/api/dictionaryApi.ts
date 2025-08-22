@@ -596,3 +596,78 @@ export const filterValidWordsByStories = async (words: any[], childId: number): 
     return words;
   }
 };
+
+// 단어 조회 응답 타입
+export interface WordDefinition {
+  wordId: number;
+  word: string;
+  meaning: string;
+  exampleEng: string;
+  exampleKor: string;
+  savedAt: string;
+}
+
+/**
+ * 영어 단어의 뜻과 예문을 조회합니다.
+ * @param word 조회할 영어 단어
+ * @returns 단어 정의 및 예문 정보
+ */
+export const getWordDefinition = async (word: string): Promise<WordDefinition> => {
+  try {
+    console.log('🔍 단어 조회 시작:', word);
+
+    const response = await apiClient.get(`/dictionaries/words?word=${encodeURIComponent(word)}`);
+
+    console.log('✅ 단어 조회 성공:', {
+      word,
+      wordId: response.data.wordId,
+      meaning: response.data.meaning,
+      hasExample: !!response.data.exampleEng,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ 단어 조회 실패:', {
+      word,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
+  }
+};
+
+/**
+ * 여러 단어의 뜻과 예문을 일괄 조회합니다.
+ * @param words 조회할 영어 단어 배열
+ * @returns 단어 정의 및 예문 정보 배열
+ */
+export const getMultipleWordDefinitions = async (words: string[]): Promise<WordDefinition[]> => {
+  try {
+    console.log('🔍 다중 단어 조회 시작:', words.length, '개 단어');
+
+    const promises = words.map((word) => getWordDefinition(word));
+    const results = await Promise.allSettled(promises);
+
+    const successfulResults = results
+      .filter(
+        (result): result is PromiseFulfilledResult<WordDefinition> => result.status === 'fulfilled'
+      )
+      .map((result) => result.value);
+
+    const failedCount = results.length - successfulResults.length;
+
+    console.log('✅ 다중 단어 조회 완료:', {
+      totalWords: words.length,
+      successfulCount: successfulResults.length,
+      failedCount,
+    });
+
+    if (failedCount > 0) {
+      console.warn('⚠️ 일부 단어 조회 실패:', failedCount, '개');
+    }
+
+    return successfulResults;
+  } catch (error) {
+    console.error('❌ 다중 단어 조회 실패:', error);
+    throw error;
+  }
+};

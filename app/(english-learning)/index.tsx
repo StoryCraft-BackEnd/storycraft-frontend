@@ -70,9 +70,14 @@ import penguinCry from '@/assets/images/character/penguin_cry_transparent.png';
 import penguinLollipop from '@/assets/images/character/penguin_lollipop_transparent.png';
 import sleepCharacter from '@/assets/images/character/sleep.png';
 
-// 성우 이미지들
-import womanImage from '@/assets/images/voiceactor/woman.png';
-import girlImage from '@/assets/images/voiceactor/girl.png';
+// 단어 뜻 팝업 컴포넌트
+import WordDefinitionPopup from '@/components/ui/WordDefinitionPopup';
+
+// TTS 설정 메뉴 컴포넌트
+import TTSSettingsMenu from '@/components/ui/TTSSettingsMenu';
+
+// API 클라이언트
+import { apiClient } from '@/shared/api/client';
 
 export default function EnglishLearningScreen() {
   const params = useLocalSearchParams();
@@ -99,6 +104,13 @@ export default function EnglishLearningScreen() {
 
   // TTS 설정 상태
   const [ttsVoiceId, setTtsVoiceId] = useState<string>('세연'); // 기본 성우
+  const [ttsPlaybackRate, setTtsPlaybackRate] = useState<number>(1.0); // TTS 배속 (1.0 = 기본 속도)
+
+  // 단어 뜻 저장 관련 상태
+  const [wordDefinitions, setWordDefinitions] = useState<{ [word: string]: string }>({});
+  const [showWordDefinitionPopup, setShowWordDefinitionPopup] = useState(false);
+  const [selectedWord, setSelectedWord] = useState('');
+  const [selectedWordMeaning, setSelectedWordMeaning] = useState('');
 
   // 즐겨찾기 단어 페이지네이션 상태
   const [favoriteWordsPage, setFavoriteWordsPage] = useState(1);
@@ -122,6 +134,68 @@ export default function EnglishLearningScreen() {
     const randomIndex = Math.floor(Math.random() * characterImages.length);
     return characterImages[randomIndex];
   }, []);
+
+  // 단어 뜻을 가져오는 함수
+  const getWordDefinition = async (word: string): Promise<string> => {
+    try {
+      // 이미 저장된 뜻이 있으면 반환
+      if (wordDefinitions[word]) {
+        return wordDefinitions[word];
+      }
+
+      // API로 단어 뜻 조회 (apiClient 사용)
+      const response = await apiClient.get(`/dictionaries/words?word=${encodeURIComponent(word)}`);
+
+      // API 응답 구조에 맞게 수정: response.data.data.meaning
+      const meaning = response.data?.data?.meaning || '의미를 찾을 수 없습니다.';
+
+      console.log(`🔍 단어 "${word}" API 응답:`, {
+        word,
+        meaning,
+        fullResponse: response.data,
+      });
+
+      // 단어 뜻을 상태에 저장
+      setWordDefinitions((prev) => ({
+        ...prev,
+        [word]: meaning,
+      }));
+
+      return meaning;
+    } catch (error) {
+      console.error(`단어 "${word}" 뜻 조회 실패:`, error);
+      return '의미를 가져올 수 없습니다.';
+    }
+  };
+
+  // 동화 단락의 모든 단어를 추출하고 뜻을 저장하는 함수
+  const processStoryWords = async (text: string) => {
+    if (!text) return;
+
+    try {
+      // 띄어쓰기를 기준으로 단어들을 쪼개기
+      const words = text.split(/\s+/).filter((word) => {
+        // 빈 문자열과 특수문자만 있는 단어 제외
+        const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+        return cleanWord.length > 0;
+      });
+
+      console.log('🔍 동화 단락에서 추출된 단어들:', words);
+
+      // 각 단어의 뜻을 병렬로 가져오기
+      const wordPromises = words.map(async (word) => {
+        const cleanWord = word.toLowerCase().replace(/[^a-zA-Z]/g, '');
+        if (cleanWord.length > 0) {
+          await getWordDefinition(cleanWord);
+        }
+      });
+
+      await Promise.all(wordPromises);
+      console.log('✅ 모든 단어의 뜻 저장 완료');
+    } catch (error) {
+      console.error('❌ 동화 단어 처리 실패:', error);
+    }
+  };
 
   // 로컬에 동화별 단어 저장하는 함수
   const saveWordsToLocalStorage = async (storyId: number, childId: number, words: any[]) => {
@@ -369,6 +443,19 @@ export default function EnglishLearningScreen() {
 
             // === 7. 단어 데이터 로드 ===
             await getWordsForStory(storyData.storyId, storyData.childId);
+
+            // === 7.2. 동화 단락의 모든 단어 처리 ===
+            if (learningStory.sections && learningStory.sections.length > 0) {
+              // 모든 단락의 단어들을 처리
+              for (const section of learningStory.sections) {
+                if (section.paragraphText) {
+                  await processStoryWords(section.paragraphText);
+                }
+              }
+            } else if (learningStory.content) {
+              // fallback: 전체 내용에서 단어 처리
+              await processStoryWords(learningStory.content);
+            }
 
             // === 7.5. 퀴즈 로드 ===
             console.log('🎯 동화 로드 완료, 퀴즈 준비');
@@ -712,6 +799,11 @@ export default function EnglishLearningScreen() {
             setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
 
+            // fallback 케이스에서도 단어 처리
+            if (learningStory.content) {
+              await processStoryWords(learningStory.content);
+            }
+
             console.log('🎵 TTS 생성 건너뛰기 - fallback 케이스');
 
             // 동기화 화면 타이머 설정
@@ -760,6 +852,17 @@ export default function EnglishLearningScreen() {
             setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
 
             await getWordsForStory(latestStory.storyId, latestStory.childId);
+
+            // 최신 동화 단락의 단어들도 처리
+            if (learningStory.sections && learningStory.sections.length > 0) {
+              for (const section of learningStory.sections) {
+                if (section.paragraphText) {
+                  await processStoryWords(section.paragraphText);
+                }
+              }
+            } else if (learningStory.content) {
+              await processStoryWords(learningStory.content);
+            }
 
             // 동기화 화면 타이머는 useEffect에서 설정됨
           } catch (sectionError) {
@@ -892,6 +995,69 @@ export default function EnglishLearningScreen() {
   );
 
   // API에서 TTS 요청하는 함수
+
+  // 동화 내용을 클릭 가능한 단어들로 분리하는 함수
+  const renderClickableText = (text: string) => {
+    if (!text) return null;
+
+    // 띄어쓰기를 기준으로 단어들을 분리
+    const words = text.split(/(\s+)/);
+
+    return words.map((word, index) => {
+      // 실제 단어인지 확인 (특수문자 제거 후 길이 체크)
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+      const isActualWord = cleanWord.length > 0;
+
+      if (isActualWord) {
+        return (
+          <TouchableOpacity
+            key={index}
+            onLongPress={() => handleWordLongPress(cleanWord)}
+            style={{ marginHorizontal: 1 }}
+          >
+            <Text style={englishLearningStyles.storyText}>{word}</Text>
+          </TouchableOpacity>
+        );
+      } else {
+        // 공백이나 특수문자는 그대로 표시
+        return (
+          <Text key={index} style={englishLearningStyles.storyText}>
+            {word}
+          </Text>
+        );
+      }
+    });
+  };
+
+  // 단어 롱터치(더블클릭) 핸들러
+  const handleWordLongPress = (word: string) => {
+    const cleanWord = word.toLowerCase().replace(/[^a-zA-Z]/g, '');
+    if (cleanWord.length === 0) return;
+
+    console.log('🔍 단어 롱터치:', cleanWord);
+
+    // 저장된 뜻이 있으면 바로 표시, 없으면 API에서 가져오기
+    if (wordDefinitions[cleanWord]) {
+      setSelectedWord(cleanWord);
+      setSelectedWordMeaning(wordDefinitions[cleanWord]);
+      setShowWordDefinitionPopup(true);
+    } else {
+      // 뜻을 가져오는 중임을 표시
+      setSelectedWord(cleanWord);
+      setSelectedWordMeaning('의미를 불러오는 중...');
+      setShowWordDefinitionPopup(true);
+
+      // API에서 뜻 가져오기
+      getWordDefinition(cleanWord)
+        .then((meaning) => {
+          setSelectedWordMeaning(meaning);
+        })
+        .catch((error) => {
+          console.error('단어 뜻 조회 실패:', error);
+          setSelectedWordMeaning('의미를 가져올 수 없습니다.');
+        });
+    }
+  };
 
   // 하이라이트된 텍스트를 굵은 글씨로 변환하는 함수
   const formatHighlightedText = (text: string) => {
@@ -1130,6 +1296,10 @@ export default function EnglishLearningScreen() {
 
       const { sound } = await Audio.Sound.createAsync({ uri: ttsInfo.audioPath });
       setTtsSound(sound);
+
+      // 배속 설정
+      await sound.setRateAsync(ttsPlaybackRate, true);
+
       await sound.playAsync();
 
       console.log('✅ TTS 재생 성공');
@@ -1638,14 +1808,11 @@ export default function EnglishLearningScreen() {
                 <Text style={englishLearningStyles.quizButtonText}>🔊 읽어주기</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={englishLearningStyles.ttsSettingsButton}
-                onPress={() => {
-                  // TTS 설정 변경 (예: 성우 변경)
-                  const voices = ['세연', 'Joanna'];
-                  const currentIndex = voices.indexOf(ttsVoiceId);
-                  const nextIndex = (currentIndex + 1) % voices.length;
-                  const newVoiceId = voices[nextIndex];
+              {/* TTS 설정 햄버거 메뉴 */}
+              <TTSSettingsMenu
+                ttsVoiceId={ttsVoiceId}
+                ttsPlaybackRate={ttsPlaybackRate}
+                onVoiceChange={(newVoiceId) => {
                   setTtsVoiceId(newVoiceId);
                   console.log('🎭 TTS 성우 변경:', { from: ttsVoiceId, to: newVoiceId });
 
@@ -1727,22 +1894,17 @@ export default function EnglishLearningScreen() {
                     );
                   }
                 }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  {ttsVoiceId === '세연' ? (
-                    <Image
-                      source={womanImage}
-                      style={{ width: 20, height: 20, resizeMode: 'contain' }}
-                    />
-                  ) : (
-                    <Image
-                      source={girlImage}
-                      style={{ width: 20, height: 20, resizeMode: 'contain' }}
-                    />
-                  )}
-                  <Text style={englishLearningStyles.quizButtonText}>{ttsVoiceId}</Text>
-                </View>
-              </TouchableOpacity>
+                onPlaybackRateChange={(newRate) => {
+                  setTtsPlaybackRate(newRate);
+
+                  // 현재 재생 중인 음성에 배속 적용
+                  if (ttsSound) {
+                    ttsSound.setRateAsync(newRate, true);
+                  }
+
+                  console.log('🎵 TTS 배속 변경:', { from: ttsPlaybackRate, to: newRate });
+                }}
+              />
 
               <View style={englishLearningStyles.progressContainerInGroup}>
                 <Text style={englishLearningStyles.progressText}>
@@ -1767,7 +1929,7 @@ export default function EnglishLearningScreen() {
               <View
                 style={[
                   englishLearningStyles.storyContentSection,
-                  !showVocabularyPanel && { flex: 0.95, marginRight: wp(2) }, // 패널이 숨겨져 있을 때 크기 확장
+                  !showVocabularyPanel && { flex: 0.97, marginRight: wp(2) }, // 패널이 숨겨져 있을 때 크기 확장
                 ]}
               >
                 {/* 현재 페이지 정보 디버깅 */}
@@ -1776,7 +1938,16 @@ export default function EnglishLearningScreen() {
                     📖 페이지 {currentPage} (총 {currentStory.sections.length}페이지)
                   </Text>
                 )}
-                <Text style={englishLearningStyles.storyText}>{getCurrentPageText()}</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  {renderClickableText(getCurrentPageText())}
+                </View>
 
                 {getCurrentPageKoreanText() && (
                   <Text style={englishLearningStyles.koreanTranslation}>
@@ -1983,11 +2154,13 @@ export default function EnglishLearningScreen() {
                     handleNavigation('next');
                   }
                 }}
-                disabled={false}
+                disabled={isQuizLoading}
               >
                 <Text style={englishLearningStyles.navButtonText}>
                   {currentPage === (currentStory?.sections?.length || 1)
-                    ? `🎯 퀴즈 (${quizzes.length})`
+                    ? isQuizLoading
+                      ? '🔄 퀴즈 로딩 중...'
+                      : `🎯 퀴즈 (${quizzes.length})`
                     : '다음 ▶'}
                 </Text>
               </TouchableOpacity>
@@ -2005,6 +2178,14 @@ export default function EnglishLearningScreen() {
         isLastQuiz={currentQuizIndex === quizzes.length - 1}
         currentQuizIndex={currentQuizIndex}
         totalQuizzes={quizzes.length}
+      />
+
+      {/* 단어 뜻 팝업 */}
+      <WordDefinitionPopup
+        visible={showWordDefinitionPopup}
+        word={selectedWord}
+        meaning={selectedWordMeaning}
+        onClose={() => setShowWordDefinitionPopup(false)}
       />
     </View>
   );
