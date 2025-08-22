@@ -70,6 +70,10 @@ import penguinCry from '@/assets/images/character/penguin_cry_transparent.png';
 import penguinLollipop from '@/assets/images/character/penguin_lollipop_transparent.png';
 import sleepCharacter from '@/assets/images/character/sleep.png';
 
+// 성우 이미지들
+import womanImage from '@/assets/images/voiceactor/woman.png';
+import girlImage from '@/assets/images/voiceactor/girl.png';
+
 export default function EnglishLearningScreen() {
   const params = useLocalSearchParams();
   const [currentStory, setCurrentStory] = useState<LearningStoryWithSections | null>(null);
@@ -1401,8 +1405,24 @@ export default function EnglishLearningScreen() {
       });
 
       const quizList = await getQuizzesByStory(storyData.storyId, storyData.childId);
-      setQuizzes(quizList);
-      console.log('✅ 퀴즈 로드 완료:', quizList.length, '개');
+
+      // quizId가 없는 퀴즈는 필터링하여 제거
+      const validQuizzes = quizList.filter((quiz) => {
+        const hasValidId = quiz.quizId || (quiz as any).id;
+        if (!hasValidId) {
+          console.warn('⚠️ quizId가 없는 퀴즈 항목 제거:', quiz);
+        }
+        return hasValidId;
+      });
+
+      setQuizzes(validQuizzes);
+      console.log(
+        '✅ 퀴즈 로드 완료:',
+        validQuizzes.length,
+        '개 (전체:',
+        quizList.length,
+        '개에서 유효한 퀴즈만 필터링)'
+      );
     } catch (error) {
       console.error('❌ 퀴즈 로드 실패:', error);
       Alert.alert('퀴즈 로드 실패', '퀴즈를 불러올 수 없습니다.');
@@ -1708,7 +1728,20 @@ export default function EnglishLearningScreen() {
                   }
                 }}
               >
-                <Text style={englishLearningStyles.quizButtonText}>🎤 {ttsVoiceId}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {ttsVoiceId === '세연' ? (
+                    <Image
+                      source={womanImage}
+                      style={{ width: 20, height: 20, resizeMode: 'contain' }}
+                    />
+                  ) : (
+                    <Image
+                      source={girlImage}
+                      style={{ width: 20, height: 20, resizeMode: 'contain' }}
+                    />
+                  )}
+                  <Text style={englishLearningStyles.quizButtonText}>{ttsVoiceId}</Text>
+                </View>
               </TouchableOpacity>
 
               <View style={englishLearningStyles.progressContainerInGroup}>
@@ -1798,7 +1831,6 @@ export default function EnglishLearningScreen() {
                 isActive={showVocabularyPanel}
                 onPress={() => setShowVocabularyPanel(!showVocabularyPanel)}
                 activeIcon="📖"
-                inactiveIcon="⭐"
                 style={[
                   englishLearningStyles.toggleButton,
                   !showVocabularyPanel && englishLearningStyles.toggleButtonHidden,
@@ -1971,6 +2003,8 @@ export default function EnglishLearningScreen() {
         onClose={() => setShowQuizPopup(false)}
         onSubmit={handleQuizSubmitAndContinue}
         isLastQuiz={currentQuizIndex === quizzes.length - 1}
+        currentQuizIndex={currentQuizIndex}
+        totalQuizzes={quizzes.length}
       />
     </View>
   );

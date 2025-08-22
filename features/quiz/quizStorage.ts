@@ -35,10 +35,17 @@ export const loadBookmarkedQuizzes = async (): Promise<BookmarkedQuiz[]> => {
         data: bookmarks,
       });
 
-      // storyId가 없는 퀴즈는 유지 (이전 버전 호환성)
-      // 삭제된 동화의 퀴즈는 cleanupStoryRelatedData에서 처리됨
-      console.log('✅ 북마크된 퀴즈 로드 완료:', bookmarks.length, '개');
-      return bookmarks;
+      // storyId가 있는 유효한 퀴즈만 필터링 (삭제된 스토리의 퀴즈는 제외)
+      const validBookmarks = bookmarks.filter((bookmark: any) => {
+        const hasValidStoryId = bookmark.storyId && bookmark.storyId > 0;
+        if (!hasValidStoryId) {
+          console.warn('⚠️ storyId가 없거나 유효하지 않은 북마크된 퀴즈 제외:', bookmark);
+        }
+        return hasValidStoryId;
+      });
+
+      console.log('✅ 북마크된 퀴즈 로드 완료:', validBookmarks.length, '개 (유효한 스토리만)');
+      return validBookmarks;
     }
 
     console.log('📚 북마크된 퀴즈 없음 (null 또는 undefined)');

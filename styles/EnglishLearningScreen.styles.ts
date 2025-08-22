@@ -980,7 +980,7 @@ const englishLearningStyles = StyleSheet.create({
 
   /**
    * 🔘 토글 버튼
-   * 즐겨찾기 패널을 표시/숨김하는 동그란 버튼
+   * 즐겨찾기 패널을 표시/숨김하는 버튼
    * 위아래로 움직이는 애니메이션 적용
    */
   toggleButton: {
@@ -989,20 +989,20 @@ const englishLearningStyles = StyleSheet.create({
     top: hp(2), // 패널 상단에서 2% 여백
     width: wp(12),
     height: wp(12),
-    borderRadius: wp(6),
-    backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
-    borderWidth: 2,
-    borderColor: '#ffd700',
+    // borderRadius: wp(6),
+    // backgroundColor: 'rgba(255, 215, 0, 0.9)', // 황금색 배경
+    // borderWidth: 2,
+    // borderColor: '#ffd700',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    // shadowColor: '#000',
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 4,
+    // },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 6,
+    // elevation: 8,
     zIndex: 10,
   },
 
