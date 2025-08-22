@@ -21,6 +21,25 @@ import { Ionicons } from '@expo/vector-icons';
 import nightBg from '@/assets/images/background/night-bg.png';
 import pointImage from '@/assets/images/rewards/point_icon.png';
 import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
+
+// 배지 이미지들
+import badgeLevel1 from '@/assets/images/badge/BADGE_LEVEL_1.png';
+import badgeLevel5 from '@/assets/images/badge/BADGE_LEVEL_5.png';
+import badgeLevel10 from '@/assets/images/badge/BADGE_LEVEL_10.png';
+import badgeStory1 from '@/assets/images/badge/BADGE_STORY_1.png';
+import badgeStory10 from '@/assets/images/badge/BADGE_STORY_10.png';
+import badgeStory50 from '@/assets/images/badge/BADGE_STORY_50.png';
+import badgeWord1 from '@/assets/images/badge/BADGE_WORD_1.png';
+import badgeWord100 from '@/assets/images/badge/BADGE_WORD_100.png';
+import badgeWord500 from '@/assets/images/badge/BADGE_WORD_500.png';
+import badgeQuiz1 from '@/assets/images/badge/BADGE_QUIZ_1.png';
+import badgeQuiz10 from '@/assets/images/badge/BADGE_QUIZ_10.png';
+import badgeQuiz50 from '@/assets/images/badge/BADGE_QUIZ_50.png';
+import badgeStreak3 from '@/assets/images/badge/BADGE_STREAK_3.png';
+import badgeStreak7 from '@/assets/images/badge/BADGE_STREAK_7.png';
+import badgeStreak14 from '@/assets/images/badge/BADGE_STREAK_14.png';
+import badgeStreak30 from '@/assets/images/badge/BADGE_STREAK_30.png';
+import badgeDaily7 from '@/assets/images/badge/BADGE_DAILY_7.png';
 import bookIcon from '@/assets/images/icons/book.png';
 import quizIcon from '@/assets/images/icons/quiz.png';
 import dictionaryIcon from '@/assets/images/icons/dictionary.png';
@@ -297,6 +316,42 @@ export default function DailyMissionScreen() {
       default:
         return heartIcon;
     }
+  };
+
+  // 배지 이미지 가져오기
+  const getBadgeImage = (badgeCode: string) => {
+    const badgeImages: { [key: string]: any } = {
+      // 레벨 배지
+      BADGE_LEVEL_1: badgeLevel1,
+      BADGE_LEVEL_5: badgeLevel5,
+      BADGE_LEVEL_10: badgeLevel10,
+
+      // 스토리 배지
+      BADGE_STORY_1: badgeStory1,
+      BADGE_STORY_10: badgeStory10,
+      BADGE_STORY_50: badgeStory50,
+
+      // 단어 배지
+      BADGE_WORD_1: badgeWord1,
+      BADGE_WORD_100: badgeWord100,
+      BADGE_WORD_500: badgeWord500,
+
+      // 퀴즈 배지
+      BADGE_QUIZ_1: badgeQuiz1,
+      BADGE_QUIZ_10: badgeQuiz10,
+      BADGE_QUIZ_50: badgeQuiz50,
+
+      // 연속 학습 배지
+      BADGE_STREAK_3: badgeStreak3,
+      BADGE_STREAK_7: badgeStreak7,
+      BADGE_STREAK_14: badgeStreak14,
+      BADGE_STREAK_30: badgeStreak30,
+
+      // 특별 배지
+      BADGE_DAILY_7: badgeDaily7,
+    };
+
+    return badgeImages[badgeCode] || achieveIcon;
   };
 
   // 미션 클릭 핸들러
@@ -869,7 +924,7 @@ export default function DailyMissionScreen() {
                     <View key={badge.badgeCode} style={styles.badgeVerticalSlot}>
                       <View style={styles.badgeItem}>
                         <View style={styles.badgeIconContainer}>
-                          <Image source={achieveIcon} style={styles.badgeIcon} />
+                          <Image source={getBadgeImage(badge.badgeCode)} style={styles.badgeIcon} />
                         </View>
                         <Text style={styles.badgeName}>{badge.badgeName}</Text>
                       </View>
