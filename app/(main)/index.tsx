@@ -77,6 +77,30 @@ export default function MainScreen() {
   const [loadingMessage, setLoadingMessage] = useState('불러오는중...');
   const [illustrationsReady, setIllustrationsReady] = useState(false);
 
+  // 배지 개수와 포인트를 위한 state 추가
+  const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [userPoints, setUserPoints] = useState<number>(0);
+
+  // 보상 현황 조회 함수
+  const fetchRewardProfile = async (childId: number) => {
+    try {
+      console.log('💰 보상 현황 조회 시작 - childId:', childId);
+      const profile = await rewardsApi.getProfile(childId);
+      console.log('✅ 보상 현황 조회 완료:', profile);
+
+      // 배지 개수와 포인트 업데이트
+      setBadgeCount(profile.badges?.length || 0);
+      setUserPoints(profile.points || 0);
+
+      console.log(
+        `💰 사용자 보상 현황 업데이트: 배지 ${profile.badges?.length || 0}개, 포인트 ${profile.points}점`
+      );
+    } catch (error) {
+      console.error('❌ 보상 현황 조회 실패:', error);
+      // 에러 시 기본값 유지
+    }
+  };
+
   useEffect(() => {
     // 화면을 가로 모드로 고정
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
@@ -110,6 +134,10 @@ export default function MainScreen() {
           // 학습시간 측정 시작
           await startLearningTimeTracking(profile.childId);
           console.log('⏰ 학습시간 측정 시작:', profile.childId);
+
+          // 보상 현황 조회 (배지 개수, 포인트)
+          console.log('💰 보상 현황 조회 시작');
+          await fetchRewardProfile(profile.childId);
 
           // 레벨업 조건 판단 API 호출 (앱 시작 시 최초 1회)
           try {
@@ -203,6 +231,9 @@ export default function MainScreen() {
           }
 
           console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
+
+          // 보상 현황 새로고침
+          await fetchRewardProfile(selectedProfile.childId);
 
           // 동화 목록 새로고침
           await loadStories(selectedProfile.childId, false);
@@ -435,10 +466,10 @@ export default function MainScreen() {
         >
           <View style={MainScreenStyles.achieveContainer}>
             <Image source={achieveIcon} style={MainScreenStyles.pointImage} />
-            <Text style={MainScreenStyles.pointText}>5</Text>
+            <Text style={MainScreenStyles.pointText}>{badgeCount}</Text>
           </View>
           <Image source={pointImage} style={MainScreenStyles.pointImage} />
-          <Text style={MainScreenStyles.pointText}>1,000</Text>
+          <Text style={MainScreenStyles.pointText}>{userPoints}</Text>
         </TouchableOpacity>
         <View style={MainScreenStyles.storyContainer}>
           <TouchableOpacity
