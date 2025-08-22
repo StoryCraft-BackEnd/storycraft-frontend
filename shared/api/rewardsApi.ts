@@ -66,13 +66,21 @@ export const rewardsApi = {
   rewardPoints: async (
     childId: number,
     rewardType: string,
-    context: string
+    context: string,
+    storyId?: number
   ): Promise<PointRewardResponse> => {
-    const response = await apiClient.post('/rewards/points', {
+    const requestBody: any = {
       childId,
       rewardType,
       context,
-    });
+    };
+
+    // storyId가 제공된 경우에만 body에 포함
+    if (storyId !== undefined) {
+      requestBody.storyId = storyId;
+    }
+
+    const response = await apiClient.post('/rewards/points', requestBody);
     return response.data.data;
   },
 

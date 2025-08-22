@@ -23,10 +23,11 @@ export type ContextType =
 export const rewardPoints = async (
   childId: number,
   rewardType: RewardType,
-  context: ContextType
+  context: ContextType,
+  storyId?: number
 ) => {
   try {
-    const response = await rewardsApi.rewardPoints(childId, rewardType, context);
+    const response = await rewardsApi.rewardPoints(childId, rewardType, context, storyId);
 
     // 레벨업 알림
     if (response.levelUp?.levelUp) {
@@ -49,8 +50,8 @@ export const rewardPoints = async (
 };
 
 // 학습 활동별 포인트 지급 함수들
-export const rewardStoryRead = async (childId: number) => {
-  return await rewardPoints(childId, 'POINT_STORY_READ', 'STORY_READ');
+export const rewardStoryRead = async (childId: number, storyId?: number) => {
+  return await rewardPoints(childId, 'POINT_STORY_READ', 'STORY_READ', storyId);
 };
 
 export const rewardWordClick = async (childId: number) => {

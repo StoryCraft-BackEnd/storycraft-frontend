@@ -304,6 +304,18 @@ export default function DailyMissionScreen() {
   // dailyMissionReward는 현재 사용하지 않음 (API에서 보상 금액을 받아옴)
   // const dailyMissionReward = 100;
 
+  // 레벨별 부제목 가져오기
+  const getLevelSubtitle = (level: number) => {
+    if (level >= 1 && level <= 3) return '마법사 견습생';
+    if (level >= 4 && level <= 6) return '마법사 수습생';
+    if (level >= 7 && level <= 9) return '마법사';
+    if (level >= 10 && level <= 12) return '고급 마법사';
+    if (level >= 13 && level <= 15) return '마법사 마스터';
+    if (level >= 16 && level <= 18) return '대마법사';
+    if (level >= 19 && level <= 20) return '전설의 마법사';
+    return '마법사 견습생';
+  };
+
   // 미션 아이콘 가져오기
   const getMissionIcon = (type: string) => {
     switch (type) {
@@ -424,12 +436,11 @@ export default function DailyMissionScreen() {
       console.warn('✅ 보상 현황 API 성공:', profile);
       setRewardProfile(profile);
 
-      // userStats 업데이트
+      // userStats 업데이트 (연속 학습은 fetchStreakStatus에서 처리하므로 여기서는 건드리지 않음)
       setUserStats((prev) => ({
         ...prev,
         points: profile.points,
         level: profile.level,
-        streakDays: profile.streakDays,
         achievements: 0, // 임시로 0으로 설정 (나중에 업데이트됨)
       }));
 
@@ -486,14 +497,15 @@ export default function DailyMissionScreen() {
         rewardedPoint: response.rewardedPoint,
       });
 
-      // streakDays 업데이트
+      // streakDays 업데이트 (첫날이어도 최소 1일로 표시)
       setUserStats((prev) => {
+        const displayStreak = response.currentStreak === 0 ? 1 : response.currentStreak;
         const newStats = {
           ...prev,
-          streakDays: response.currentStreak,
+          streakDays: displayStreak,
         };
         console.warn(
-          `🔥 연속 학습 일수 업데이트: ${prev.streakDays} → ${response.currentStreak}일`
+          `🔥 연속 학습 일수 업데이트: ${prev.streakDays} → ${displayStreak}일 (API: ${response.currentStreak}일)`
         );
         return newStats;
       });
@@ -725,13 +737,7 @@ export default function DailyMissionScreen() {
             {/* 레벨 섹션 - 카드 스타일 */}
             <View style={styles.levelCard}>
               <Text style={styles.levelTitle}>Level {userStats.level}</Text>
-              <Text style={styles.levelSubtitle}>마법사 견습생</Text>
-              <View style={styles.levelProgressContainer}>
-                <View style={styles.levelProgressBar}>
-                  <View style={[styles.levelProgressFill, { width: '67%' }]} />
-                </View>
-                <Text style={styles.levelProgressText}>67% to Level 4</Text>
-              </View>
+              <Text style={styles.levelSubtitle}>{getLevelSubtitle(userStats.level)}</Text>
             </View>
 
             {/* 오늘의 달성도 섹션 - 세로 진행률 바 */}

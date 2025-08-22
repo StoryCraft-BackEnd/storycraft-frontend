@@ -1486,7 +1486,7 @@ export default function EnglishLearningScreen() {
         try {
           // 1. 동화 읽기 포인트 지급
           console.log('💰 동화 읽기 포인트 지급 시작');
-          const rewardResponse = await rewardStoryRead(currentStory.childId);
+          const rewardResponse = await rewardStoryRead(currentStory.childId, currentStory.storyId);
           console.log('✅ 동화 읽기 포인트 지급 완료:', rewardResponse);
 
           // 2. 배지 조건 판단 및 지급 여부 확인
