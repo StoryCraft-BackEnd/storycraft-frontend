@@ -301,6 +301,21 @@ export const DailyMissionScreenStyles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: wp('2.5%'),
   },
+  claimedRewardContainer: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2%'),
+    marginTop: hp('2%'),
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#45A049',
+  },
+  claimedRewardText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: wp('2.5%'),
+  },
 
   // 미션 아이템
   missionItem: {

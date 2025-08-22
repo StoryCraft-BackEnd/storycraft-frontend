@@ -61,6 +61,7 @@ import {
   isStoriesCacheValid,
   saveStoriesLastUpdateTime,
 } from '@/features/storyCreate/storyStorage';
+import { rewardsApi } from '@/shared/api/rewardsApi';
 
 // 기본 삽화 이미지들 (삽화가 없을 때 사용)
 const defaultStoryImages = [story1, story2, story3, story4, story5, story6, story7, story8];
@@ -109,6 +110,21 @@ export default function MainScreen() {
           // 학습시간 측정 시작
           await startLearningTimeTracking(profile.childId);
           console.log('⏰ 학습시간 측정 시작:', profile.childId);
+
+          // 레벨업 조건 판단 API 호출 (앱 시작 시 최초 1회)
+          try {
+            console.log('🎯 레벨업 조건 판단 API 호출 시작');
+            const levelUpResponse = await rewardsApi.checkLevelUp(profile.childId);
+            console.log('✅ 레벨업 조건 판단 API 성공:', levelUpResponse);
+
+            if (levelUpResponse.levelUp) {
+              console.log('🎉 레벨업 발생:', {
+                newLevel: levelUpResponse.newLevel,
+              });
+            }
+          } catch (error) {
+            console.error('❌ 레벨업 조건 판단 API 실패:', error);
+          }
 
           await loadStories(profile.childId, true);
         } else {

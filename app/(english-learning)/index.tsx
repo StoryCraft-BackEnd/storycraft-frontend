@@ -53,6 +53,12 @@ import {
   getFavoriteWordsByStory,
 } from '@/features/storyCreate/storyStorage';
 import { VoiceBasedTTSInfo } from '@/features/storyCreate/types';
+import {
+  rewardStoryRead,
+  rewardQuizCorrect,
+  rewardWordClick,
+  checkBadges,
+} from '@/shared/utils/rewardUtils';
 
 // --- 이미지 및 리소스 ---
 import defaultBackgroundImage from '@/assets/images/background/night-bg.png';
@@ -1131,7 +1137,7 @@ export default function EnglishLearningScreen() {
 
   // 단어 클릭 핸들러
   const handleWordPress = useCallback(
-    (index: number) => {
+    async (index: number) => {
       // 현재 페이지의 단어만 필터링하여 인덱스 매핑 (메모이제이션된 결과 사용)
       const currentPageWords = memoizedCurrentPageWords;
 
@@ -1170,6 +1176,23 @@ export default function EnglishLearningScreen() {
         isClicked: newWordClicked[index],
         action: newWordClicked[index] ? '한글 뜻 표시' : '한글 뜻 숨김',
       });
+
+      // 단어 클릭 시 포인트 지급 및 배지 체크 (한글 뜻을 처음 표시할 때만)
+      if (newWordClicked[index] && currentStory?.childId) {
+        try {
+          // 1. 단어 클릭 포인트 지급
+          console.log('💰 단어 클릭 포인트 지급 시작');
+          const rewardResponse = await rewardWordClick(currentStory.childId);
+          console.log('✅ 단어 클릭 포인트 지급 완료:', rewardResponse);
+
+          // 2. 배지 조건 판단 및 지급 여부 확인
+          console.log('🏆 배지 조건 판단 시작');
+          const badgeResponse = await checkBadges(currentStory.childId, 'WORD_CLICK');
+          console.log('✅ 배지 조건 판단 완료:', badgeResponse);
+        } catch (error) {
+          console.error('❌ 단어 클릭 시 보상 처리 실패:', error);
+        }
+      }
     },
     [wordClicked, currentPage, currentStory] // currentStory 추가하여 의존성 복원
   );
@@ -1259,7 +1282,7 @@ export default function EnglishLearningScreen() {
   );
 
   // 페이지 네비게이션 핸들러
-  const handleNavigation = (direction: 'prev' | 'next') => {
+  const handleNavigation = async (direction: 'prev' | 'next') => {
     if (!currentStory) return;
 
     const totalPages =
@@ -1281,13 +1304,32 @@ export default function EnglishLearningScreen() {
       const newPage = currentPage + 1;
       console.log(`➡️ 다음 페이지로 이동: ${currentPage} → ${newPage}`);
       setCurrentPage(newPage);
+
+      // 마지막 페이지 진입 시 포인트 지급 및 배지 체크
+      if (newPage === totalPages && currentStory?.childId) {
+        console.log('🎯 마지막 페이지 진입 - 포인트 지급 및 배지 체크 시작');
+
+        try {
+          // 1. 동화 읽기 포인트 지급
+          console.log('💰 동화 읽기 포인트 지급 시작');
+          const rewardResponse = await rewardStoryRead(currentStory.childId);
+          console.log('✅ 동화 읽기 포인트 지급 완료:', rewardResponse);
+
+          // 2. 배지 조건 판단 및 지급 여부 확인
+          console.log('🏆 배지 조건 판단 시작');
+          const badgeResponse = await checkBadges(currentStory.childId, 'STORY_READ');
+          console.log('✅ 배지 조건 판단 완료:', badgeResponse);
+        } catch (error) {
+          console.error('❌ 마지막 페이지 진입 시 보상 처리 실패:', error);
+        }
+      }
     } else {
       console.log(`⚠️ 페이지 이동 불가: ${direction} (현재: ${currentPage}, 전체: ${totalPages})`);
     }
   };
 
   // 퀴즈 제출 후 자동으로 다음 페이지로 이동하는 함수
-  const handleQuizSubmitAndContinue = (selectedAnswer: string) => {
+  const handleQuizSubmitAndContinue = async (selectedAnswer: string) => {
     if (!quizzes[currentQuizIndex]) return;
 
     const currentQuiz = quizzes[currentQuizIndex];
@@ -1306,6 +1348,23 @@ export default function EnglishLearningScreen() {
 
     // 퀴즈 팝업 닫기
     setShowQuizPopup(false);
+
+    // 퀴즈 답안 제출 시 포인트 지급 및 배지 체크
+    if (currentStory?.childId) {
+      try {
+        // 1. 퀴즈 정답 포인트 지급
+        console.log('💰 퀴즈 정답 포인트 지급 시작');
+        const rewardResponse = await rewardQuizCorrect(currentStory.childId);
+        console.log('✅ 퀴즈 정답 포인트 지급 완료:', rewardResponse);
+
+        // 2. 배지 조건 판단 및 지급 여부 확인
+        console.log('🏆 배지 조건 판단 시작');
+        const badgeResponse = await checkBadges(currentStory.childId, 'QUIZ_CORRECT');
+        console.log('✅ 배지 조건 판단 완료:', badgeResponse);
+      } catch (error) {
+        console.error('❌ 퀴즈 답안 제출 시 보상 처리 실패:', error);
+      }
+    }
 
     // 다음 퀴즈로 이동하거나 퀴즈 완료
     if (currentQuizIndex < quizzes.length - 1) {

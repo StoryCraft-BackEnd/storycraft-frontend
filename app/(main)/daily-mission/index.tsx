@@ -12,6 +12,7 @@ import {
   Alert,
   ImageBackground,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { DailyMissionScreenStyles as styles } from '@/styles/DailyMissionScreen.styles';
@@ -30,6 +31,7 @@ import {
   DailyMission as ApiDailyMission,
 } from '@/shared/api/rewardsApi';
 import { checkDailyMission, checkStreak } from '@/shared/utils/rewardUtils';
+import { loadSelectedProfile } from '@/features/profile/profileStorage';
 
 // screenWidth는 현재 사용되지 않으므로 제거
 
@@ -64,6 +66,9 @@ interface UserStats {
 }
 
 export default function DailyMissionScreen() {
+  // 선택된 프로필 상태
+  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+
   // 상태 관리
   const [userStats, setUserStats] = useState<UserStats>({
     points: 0,
@@ -114,34 +119,62 @@ export default function DailyMissionScreen() {
     },
   ]);
 
-  // setBadges는 현재 사용하지 않음 (하드코딩된 배지 데이터)
-  const [badges] = useState<Badge[]>([
+  // 보상 수령 상태 관리
+  const [isRewardClaimed, setIsRewardClaimed] = useState(false);
+
+  // 보상 수령 상태를 로컬에 저장하는 함수
+  const saveRewardClaimedStatus = async (claimed: boolean) => {
+    try {
+      const today = new Date().toDateString();
+      await AsyncStorage.setItem(`daily_reward_claimed_${today}`, JSON.stringify(claimed));
+      console.log('💾 보상 수령 상태 저장:', { date: today, claimed });
+    } catch (error) {
+      console.error('❌ 보상 수령 상태 저장 실패:', error);
+    }
+  };
+
+  // 보상 수령 상태를 로컬에서 불러오는 함수
+  const loadRewardClaimedStatus = async (): Promise<boolean> => {
+    try {
+      const today = new Date().toDateString();
+      const claimed = await AsyncStorage.getItem(`daily_reward_claimed_${today}`);
+      const isClaimed = claimed ? JSON.parse(claimed) : false;
+      console.log('📖 보상 수령 상태 로드:', { date: today, isClaimed });
+      return isClaimed;
+    } catch (error) {
+      console.error('❌ 보상 수령 상태 로드 실패:', error);
+      return false;
+    }
+  };
+
+  // 배지 데이터 상태 (API에서 받아온 실제 데이터로 업데이트)
+  const [badges, setBadges] = useState<Badge[]>([
     // 기본 학습 배지 (6개)
     {
       badgeCode: 'BADGE_STORY_1',
       badgeName: '첫 번째 동화 읽기',
-      isEarned: true,
+      isEarned: false,
       description: '동화 1편 읽기',
       category: 'basic',
     },
     {
       badgeCode: 'BADGE_WORD_1',
       badgeName: '첫 단어 클릭',
-      isEarned: true,
+      isEarned: false,
       description: '단어 클릭 1회',
       category: 'basic',
     },
     {
       badgeCode: 'BADGE_QUIZ_1',
       badgeName: '첫 퀴즈 도전',
-      isEarned: true,
+      isEarned: false,
       description: '퀴즈 정답 1회',
       category: 'basic',
     },
     {
       badgeCode: 'BADGE_LEVEL_1',
       badgeName: '레벨 1 달성!',
-      isEarned: true,
+      isEarned: false,
       description: '레벨 1 도달',
       category: 'basic',
     },
@@ -164,7 +197,7 @@ export default function DailyMissionScreen() {
     {
       badgeCode: 'BADGE_STORY_10',
       badgeName: '동화 마스터 10편',
-      isEarned: true,
+      isEarned: false,
       description: '동화 10편 읽기',
       category: 'milestone',
     },
@@ -192,7 +225,7 @@ export default function DailyMissionScreen() {
     {
       badgeCode: 'BADGE_QUIZ_10',
       badgeName: '퀴즈 도전자',
-      isEarned: true,
+      isEarned: false,
       description: '퀴즈 정답 10회',
       category: 'milestone',
     },
@@ -208,7 +241,7 @@ export default function DailyMissionScreen() {
     {
       badgeCode: 'BADGE_STREAK_3',
       badgeName: '3일 연속 학습',
-      isEarned: true,
+      isEarned: false,
       description: '3일 연속 학습',
       category: 'streak',
     },
@@ -310,11 +343,29 @@ export default function DailyMissionScreen() {
   //   }
   // };
 
+  // 선택된 프로필 로드
+  const loadSelectedChildProfile = async () => {
+    try {
+      const profile = await loadSelectedProfile();
+      if (profile) {
+        setSelectedChildId(profile.childId);
+        console.log('✅ 선택된 프로필 로드:', { childId: profile.childId, name: profile.name });
+        return profile.childId;
+      } else {
+        console.warn('⚠️ 선택된 프로필이 없음');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ 프로필 로드 실패:', error);
+      return null;
+    }
+  };
+
   // API 호출 함수들
-  const fetchRewardProfile = async () => {
+  const fetchRewardProfile = async (childId: number) => {
     console.warn('🌐 보상 현황 API 호출 시작!');
     try {
-      const profile = await rewardsApi.getProfile(1); // childId: 1
+      const profile = await rewardsApi.getProfile(childId);
       console.warn('✅ 보상 현황 API 성공:', profile);
       setRewardProfile(profile);
 
@@ -326,16 +377,43 @@ export default function DailyMissionScreen() {
         streakDays: profile.streakDays,
         achievements: profile.badges.length, // 배지 개수로 업데이트
       }));
+
+      // 배지 데이터 업데이트 (API에서 받아온 실제 데이터로)
+      if (profile.badges && profile.badges.length > 0) {
+        const updatedBadges = badges.map((badge) => {
+          const apiBadge = profile.badges.find((b) => b.badgeCode === badge.badgeCode);
+          return {
+            ...badge,
+            isEarned: apiBadge ? !!apiBadge.awardedAt : false, // awardedAt이 있으면 획득한 것으로 판단
+          };
+        });
+        setBadges(updatedBadges);
+        console.log(
+          '🏆 배지 데이터 업데이트 완료:',
+          updatedBadges.filter((b) => b.isEarned).length,
+          '개 획득'
+        );
+      }
     } catch (error) {
       console.error('❌ 보상 현황 API 실패:', error);
+      console.log('🔄 보상 현황 API 실패 - 기본값 사용');
+
+      // API 실패 시 기본값으로 설정
+      setUserStats((prev) => ({
+        ...prev,
+        points: 0,
+        level: 1,
+        streakDays: prev.streakDays, // 연속 학습은 이미 업데이트됨
+        achievements: 0,
+      }));
     }
   };
 
   // 연속 학습 체크 API 추가
-  const fetchStreakStatus = async () => {
+  const fetchStreakStatus = async (childId: number) => {
     console.warn('🔥 연속 학습 체크 API 호출 시작!');
     try {
-      const response = await rewardsApi.checkStreak(1); // childId: 1
+      const response = await rewardsApi.checkStreak(childId);
       console.warn('✅ 연속 학습 체크 API 응답 전체:', response);
       console.warn('📊 연속 학습 데이터:', {
         currentStreak: response.currentStreak,
@@ -378,10 +456,10 @@ export default function DailyMissionScreen() {
     }
   };
 
-  const fetchDailyMissions = async () => {
+  const fetchDailyMissions = async (childId: number) => {
     console.warn('🌐 데일리 미션 API 호출 시작!');
     try {
-      const missions = await rewardsApi.getDailyMission(1); // childId: 1
+      const missions = await rewardsApi.getDailyMission(childId);
       console.warn('✅ 데일리 미션 API 성공:', missions);
       setApiDailyMissions(missions);
 
@@ -428,6 +506,15 @@ export default function DailyMissionScreen() {
       setDailyMissions(updatedMissions);
     } catch (error) {
       console.error('❌ 데일리 미션 API 실패:', error);
+      console.log('🔄 데일리 미션 API 실패 - 기본값 사용');
+
+      // API 실패 시 기본 미션 상태 유지 (모두 미완료)
+      const defaultMissions = dailyMissions.map((mission) => ({
+        ...mission,
+        isCompleted: false,
+        progress: 0,
+      }));
+      setDailyMissions(defaultMissions);
     }
   };
 
@@ -438,17 +525,31 @@ export default function DailyMissionScreen() {
 
     const initializeData = async () => {
       try {
-        // 1. 연속 학습 체크 (가장 중요한 데이터)
-        console.warn('🔥 1단계: 연속 학습 체크 시작');
-        await fetchStreakStatus();
+        // 0. 선택된 프로필 로드
+        console.warn('👤 0단계: 선택된 프로필 로드 시작');
+        const childId = await loadSelectedChildProfile();
 
-        // 2. 보상 현황 조회
-        console.warn('💰 2단계: 보상 현황 조회 시작');
-        await fetchRewardProfile();
+        if (!childId) {
+          console.warn('⚠️ 선택된 프로필이 없어서 초기화 중단');
+          return;
+        }
 
-        // 3. 데일리 미션 조회
-        console.warn('📋 3단계: 데일리 미션 조회 시작');
-        await fetchDailyMissions();
+        // 1. 보상 수령 상태 로드
+        console.warn('💾 1단계: 보상 수령 상태 로드 시작');
+        const claimedStatus = await loadRewardClaimedStatus();
+        setIsRewardClaimed(claimedStatus);
+
+        // 2. 연속 학습 체크
+        console.warn('🔥 2단계: 연속 학습 체크 시작');
+        await fetchStreakStatus(childId);
+
+        // 3. 보상 현황 조회
+        console.warn('💰 3단계: 보상 현황 조회 시작');
+        await fetchRewardProfile(childId);
+
+        // 4. 데일리 미션 조회
+        console.warn('📋 4단계: 데일리 미션 조회 시작');
+        await fetchDailyMissions(childId);
 
         console.warn('✅ 모든 API 호출 완료!');
       } catch (error) {
@@ -641,47 +742,65 @@ export default function DailyMissionScreen() {
                 <View style={styles.totalProgressBar}>
                   <View style={[styles.totalProgressFill, { width: `${missionProgress}%` }]} />
                 </View>
-                {completedMissions === totalMissions && (
-                  <TouchableOpacity
-                    style={styles.claimRewardButton}
-                    onPress={async () => {
-                      console.warn('🎯 데일리 미션 보상 받기 버튼 클릭!');
-                      try {
-                        const response = await checkDailyMission(1);
-                        console.warn('✅ 데일리 미션 보상 API 성공:', response);
-
-                        if (response.alreadyClaimed) {
-                          Alert.alert(
-                            '이미 받은 보상',
-                            '오늘의 데일리 미션 보상을 이미 받았습니다.'
-                          );
-                        } else if (response.rewardedPoint > 0) {
-                          Alert.alert(
-                            '보상 지급 완료!',
-                            `+${response.rewardedPoint} 포인트를 획득했습니다! 🎉`
-                          );
-                          // 포인트 업데이트
-                          setUserStats((prev) => ({
-                            ...prev,
-                            points: prev.points + response.rewardedPoint,
-                          }));
-                          // 보상 현황 다시 조회
-                          fetchRewardProfile();
-                        } else {
-                          Alert.alert(
-                            '미션 미완료',
-                            '모든 데일리 미션을 완료해야 보상을 받을 수 있습니다.'
-                          );
+                {completedMissions === totalMissions &&
+                  (isRewardClaimed ? (
+                    <View style={styles.claimedRewardContainer}>
+                      <Text style={styles.claimedRewardText}>✓ 수령 완료</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={styles.claimRewardButton}
+                      onPress={async () => {
+                        if (!selectedChildId) {
+                          Alert.alert('오류', '선택된 프로필이 없습니다.');
+                          return;
                         }
-                      } catch (error) {
-                        console.error('❌ 데일리 미션 보상 API 실패:', error);
-                        Alert.alert('오류', '보상 지급에 실패했습니다.');
-                      }
-                    }}
-                  >
-                    <Text style={styles.claimRewardButtonText}>보상 받기</Text>
-                  </TouchableOpacity>
-                )}
+
+                        console.warn('🎯 데일리 미션 보상 받기 버튼 클릭!');
+                        try {
+                          const response = await checkDailyMission(selectedChildId);
+                          console.warn('✅ 데일리 미션 보상 API 성공:', response);
+
+                          if (response.alreadyClaimed) {
+                            Alert.alert(
+                              '이미 받은 보상',
+                              '오늘의 데일리 미션 보상을 이미 받았습니다.'
+                            );
+                            // 이미 받은 보상이면 수령 완료 상태로 변경
+                            setIsRewardClaimed(true);
+                            // 로컬에 상태 저장
+                            await saveRewardClaimedStatus(true);
+                          } else if (response.rewardedPoint > 0) {
+                            Alert.alert(
+                              '보상 지급 완료!',
+                              `+${response.rewardedPoint} 포인트를 획득했습니다! 🎉`
+                            );
+                            // 포인트 업데이트
+                            setUserStats((prev) => ({
+                              ...prev,
+                              points: prev.points + response.rewardedPoint,
+                            }));
+                            // 보상 수령 완료 상태로 변경
+                            setIsRewardClaimed(true);
+                            // 로컬에 상태 저장
+                            await saveRewardClaimedStatus(true);
+                            // 보상 현황 다시 조회
+                            fetchRewardProfile(selectedChildId);
+                          } else {
+                            Alert.alert(
+                              '미션 미완료',
+                              '모든 데일리 미션을 완료해야 보상을 받을 수 있습니다.'
+                            );
+                          }
+                        } catch (error) {
+                          console.error('❌ 데일리 미션 보상 API 실패:', error);
+                          Alert.alert('오류', '보상 지급에 실패했습니다.');
+                        }
+                      }}
+                    >
+                      <Text style={styles.claimRewardButtonText}>보상 받기</Text>
+                    </TouchableOpacity>
+                  ))}
               </View>
             </View>
 
