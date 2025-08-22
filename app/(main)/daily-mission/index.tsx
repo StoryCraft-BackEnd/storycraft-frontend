@@ -375,25 +375,27 @@ export default function DailyMissionScreen() {
         points: profile.points,
         level: profile.level,
         streakDays: profile.streakDays,
-        achievements: profile.badges.length, // 배지 개수로 업데이트
+        achievements: 0, // 임시로 0으로 설정 (나중에 업데이트됨)
       }));
 
       // 배지 데이터 업데이트 (API에서 받아온 실제 데이터로)
-      if (profile.badges && profile.badges.length > 0) {
-        const updatedBadges = badges.map((badge) => {
-          const apiBadge = profile.badges.find((b) => b.badgeCode === badge.badgeCode);
-          return {
-            ...badge,
-            isEarned: apiBadge ? !!apiBadge.awardedAt : false, // awardedAt이 있으면 획득한 것으로 판단
-          };
-        });
-        setBadges(updatedBadges);
-        console.log(
-          '🏆 배지 데이터 업데이트 완료:',
-          updatedBadges.filter((b) => b.isEarned).length,
-          '개 획득'
-        );
-      }
+      const updatedBadges = badges.map((badge) => {
+        const apiBadge = profile.badges?.find((b) => b.badgeCode === badge.badgeCode);
+        return {
+          ...badge,
+          isEarned: apiBadge ? !!apiBadge.awardedAt : false, // awardedAt이 있으면 획득한 것으로 판단
+        };
+      });
+      setBadges(updatedBadges);
+
+      // 획득한 배지 개수로 achievements 업데이트
+      const earnedBadgeCount = updatedBadges.filter((b) => b.isEarned).length;
+      setUserStats((prev) => ({
+        ...prev,
+        achievements: earnedBadgeCount,
+      }));
+
+      console.log('🏆 배지 데이터 업데이트 완료:', earnedBadgeCount, '개 획득');
     } catch (error) {
       console.error('❌ 보상 현황 API 실패:', error);
       console.log('🔄 보상 현황 API 실패 - 기본값 사용');

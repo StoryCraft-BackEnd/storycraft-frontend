@@ -154,19 +154,6 @@ const SettingsScreen = () => {
               </View>
             </View>
 
-            {/* 언어 설정 */}
-            <View style={SettingsScreenStyles.settingsBox}>
-              <Text style={SettingsScreenStyles.categoryTitle}>언어 설정</Text>
-              <Text style={[SettingsScreenStyles.label, { marginBottom: 8 }]}>
-                앱에서 사용할 언어를 선택합니다.
-              </Text>
-              <View style={SettingsScreenStyles.row}>
-                <Text style={SettingsScreenStyles.label}>언어 선택</Text>
-                <View style={{ flex: 1 }} />
-                <Text style={SettingsScreenStyles.value}>한국어</Text>
-              </View>
-            </View>
-
             {/* 앱 정보 */}
             <View style={SettingsScreenStyles.settingsBox}>
               <Text style={SettingsScreenStyles.categoryTitle}>앱 정보</Text>

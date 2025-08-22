@@ -10,7 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 // --- 내부 모듈 및 스타일 ---
 import { BadgesScreenStyles } from '@/styles/BadgesScreen.styles';
-import { getAvailableBadges, AvailableBadge } from '@/shared/api/rewardsApi';
+import { getAvailableBadges, AvailableBadge, rewardsApi } from '@/shared/api/rewardsApi';
+import { loadSelectedProfile } from '@/features/profile/profileStorage';
 
 // --- 이미지 및 리소스 ---
 import backgroundImage from '@/assets/images/background/night-bg.png';
@@ -121,26 +122,45 @@ export default function BadgesScreen() {
 
       console.log('🏆 배지 화면 - API 요청 시작...');
       console.log('📱 현재 화면: BadgesScreen');
+
+      // 1. 선택된 프로필 로드
+      const profile = await loadSelectedProfile();
+      if (!profile) {
+        console.warn('⚠️ 선택된 프로필이 없음');
+        setError('선택된 프로필이 없습니다.');
+        return;
+      }
+
+      console.log('✅ 선택된 프로필:', { childId: profile.childId, name: profile.name });
+
+      // 2. API에서 배지 목록 가져오기
       console.log('🔄 getAvailableBadges 함수 호출...');
-
-      // API에서 배지 목록 가져오기
       const availableBadges = await getAvailableBadges();
-      console.log('✅ 배지 화면 - API 응답 성공');
+      console.log('✅ 배지 목록 API 응답 성공');
       console.log('📊 받아온 배지 개수:', availableBadges.length);
-      console.log('📋 배지 목록:', availableBadges);
 
-      // 임시로 일부 배지를 획득 상태로 설정 (실제로는 서버에서 획득 여부를 받아와야 함)
-      const badgesWithEarnedStatus: BadgeWithEarnedStatus[] = availableBadges.map(
-        (badge, index) => ({
+      // 3. 사용자의 실제 배지 획득 현황 가져오기
+      console.log('🔄 사용자 배지 현황 API 호출...');
+      const userProfile = await rewardsApi.getProfile(profile.childId);
+      console.log('✅ 사용자 배지 현황 API 응답 성공');
+      console.log('📊 사용자 배지 현황:', userProfile.badges);
+
+      // 4. 실제 획득 여부로 배지 상태 설정
+      const badgesWithEarnedStatus: BadgeWithEarnedStatus[] = availableBadges.map((badge) => {
+        const userBadge = userProfile.badges?.find((b) => b.badgeCode === badge.badgeCode);
+        const isEarned = userBadge ? !!userBadge.awardedAt : false;
+
+        console.log(`🔍 배지 ${badge.badgeCode}: ${isEarned ? '획득' : '미획득'}`);
+
+        return {
           ...badge,
-          isEarned: index < 5, // 임시로 처음 5개만 획득 상태로 설정
-        })
-      );
+          isEarned,
+        };
+      });
 
       console.log('🎯 배지 화면 - 최종 배지 데이터 생성 완료');
       console.log('📈 획득한 배지 개수:', badgesWithEarnedStatus.filter((b) => b.isEarned).length);
       console.log('📉 미획득 배지 개수:', badgesWithEarnedStatus.filter((b) => !b.isEarned).length);
-      console.log('📋 최종 배지 데이터:', badgesWithEarnedStatus);
 
       setBadges(badgesWithEarnedStatus);
       console.log('✅ 배지 화면 - 상태 업데이트 완료');
