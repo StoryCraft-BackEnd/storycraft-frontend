@@ -21,10 +21,13 @@ import * as Linking from 'expo-linking';
 import nightBg from '../../../assets/images/background/night-bg.png';
 import BackButton from '../../../components/ui/BackButton';
 import { getMyInfo, UserInfo } from '@/features/user/userApi';
+import PolicyModal from '../../../components/ui/PolicyModal';
 
 const SettingsScreen = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [policyModalVisible, setPolicyModalVisible] = useState(false);
+  const [policyType, setPolicyType] = useState<'privacy' | 'terms'>('privacy');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +93,15 @@ const SettingsScreen = () => {
       await AsyncStorage.removeItem('refreshToken');
       router.replace('/login');
     }
+  };
+
+  const handlePolicyPress = (type: 'privacy' | 'terms') => {
+    setPolicyType(type);
+    setPolicyModalVisible(true);
+  };
+
+  const handleClosePolicyModal = () => {
+    setPolicyModalVisible(false);
   };
 
   return (
@@ -200,6 +212,7 @@ const SettingsScreen = () => {
                   SettingsScreenStyles.row,
                   { backgroundColor: '#23284a', justifyContent: 'center', marginBottom: 12 },
                 ]}
+                onPress={() => handlePolicyPress('privacy')}
               >
                 <Text style={SettingsScreenStyles.label}>개인정보 처리방침</Text>
               </TouchableOpacity>
@@ -208,6 +221,7 @@ const SettingsScreen = () => {
                   SettingsScreenStyles.row,
                   { backgroundColor: '#23284a', justifyContent: 'center' },
                 ]}
+                onPress={() => handlePolicyPress('terms')}
               >
                 <Text style={SettingsScreenStyles.label}>서비스 이용약관</Text>
               </TouchableOpacity>
@@ -252,6 +266,13 @@ const SettingsScreen = () => {
           </ScrollView>
         </View>
       </SafeAreaView>
+
+      {/* 정책 모달 */}
+      <PolicyModal
+        visible={policyModalVisible}
+        onClose={handleClosePolicyModal}
+        type={policyType}
+      />
     </ImageBackground>
   );
 };

@@ -69,6 +69,13 @@ apiClient.interceptors.request.use(
       // HTTP Authorization 헤더에 Bearer 토큰 형식으로 추가
       // 형식: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔐 토큰 추가됨:', {
+        url: config.url,
+        hasToken: !!token,
+        tokenLength: token?.length,
+      });
+    } else {
+      console.log('⚠️ 토큰 없음:', { url: config.url });
     }
 
     // 수정된 요청 설정을 반환하여 실제 요청이 진행되도록 합니다
@@ -162,6 +169,11 @@ apiClient.interceptors.response.use(
         } catch (cleanupError) {
           console.error('❌ 토큰 정리 실패:', cleanupError);
         }
+
+        // 토큰 갱신 실패 시 사용자에게 알림
+        console.warn(
+          '⚠️ 토큰이 만료되어 재로그인이 필요합니다. 자동으로 로그인 화면으로 이동하세요.'
+        );
 
         // 이 경우 사용자를 로그인 화면으로 리다이렉트하는 등의 추가 처리가 필요할 수 있습니다
         return Promise.reject(refreshError);

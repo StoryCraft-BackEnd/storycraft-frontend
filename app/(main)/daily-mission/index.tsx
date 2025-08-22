@@ -406,6 +406,14 @@ export default function DailyMissionScreen() {
         streakDays: prev.streakDays, // 연속 학습은 이미 업데이트됨
         achievements: 0,
       }));
+
+      // API 실패 시 배지 상태도 초기화
+      const resetBadges = badges.map((badge) => ({
+        ...badge,
+        isEarned: false,
+      }));
+      setBadges(resetBadges);
+      console.log('🔄 API 실패로 배지 상태 초기화 완료');
     }
   };
 
