@@ -596,16 +596,16 @@ export const createIllustration = async (
     // API 응답에서 삽화 배열 반환
     return response.data.data?.illustrations || [];
   } catch (error: any) {
-    console.debug('❌ 삽화 생성 실패 상세:', {
-      error: error.response?.data || error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      isNetworkError: !error.response,
-      url: error.config?.url,
-      method: error.config?.method,
-      requestData: error.config?.data,
-      fullError: error,
-    });
+    // console.debug('❌ 삽화 생성 실패 상세:', {
+    //   error: error.response?.data || error.message,
+    //   status: error.response?.status,
+    //   statusText: error.response?.statusText,
+    //   isNetworkError: !error.response,
+    //   url: error.config?.url,
+    //   method: error.config?.method,
+    //   requestData: error.config?.data,
+    //   fullError: error,
+    // });
 
     // 네트워크 에러인지 확인
     if (!error.response) {

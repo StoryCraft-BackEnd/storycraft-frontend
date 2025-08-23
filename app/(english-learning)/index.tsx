@@ -370,11 +370,11 @@ export default function EnglishLearningScreen() {
     if (params.isNewStory === 'true') {
       setIsSyncing(true);
       // 5초 후 동기화 화면 숨김
-      setTimeout(() => setIsSyncing(false), 5000);
+      setTimeout(() => setIsSyncing(false), 20000);
     } else {
       setIsSyncing(true);
       // 1초 후 동기화 화면 숨김
-      setTimeout(() => setIsSyncing(false), 1000);
+      setTimeout(() => setIsSyncing(false), 2000);
     }
 
     const initializeStoryAndTTS = async () => {
@@ -809,10 +809,10 @@ export default function EnglishLearningScreen() {
             // 동기화 화면 타이머 설정
             if (params.isNewStory === 'true') {
               // 새 동화인 경우 5초 후 동기화 화면 숨김
-              setTimeout(() => setIsSyncing(false), 5000);
+              setTimeout(() => setIsSyncing(false), 20000);
             } else {
               // 기존 동화인 경우 1초 후 동기화 화면 숨김
-              setTimeout(() => setIsSyncing(false), 1000);
+              setTimeout(() => setIsSyncing(false), 2000);
             }
           }
         } else {
