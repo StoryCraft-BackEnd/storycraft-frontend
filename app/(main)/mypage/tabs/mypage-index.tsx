@@ -11,11 +11,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import defaultProfile from '../../../../assets/images/profile/default_profile.png';
 import styles from '../../../../styles/MyInfoScreen.styles';
 import BackButton from '../../../../components/ui/BackButton';
 import nightBg from '../../../../assets/images/background/night-bg.png';
 import { getMyInfo, updateNickname, UserInfo } from '../../../../features/user/userApi';
+import ProfileImageSelector from '../../../../components/ui/ProfileImageSelector';
+import { getProfileImageById } from '../../../../types/ProfileImageTypes';
 
 export default function MyInfoScreen() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -23,6 +24,7 @@ export default function MyInfoScreen() {
   const [editing, setEditing] = useState(false);
   const [nicknameInput, setNicknameInput] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [showImageSelector, setShowImageSelector] = useState(false);
 
   // 사용자 정보 조회
   useEffect(() => {
@@ -78,6 +80,13 @@ export default function MyInfoScreen() {
     }
   };
 
+  // 프로필 이미지 선택 핸들러
+  const handleImageSelect = (imageId: string) => {
+    // 로컬 상태에서만 프로필 이미지 업데이트
+    setUserInfo((prev) => (prev ? { ...prev, profileImage: imageId } : null));
+    Alert.alert('성공', '프로필 이미지가 변경되었습니다.');
+  };
+
   // 편집 모드 토글
   const toggleEditing = () => {
     console.log('편집 모드 토글:', !editing);
@@ -128,7 +137,18 @@ export default function MyInfoScreen() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>프로필 정보</Text>
             <View style={styles.profileRow}>
-              <Image source={defaultProfile} style={styles.profileImage} />
+              <TouchableOpacity
+                onPress={() => setShowImageSelector(true)}
+                style={styles.profileImageContainer}
+              >
+                <Image
+                  source={getProfileImageById(userInfo.profileImage || 'default_profile')}
+                  style={styles.profileImage}
+                />
+                <View style={styles.editImageIndicator}>
+                  <Text style={styles.editImageText}>📷</Text>
+                </View>
+              </TouchableOpacity>
               <View style={{ marginLeft: 12 }}>
                 <Text style={styles.profileName}>{userInfo.name}</Text>
                 <Text style={styles.profileNickname}>{userInfo.nickname}</Text>
@@ -172,6 +192,14 @@ export default function MyInfoScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* 프로필 이미지 선택 모달 */}
+        <ProfileImageSelector
+          visible={showImageSelector}
+          onClose={() => setShowImageSelector(false)}
+          onSelectImage={handleImageSelect}
+          currentImageId={userInfo.profileImage || 'default_profile'}
+        />
       </SafeAreaView>
     </ImageBackground>
   );

@@ -114,6 +114,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1,
   },
+  // 프로필 이미지 관련 스타일
+  profileImageContainer: {
+    position: 'relative',
+  },
+  editImageIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#666666',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  editImageText: {
+    fontSize: 12,
+    color: '#fff',
+  },
 });
 
 export default styles;
