@@ -116,10 +116,13 @@ apiClient.interceptors.response.use(
     // 에러가 발생한 원래 요청의 설정 정보를 가져옵니다
     const originalRequest = error.config;
 
-    // 401 Unauthorized 에러이고, 아직 재시도하지 않은 요청인 경우에만 토큰 갱신을 시도합니다
+    // 401 Unauthorized 또는 403 Forbidden 에러이고, 아직 재시도하지 않은 요청인 경우에만 토큰 갱신을 시도합니다
     // _retry 플래그는 무한 루프를 방지하기 위한 안전장치입니다
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log('🔄 401 에러 감지 - 토큰 갱신 시도');
+    if (
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      !originalRequest._retry
+    ) {
+      console.log(`🔄 ${error.response?.status} 에러 감지 - 토큰 갱신 시도`);
 
       // 로그인 요청인지 확인
       const isLoginRequest = originalRequest.url?.includes('/auth/login');
