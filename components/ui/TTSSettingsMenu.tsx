@@ -36,8 +36,8 @@ const TTSSettingsMenu: React.FC<TTSSettingsMenuProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const voices = [
-    { id: '세연', name: '세연', image: require('@/assets/images/voiceactor/girl.png') },
-    { id: 'Joanna', name: 'Joanna', image: require('@/assets/images/voiceactor/woman.png') },
+    { id: '세연', name: '세연(한국어)', image: require('@/assets/images/voiceactor/girl.png') },
+    { id: 'Joanna', name: 'Joanna(영어)', image: require('@/assets/images/voiceactor/woman.png') },
   ];
 
   const playbackRates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];

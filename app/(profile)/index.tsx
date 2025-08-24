@@ -23,6 +23,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
 import { ChildProfile } from '@/features/profile/types';
 import { loadImage } from '@/features/main/imageLoader';
+import { getRandomAnimalImage, markImageAsUsed } from '@/shared/utils/profileImageUtils';
 import {
   saveProfiles,
   saveSelectedProfile,
@@ -100,7 +101,6 @@ export default function ProfileScreen() {
     React.useCallback(() => {
       const hideSystemUI = async () => {
         try {
-
           // 강화된 네비게이션 바 숨기기 (여러 번 시도)
           let navigationBarHidden = false;
           for (let i = 0; i < 3; i++) {
@@ -199,11 +199,52 @@ export default function ProfileScreen() {
     try {
       setIsLoading(true);
 
-      // 서버에서 항상 최신 데이터를 불러옴
-      const response = await getProfiles();
+      // 먼저 로컬 스토리지에서 프로필 정보 확인
+      const localProfiles = await AsyncStorage.getItem('profiles');
+      let profilesData: ChildProfile[] = [];
 
-      // response.data가 null이거나 undefined인 경우 빈 배열로 설정
-      const profilesData = response.data || [];
+      if (localProfiles) {
+        profilesData = JSON.parse(localProfiles);
+        console.log('로컬에서 프로필 로드:', profilesData.length, '개');
+      }
+
+      // 서버에서 최신 데이터를 불러옴
+      try {
+        const response = await getProfiles();
+        const serverProfiles = response.data || [];
+
+        // 서버 데이터와 로컬 데이터를 병합
+        profilesData = serverProfiles.map((serverProfile) => {
+          const localProfile = profilesData.find(
+            (local) => local.childId === serverProfile.childId
+          );
+          if (localProfile) {
+            // 로컬에 이미지 정보가 있으면 유지, 없으면 랜덤 할당
+            if (!localProfile.profileImage) {
+              const randomImage = getRandomAnimalImage();
+              markImageAsUsed(randomImage);
+              return { ...serverProfile, profileImage: randomImage };
+            }
+            // 이미 이미지가 있는 경우 해당 이미지를 사용된 것으로 표시
+            markImageAsUsed(localProfile.profileImage);
+            return { ...serverProfile, profileImage: localProfile.profileImage };
+          } else {
+            // 새로운 프로필인 경우 랜덤 이미지 할당
+            const randomImage = getRandomAnimalImage();
+            markImageAsUsed(randomImage);
+            return { ...serverProfile, profileImage: randomImage };
+          }
+        });
+
+        console.log('서버에서 프로필 로드:', serverProfiles.length, '개');
+      } catch (serverError) {
+        console.log('서버에서 프로필 로드 실패, 로컬 데이터만 사용:', serverError);
+        // 서버 로드 실패 시 로컬 데이터만 사용
+        if (profilesData.length === 0) {
+          throw new Error('프로필을 불러올 수 없습니다.');
+        }
+      }
+
       setProfiles(profilesData);
       await saveProfiles(profilesData); // 로컬에 저장
       setError(null);
@@ -265,6 +306,15 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await deleteProfile(profileId);
+
+            // 로컬 스토리지에서도 프로필 정보 삭제
+            const existingProfiles = await AsyncStorage.getItem('profiles');
+            if (existingProfiles) {
+              let profiles = JSON.parse(existingProfiles);
+              profiles = profiles.filter((profile: any) => profile.childId !== profileId);
+              await AsyncStorage.setItem('profiles', JSON.stringify(profiles));
+            }
+
             // 프로필 목록을 다시 불러옴
             await loadProfiles();
             Alert.alert('알림', '프로필이 삭제되었습니다.');
@@ -349,8 +399,12 @@ export default function ProfileScreen() {
   };
 
   // 프로필 이미지 로드 함수
-  const getProfileImage = () => {
-    // 모든 프로필에 기본 이미지 사용
+  const getProfileImage = (profile: ChildProfile) => {
+    // 프로필에 설정된 이미지가 있으면 해당 이미지 사용, 없으면 기본 이미지 사용
+    if (profile.profileImage) {
+      return loadImage(profile.profileImage);
+    }
+    // 기본 이미지 사용
     return loadImage('default_profile');
   };
 
@@ -390,7 +444,7 @@ export default function ProfileScreen() {
                     style={styles.profileCard}
                     onPress={() => handleProfileSelect(profile.childId)}
                   >
-                    <Image source={getProfileImage()} style={styles.profileImage} />
+                    <Image source={getProfileImage(profile)} style={styles.profileImage} />
                     <ThemedText style={styles.profileName}>{profile.name}</ThemedText>
                     <ThemedText style={styles.profileAge}>{profile.age}세</ThemedText>
                     <ThemedText style={styles.profileLevel}>

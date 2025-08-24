@@ -1,5 +1,13 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, ScrollView, Alert, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  StatusBar,
+  Image,
+} from 'react-native';
 import { router, Stack } from 'expo-router';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
@@ -9,13 +17,16 @@ import { LearningLevel } from '@/features/profile/types';
 import { createProfileCreateScreenStyles } from '@/styles/ProfileCreateScreen.styles';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { Ionicons } from '@expo/vector-icons';
+import { getRandomAnimalImage, AnimalImageType } from '@/shared/utils/profileImageUtils';
+import { loadImage } from '@/features/main/imageLoader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CreateProfileScreen() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [learningLevel, setLearningLevel] = useState<LearningLevel>('초급');
+  const [selectedImage, setSelectedImage] = useState<AnimalImageType>('african_elephant9');
   const [isLoading, setIsLoading] = useState(false);
 
   const styles = createProfileCreateScreenStyles();
@@ -26,6 +37,20 @@ export default function CreateProfileScreen() {
 
   // 화이트모드에서만 크림베이지 색상 적용
   const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
+
+  // 컴포넌트 마운트 시 랜덤 이미지 선택
+  useEffect(() => {
+    const randomImage = getRandomAnimalImage();
+    setSelectedImage(randomImage);
+    console.log('초기 선택된 이미지:', randomImage);
+  }, []);
+
+  // 다른 이미지로 변경하는 함수
+  const handleChangeImage = () => {
+    const randomImage = getRandomAnimalImage();
+    setSelectedImage(randomImage);
+    console.log('이미지 변경됨:', randomImage);
+  };
 
   const handleCreateProfile = async () => {
     // 입력값 검증
@@ -51,9 +76,25 @@ export default function CreateProfileScreen() {
         name: name.trim(),
         age: ageNum,
         learningLevel: learningLevel,
+        // profileImage: selectedImage, // 서버에서 지원하지 않으므로 주석 처리
       });
 
       if (response.status === 200 || response.status === 201) {
+        // 프로필 생성 성공 후 로컬에 이미지 정보 저장
+        const createdProfile = {
+          childId: response.data.childId,
+          name: name.trim(),
+          age: ageNum,
+          learningLevel: learningLevel,
+          profileImage: selectedImage,
+        };
+
+        // 로컬 스토리지에 프로필 정보 저장 (이미지 포함)
+        const existingProfiles = await AsyncStorage.getItem('profiles');
+        const profiles = existingProfiles ? JSON.parse(existingProfiles) : [];
+        profiles.push(createdProfile);
+        await AsyncStorage.setItem('profiles', JSON.stringify(profiles));
+
         Alert.alert('성공', '프로필이 생성되었습니다.', [
           {
             text: '확인',
@@ -94,6 +135,22 @@ export default function CreateProfileScreen() {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contentContainer}>
         <View style={styles.formContainer}>
+          {/* 프로필 이미지 선택 */}
+          <View style={styles.imageContainer}>
+            <ThemedText style={styles.inputLabel}>프로필 이미지</ThemedText>
+            <View style={styles.imagePreviewContainer}>
+              <Image 
+                source={loadImage(selectedImage)} 
+                style={styles.profileImagePreview}
+                onError={(error) => console.log('이미지 로딩 에러:', error)}
+                onLoad={() => console.log('이미지 로딩 성공:', selectedImage)}
+              />
+              <TouchableOpacity style={styles.changeImageButton} onPress={handleChangeImage}>
+                <ThemedText style={styles.changeImageButtonText}>다른 이미지</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* 이름 입력 */}
           <View style={styles.inputContainer}>
             <ThemedText style={styles.inputLabel}>이름</ThemedText>
