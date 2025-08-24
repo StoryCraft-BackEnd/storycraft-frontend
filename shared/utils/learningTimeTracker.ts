@@ -229,7 +229,7 @@ const handleAppBackground = async (): Promise<void> => {
  * 포그라운드에서 보낸 시간 계산 (분 단위)
  */
 const calculateForegroundTime = (): number => {
-  if (!currentLearningData?.isActive) return 0;
+  if (!currentLearningData || !currentLearningData.isActive) return 0;
 
   const now = Date.now();
   const elapsedMs = now - currentLearningData.startTime;
@@ -319,9 +319,13 @@ const saveLearningTimeToBackend = async (): Promise<void> => {
     console.log('✅ 학습시간 백엔드 저장 성공:', response.message);
 
     // 저장 성공 시 로컬 데이터 업데이트
-    currentLearningData.lastSaveTime = Date.now();
-    currentLearningData.totalMinutes = 0; // 저장 완료 후 초기화
-    await saveLearningTimeToStorage(currentLearningData);
+    if (currentLearningData) {
+      currentLearningData.lastSaveTime = Date.now();
+      currentLearningData.totalMinutes = 0; // 저장 완료 후 초기화
+      await saveLearningTimeToStorage(currentLearningData);
+    } else {
+      console.warn('⚠️ currentLearningData가 null입니다. 로컬 업데이트를 건너뜁니다.');
+    }
   } catch (error) {
     console.error('❌ 학습시간 백엔드 저장 실패:', error);
   }

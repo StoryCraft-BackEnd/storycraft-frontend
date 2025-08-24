@@ -19,6 +19,7 @@ import { router, Stack, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createProfileScreenStyles } from '@/styles/ProfileScreen.styles';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import { getProfiles, deleteProfile } from '@/features/profile/profileApi';
 import { ChildProfile } from '@/features/profile/types';
 import { loadImage } from '@/features/main/imageLoader';
@@ -48,10 +49,112 @@ export default function ProfileScreen() {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('프로필을 불러오는 중...');
 
-  // 화면이 포커스될 때마다 프로필 목록을 새로고침
+  // 컴포넌트 마운트 시 시스템 UI 숨기기
+  React.useEffect(() => {
+    const hideSystemUIOnMount = async () => {
+      try {
+        console.log('🚀 프로필 선택 화면 마운트 시 시스템 UI 숨기기 시작');
+
+        // 강화된 네비게이션 바 숨기기 (여러 번 시도)
+        let navigationBarHidden = false;
+        for (let i = 0; i < 3; i++) {
+          try {
+            await NavigationBar.setVisibilityAsync('hidden');
+            navigationBarHidden = true;
+            break;
+          } catch (error) {
+            console.log(`⚠️ 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
+            await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
+          }
+        }
+
+        if (!navigationBarHidden) {
+          console.log('❌ 네비게이션 바 숨기기 최종 실패');
+        }
+
+        // 상태바 숨기기
+        StatusBar.setHidden(true);
+
+        // 전체 화면 모드 설정 (Immersive Mode)
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+        // 추가 지연 후 한 번 더 시도
+        setTimeout(async () => {
+          try {
+            await NavigationBar.setVisibilityAsync('hidden');
+            console.log('✅ 지연 후 네비게이션 바 숨기기 재시도 완료');
+          } catch (error) {
+            console.log('❌ 지연 후 네비게이션 바 숨기기 실패:', error);
+          }
+        }, 500);
+      } catch (error) {
+        console.log('❌ 컴포넌트 마운트 시 시스템 UI 숨기기 실패:', error);
+      }
+    };
+
+    hideSystemUIOnMount();
+  }, []);
+
+  // 화면이 포커스될 때마다 프로필 목록을 새로고침하고 시스템 UI 숨기기
   useFocusEffect(
     React.useCallback(() => {
+      const hideSystemUI = async () => {
+        try {
+
+          // 강화된 네비게이션 바 숨기기 (여러 번 시도)
+          let navigationBarHidden = false;
+          for (let i = 0; i < 3; i++) {
+            try {
+              await NavigationBar.setVisibilityAsync('hidden');
+              console.log(`✅ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 완료`);
+              navigationBarHidden = true;
+              break;
+            } catch (error) {
+              console.log(`⚠️ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
+              await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
+            }
+          }
+
+          if (!navigationBarHidden) {
+            console.log('❌ 포커스 시 네비게이션 바 숨기기 최종 실패');
+          }
+
+          // 상태바 숨기기
+          StatusBar.setHidden(true);
+
+          // 전체 화면 모드 설정 (Immersive Mode)
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+          // 추가 지연 후 한 번 더 시도
+          setTimeout(async () => {
+            try {
+              await NavigationBar.setVisibilityAsync('hidden');
+              console.log('✅ 포커스 시 지연 후 네비게이션 바 숨기기 재시도 완료');
+            } catch (error) {
+              console.log('❌ 포커스 시 지연 후 네비게이션 바 숨기기 실패:', error);
+            }
+          }, 500);
+        } catch (error) {
+          console.log('❌ 포커스 시 시스템 UI 숨기기 실패:', error);
+        }
+      };
+
+      hideSystemUI();
       loadProfiles();
+
+      // 화면이 포커스를 잃을 때 시스템 UI 복원 (화면 방향은 유지)
+      return () => {
+        const restoreSystemUI = async () => {
+          try {
+            await NavigationBar.setVisibilityAsync('visible');
+            StatusBar.setHidden(false);
+            // 🚨 핵심: 화면 방향 잠금 해제하지 않음 - 메인 화면에서 가로 모드 유지
+          } catch (error) {
+            console.log('❌ 시스템 UI 복원 실패:', error);
+          }
+        };
+        restoreSystemUI();
+      };
     }, [])
   );
 
@@ -220,7 +323,7 @@ export default function ProfileScreen() {
       console.log('✅ 로그아웃 완료 - 로그인 화면으로 이동');
 
       // 네비게이션 스택을 완전히 초기화하고 로그인 화면으로 이동
-      router.replace('/(auth)/login');
+      router.replace('/(auth)');
     } catch (error) {
       console.error('❌ 로그아웃 중 오류 발생:', error);
 
@@ -241,7 +344,7 @@ export default function ProfileScreen() {
       }
 
       // 화면 방향 변경에 실패하더라도 로그아웃은 진행
-      router.replace('/(auth)/login');
+      router.replace('/(auth)');
     }
   };
 

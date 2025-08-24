@@ -3,24 +3,28 @@
  */
 
 import { StyleSheet } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 export const signupScreenStyles = StyleSheet.create({
   // 전체 화면을 감싸는 컨테이너
   container: {
     flex: 1,
-    padding: 24,
+    padding: wp('6%'), // 24px -> 6% of screen width
   },
 
   // 상단 입력 폼 및 버튼 묶음
   formContainer: {
-    marginTop: 32,
+    marginTop: hp('4%'), // 32px -> 4% of screen height
   },
 
   // 회원가입 타이틀 텍스트
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'), // 28px -> 7% of screen width
     fontWeight: 'bold',
-    marginBottom: 32,
+    marginBottom: hp('4%'), // 32px -> 4% of screen height
     textAlign: 'center',
   },
 
@@ -28,15 +32,15 @@ export const signupScreenStyles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 기본 입력 필드 (단독)
   input: {
     borderBottomWidth: 1,
-    marginBottom: 16,
+    marginBottom: hp('2%'), // 16px -> 2% of screen height
     color: '#222',
-    paddingVertical: 8,
+    paddingVertical: hp('1%'), // 8px -> 1% of screen height
   },
 
   // inputRow 안에서만 flex 적용
@@ -44,81 +48,81 @@ export const signupScreenStyles = StyleSheet.create({
     flex: 1,
     borderBottomWidth: 1,
     color: '#222',
-    paddingVertical: 8,
-    marginRight: 8,
+    paddingVertical: hp('1%'), // 8px -> 1% of screen height
+    marginRight: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 중복확인 버튼 스타일
   checkButton: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    marginLeft: 8,
+    borderRadius: wp('5%'), // 20px -> 5% of screen width
+    paddingHorizontal: wp('4%'), // 16px -> 4% of screen width
+    paddingVertical: hp('0.75%'), // 6px -> 0.75% of screen height
+    marginLeft: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 역할 선택 버튼들을 가로로 배치하는 컨테이너
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 16,
+    marginVertical: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 역할 선택 버튼 스타일
   roleButton: {
     flex: 1,
     alignItems: 'center',
-    padding: 12,
+    padding: wp('3%'), // 12px -> 3% of screen width
     borderWidth: 1,
-    borderRadius: 20,
-    marginHorizontal: 4,
+    borderRadius: wp('5%'), // 20px -> 5% of screen width
+    marginHorizontal: wp('1%'), // 4px -> 1% of screen width
   },
 
   // 회원가입 버튼
   signupButton: {
-    borderRadius: 30,
-    padding: 16,
+    borderRadius: wp('7.5%'), // 30px -> 7.5% of screen width
+    padding: wp('4%'), // 16px -> 4% of screen width
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 회원가입 버튼 내 텍스트
   signupButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: wp('4%'), // 16px -> 4% of screen width
   },
 
   // 로그인으로 돌아가기 링크 컨테이너
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 링크 텍스트
   linkText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'), // 14px -> 3.5% of screen width
     fontWeight: 'bold',
-    marginHorizontal: 8,
+    marginHorizontal: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 하단 안내 전체 컨테이너
   footerContainer: {
-    marginTop: 32,
+    marginTop: hp('4%'), // 32px -> 4% of screen height
     alignItems: 'center',
   },
 
   // 약관 및 개인정보처리방침 안내 텍스트
   notice: {
-    fontSize: 12,
+    fontSize: wp('3%'), // 12px -> 3% of screen width
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   label: {
-    fontSize: 16,
+    fontSize: wp('4%'), // 16px -> 4% of screen width
     fontWeight: 'bold',
-    marginBottom: 8,
-    marginTop: 16,
+    marginBottom: hp('1%'), // 8px -> 1% of screen height
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 });

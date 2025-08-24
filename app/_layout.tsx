@@ -103,7 +103,7 @@ function RootLayout() {
     console.log('📄 약관 동의 페이지 렌더링');
     return (
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="terms-agreement" options={{ headerShown: false }} />
       </Stack>
     );
   }

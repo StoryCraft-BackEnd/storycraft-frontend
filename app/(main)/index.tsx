@@ -41,10 +41,10 @@ import story8 from '@/assets/images/illustrations/storycraft_cover_8.png';
 import storyCraftLogo from '@/assets/images/StoryCraft.png';
 import pointImage from '@/assets/images/rewards/point_icon.png';
 import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
-import defaultProfile from '@/assets/images/profile/default_profile.png';
+// defaultProfile import 제거 - 사용되지 않음
 import { MainScreenStyles } from '@/styles/MainScreen';
 import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
-import { loadSelectedProfile } from '@/features/profile/profileStorage';
+import { loadSelectedProfile, loadProfileImage } from '@/features/profile/profileStorage';
 import { ChildProfile } from '@/features/profile/types';
 import { addStoryToStorage } from '@/features/storyCreate/storyStorage';
 import { startLearningTimeTracking, stopLearningTimeTracking } from '@/shared/api';
@@ -56,6 +56,7 @@ import {
   downloadStoryIllustrations,
 } from '@/features/storyCreate/storyApi';
 import { getMyInfo } from '@/features/user/userApi';
+import { getProfileImageById } from '@/types/ProfileImageTypes';
 import * as FileSystem from 'expo-file-system';
 import {
   isStoriesCacheValid,
@@ -80,6 +81,22 @@ export default function MainScreen() {
   // 배지 개수와 포인트를 위한 state 추가
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [userPoints, setUserPoints] = useState<number>(0);
+
+  // 프로필 이미지를 위한 state 추가
+  const [profileImageId, setProfileImageId] = useState<string>('default_profile');
+
+  // 프로필 이미지 로드 함수
+  const loadProfileImageFromStorage = async () => {
+    try {
+      const imageId = await loadProfileImage();
+      if (imageId) {
+        setProfileImageId(imageId);
+        console.log('✅ 메인 화면 프로필 이미지 로드 완료:', imageId);
+      }
+    } catch (error) {
+      console.error('❌ 프로필 이미지 로드 실패:', error);
+    }
+  };
 
   // 보상 현황 조회 함수
   const fetchRewardProfile = async (childId: number) => {
@@ -128,6 +145,9 @@ export default function MainScreen() {
         // 선택된 프로필 불러오기
         const profile = await loadSelectedProfile();
         setSelectedProfile(profile);
+
+        // 프로필 이미지 로드
+        await loadProfileImageFromStorage();
 
         // 프로필이 있으면 초기 로딩 시작
         if (profile) {
@@ -204,8 +224,8 @@ export default function MainScreen() {
     return () => {
       // 화면을 세로 모드로 복원
       ScreenOrientation.unlockAsync();
-      // 시스템 UI 복원
-      setStatusBarHidden(false);
+      // 🚨 핵심: 상태바는 숨김 상태 유지 (가로 모드에서 상태바 숨김)
+      // setStatusBarHidden(false); // 제거 - 상태바 숨김 유지
       NavigationBar.setVisibilityAsync('visible');
       // 뒤로가기 핸들러 제거
       backHandler.remove();
@@ -214,10 +234,13 @@ export default function MainScreen() {
     };
   }, []);
 
-  // 화면이 포커스될 때마다 동화 목록 새로고침 (캐싱 로직 적용)
+  // 화면이 포커스될 때마다 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
   useFocusEffect(
     React.useCallback(() => {
       let isMounted = true;
+
+      // 🔒 포커스 시 상태바 계속 숨김 유지
+      setStatusBarHidden(true);
 
       const refreshStories = async () => {
         // 초기 로딩 중이거나 프로필이 없으면 새로고침 건너뛰기
@@ -237,6 +260,9 @@ export default function MainScreen() {
 
           // 동화 목록 새로고침
           await loadStories(selectedProfile.childId, false);
+
+          // 프로필 이미지 새로고침
+          await loadProfileImageFromStorage();
         }
       };
 
@@ -244,6 +270,8 @@ export default function MainScreen() {
 
       return () => {
         isMounted = false;
+        // 🚨 핵심: 포커스 해제 시에도 상태바 숨김 유지
+        setStatusBarHidden(true);
       };
     }, [selectedProfile, isInitialLoading, illustrationsReady, userStories.length])
   );
@@ -455,7 +483,10 @@ export default function MainScreen() {
 
         <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
         <View style={MainScreenStyles.userProfileContainer}>
-          <Image source={defaultProfile} style={MainScreenStyles.userProfileImage} />
+          <Image
+            source={getProfileImageById(profileImageId)}
+            style={MainScreenStyles.userProfileImage}
+          />
           <Text style={MainScreenStyles.userNameText}>
             {selectedProfile?.name || '프로필을 선택해주세요'}
           </Text>

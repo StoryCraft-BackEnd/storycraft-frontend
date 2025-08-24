@@ -134,3 +134,25 @@ export const updateProfileInStorage = async (updatedProfile: ChildProfile) => {
     console.error('프로필 업데이트 실패:', error);
   }
 };
+
+// 프로필 이미지 저장
+export const saveProfileImage = async (imageId: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem('profileImage', imageId);
+    console.log('✅ 프로필 이미지 로컬 저장 완료:', imageId);
+  } catch (error) {
+    console.error('❌ 프로필 이미지 저장 실패:', error);
+  }
+};
+
+// 프로필 이미지 불러오기
+export const loadProfileImage = async (): Promise<string | null> => {
+  try {
+    const imageId = await AsyncStorage.getItem('profileImage');
+    console.log('📖 로컬에서 프로필 이미지 불러오기:', imageId);
+    return imageId;
+  } catch (error) {
+    console.error('❌ 프로필 이미지 불러오기 실패:', error);
+    return null;
+  }
+};

@@ -3,67 +3,72 @@
  */
 
 import { StyleSheet } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 export const loginScreenStyles = StyleSheet.create({
   // 전체 화면을 감싸는 컨테이너
   container: {
     flex: 1,
-    padding: 24,
+    padding: wp('6%'), // 24px -> 6% of screen width
   },
 
   // 상단 입력 폼 및 버튼 묶음
   formContainer: {
-    marginTop: 32,
+    marginTop: hp('4%'), // 32px -> 4% of screen height
   },
 
   // 로그인 타이틀 텍스트
   title: {
-    fontSize: 28,
+    fontSize: wp('7%'), // 28px -> 7% of screen width
     fontWeight: 'bold',
-    marginBottom: 32,
+    marginBottom: hp('4%'), // 32px -> 4% of screen height
     textAlign: 'center',
   },
 
   // 이메일 및 비밀번호 입력 필드
   input: {
     borderBottomWidth: 1,
-    marginBottom: 16,
+    marginBottom: hp('2%'), // 16px -> 2% of screen height
     color: '#222',
-    paddingVertical: 8,
+    paddingVertical: hp('1%'), // 8px -> 1% of screen height
+    flex: 1, // 입력 필드가 남은 공간을 모두 차지하도록
   },
 
   // 로그인 버튼
   loginButton: {
-    borderRadius: 30,
-    padding: 16,
+    borderRadius: wp('7.5%'), // 30px -> 7.5% of screen width
+    padding: wp('4%'), // 16px -> 4% of screen width
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 로그인 버튼 내 텍스트
   loginButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: wp('4%'), // 16px -> 4% of screen width
   },
 
   // 회원가입 / 비밀번호 찾기 링크 묶음
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 링크 텍스트 (회원가입, 비번 찾기)
   linkText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'), // 14px -> 3.5% of screen width
     fontWeight: 'bold',
-    marginHorizontal: 8,
+    marginHorizontal: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 하단 소셜 로그인 및 안내 전체 컨테이너
   footerContainer: {
-    marginTop: 32,
+    marginTop: hp('4%'), // 32px -> 4% of screen height
     alignItems: 'center',
   },
 
@@ -71,7 +76,7 @@ export const loginScreenStyles = StyleSheet.create({
   socialButtonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'), // 16px -> 2% of screen height
   },
 
   // Facebook / Google 버튼 스타일
@@ -79,42 +84,60 @@ export const loginScreenStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 8,
+    borderRadius: wp('5%'), // 20px -> 5% of screen width
+    paddingHorizontal: wp('4%'), // 16px -> 4% of screen width
+    paddingVertical: hp('1%'), // 8px -> 1% of screen height
+    marginHorizontal: wp('2%'), // 8px -> 2% of screen width
   },
 
   //소셜 아이콘 스타일일
   socialIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
+    width: wp('6%'), // 24px -> 6% of screen width
+    height: wp('6%'), // 24px -> 6% of screen width
+    marginRight: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 소셜 로그인 텍스트
   socialText: {
-    fontSize: 16,
+    fontSize: wp('4%'), // 16px -> 4% of screen width
     fontWeight: 'bold',
   },
 
   // 약관 및 개인정보처리방침 안내 텍스트
   notice: {
-    fontSize: 12,
+    fontSize: wp('3%'), // 12px -> 3% of screen width
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: hp('2%'), // 16px -> 2% of screen height
   },
 
   // 헤더 뒤로가기 버튼 스타일
   headerBackButton: {
     marginLeft: 0,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: hp('1%'), // 8px -> 1% of screen height
+    paddingHorizontal: wp('2%'), // 8px -> 2% of screen width
   },
 
   // 헤더 뒤로가기 버튼 텍스트 스타일
   headerBackText: {
-    fontSize: 18,
+    fontSize: wp('4.5%'), // 18px -> 4.5% of screen width
     fontWeight: '500',
+  },
+
+  // 입력 필드 컨테이너 (아이콘 + 입력 필드)
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('2%'), // 16px -> 2% of screen height
+  },
+
+  // 입력 필드 아이콘
+  inputIcon: {
+    marginRight: wp('2%'), // 8px -> 2% of screen width
+  },
+
+  // 북마크 아이콘 컨테이너
+  bookmarkContainer: {
+    alignItems: 'center',
+    marginVertical: hp('2%'), // 16px -> 2% of screen height
   },
 });

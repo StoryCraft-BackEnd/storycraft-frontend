@@ -24,6 +24,8 @@ import {
   saveStories,
   removeStorySections,
   clearAllStorySections,
+  loadStorySectionsFromStorage,
+  saveStorySections,
 } from './storyStorage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
@@ -148,12 +150,12 @@ export const createIntegratedStory = async (request: CreateStoryRequest): Promis
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    console.log(`✅ 서버 응답 완료 (소요시간: ${duration}ms)`);
+    console.log(`✅ 동화 통합 생성 API 응답 완료 (소요시간: ${duration}ms)`);
     console.log('동화 통합 생성 성공:', {
       status: response.status,
       storyId: response.data.data?.storyId,
       title: response.data.data?.title,
-      keywords: response.data.data?.keywords,
+      content: response.data.data?.content?.split('\n').slice(0, 3).join('\n') + '...',
     });
 
     const storyData = response.data.data;
@@ -360,12 +362,12 @@ export const createStory = async (request: CreateStoryRequest): Promise<StoryDat
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    console.log(`✅ 서버 응답 완료 (소요시간: ${duration}ms)`);
+    console.log(`✅ 동화 생성 API 응답 완료 (소요시간: ${duration}ms)`);
     console.log('동화 생성 성공:', {
       status: response.status,
       storyId: response.data.data?.storyId,
       title: response.data.data?.title,
-      keywords: response.data.data?.keywords,
+      content: response.data.data?.content?.split('\n').slice(0, 3).join('\n') + '...',
     });
 
     const storyData = response.data.data;
@@ -586,7 +588,7 @@ export const createIllustration = async (
     const endTime = Date.now();
     const duration = endTime - startTime;
 
-    console.log(`✅ 삽화 생성 응답 완료 (소요시간: ${duration}ms)`);
+    console.log(`✅ 삽화 생성 API 응답 완료 (소요시간: ${duration}ms)`);
     console.log('🎨 삽화 생성 성공 상세:', {
       status: response.status,
       responseData: response.data,
@@ -695,7 +697,7 @@ export const fetchIllustrations = async (childId: number): Promise<Illustration[
       }
     }
 
-    console.log('삽화 목록 조회 성공:', {
+    console.log('✅ 삽화 목록 조회 API 응답 성공:', {
       status: response.status,
       count: illustrations.length,
     });
@@ -898,13 +900,32 @@ export const requestTTS = async (
   speechRate: number = 0.8
 ): Promise<TTSAudioInfo | null> => {
   try {
+    const ttsUrl = `/speech/tts?child_id=${childId}&story_id=${storyId}&section_id=${sectionId}&voice_id=${voiceId}&speech_rate=${speechRate}`;
+
+    console.log('🎵 TTS 생성 요청:', {
+      method: 'POST',
+      url: ttsUrl,
+    });
+
     console.log(`🎵 TTS 요청 시작: ${voiceId} 음성, ${speechRate} 속도`);
 
     // 올바른 API 엔드포인트와 쿼리 파라미터 사용
+    console.log('🚀 서버에 TTS 생성 요청 전송 중...');
+    const startTime = Date.now();
+
     const response = await apiClient.post(
-      `/speech/tts?child_id=${childId}&story_id=${storyId}&section_id=${sectionId}&voice_id=${voiceId}&speech_rate=${speechRate}`,
+      ttsUrl,
       {} // 빈 body (POST 요청이지만 데이터는 쿼리 파라미터로 전송)
     );
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    console.log(`✅ TTS 생성 API 응답 완료 (소요시간: ${duration}ms)`);
+    // console.log('🎵 TTS 생성 응답 상세:', {
+    //   status: response.status,
+    //   responseData: response.data,
+    //   ttsUrl: response.data?.data?.ttsUrl,
+    // });
 
     if (response.data?.status === 201) {
       const ttsData = response.data.data;
@@ -966,6 +987,7 @@ export const requestAllSectionsTTS = async (
     sectionsCount: sections.length,
     voiceId: defaultVoiceId,
     speechRate: defaultSpeechRate,
+    childId,
   });
 
   const ttsPromises = sections.map(async (section) => {
@@ -1036,7 +1058,7 @@ export const deleteIllustration = async (
       `/illustrations/${illustrationId}?childId=${childId}`
     );
 
-    console.log('삽화 삭제 성공:', {
+    console.log('✅ 삽화 삭제 API 응답 성공:', {
       status: response.status,
       data: response.data,
     });
@@ -1108,12 +1130,24 @@ export const deleteStory = async (childId: number, storyId: number): Promise<boo
     console.log(`동화 ${storyId} 삭제 시작...`);
 
     // 1단계: 서버에서 동화 삭제 (childId 쿼리 파라미터 포함)
-    console.log('서버에서 동화 삭제 시도 중...');
-    const response = await apiClient.delete<DeleteStoryResponse>(
-      `/stories/${storyId}?childId=${childId}`
-    );
+    const deleteUrl = `/stories/${storyId}?id=${storyId}&childId=${childId}`;
+    const fullDeleteUrl = `${apiClient.defaults.baseURL}${deleteUrl}`;
 
-    console.log('서버 응답 상세:', {
+    console.log('🗑️ 동화 삭제 요청 상세:', {
+      relativeUrl: deleteUrl,
+      fullUrl: fullDeleteUrl,
+      method: 'DELETE',
+      storyId,
+      childId,
+      storyIdType: typeof storyId,
+      childIdType: typeof childId,
+      baseUrl: apiClient.defaults.baseURL,
+    });
+
+    console.log('서버에서 동화 삭제 시도 중...');
+    const response = await apiClient.delete<DeleteStoryResponse>(deleteUrl);
+
+    console.log('✅ 동화 삭제 API 응답 성공:', {
       status: response.status,
       data: response.data,
       statusText: response.statusText,
@@ -1177,7 +1211,7 @@ export const fetchUserStories = async (childId: number): Promise<any[]> => {
 
     const response = await apiClient.get(`/stories/lists?id=${childId}`);
 
-    console.log('사용자 동화 목록 조회 성공:', {
+    console.log('✅ 사용자 동화 목록 조회 API 응답 성공:', {
       status: response.status,
       count: response.data?.length || 0,
     });
@@ -1269,7 +1303,7 @@ export const fetchStoryList = async (childId: number): Promise<StoryData[]> => {
 
     const response = await apiClient.get(`/stories/lists?id=${childId}`);
 
-    console.log('✅ 동화 목록 조회 성공:', {
+    console.log('✅ 동화 목록 조회 API 응답 성공:', {
       status: response.status,
       count: response.data.data?.length || 0,
     });
@@ -1313,7 +1347,7 @@ export const fetchIllustrationList = async (childId: number): Promise<Illustrati
 
     const response = await apiClient.get(`/illustrations?childId=${childId}`);
 
-    console.log('✅ 삽화 목록 조회 성공:', {
+    console.log('✅ 삽화 목록 조회 API 응답 성공:', {
       status: response.status,
       count: response.data.data?.length || 0,
     });
@@ -1387,7 +1421,6 @@ export const downloadStoryIllustrations = async (
 
     if (downloadCount === 0) {
       console.log('모든 삽화가 이미 다운로드되어 있습니다.');
-      onProgress?.('모든 삽화가 이미 다운로드되어 있습니다.');
       return;
     }
 
@@ -1478,6 +1511,19 @@ export const fetchStorySections = async (
       throw new Error(`유효하지 않은 childId: ${childId} (타입: ${typeof childId})`);
     }
 
+    // 1. 로컬 캐시에서 먼저 확인
+    try {
+      const localSections = await loadStorySectionsFromStorage(childId, storyId);
+
+      if (localSections && localSections.length > 0) {
+        console.log('📖 로컬에서 동화', storyId, '단락 로드 완료:', localSections.length, '개');
+        return localSections;
+      }
+    } catch (localError) {
+      console.log('📖 로컬 단락 데이터 로드 실패, API에서 가져옵니다:', localError);
+    }
+
+    // 2. 로컬에 없으면 API에서 가져오기
     console.log('동화 단락 조회 요청:', {
       url: `/stories/${storyId}/sections?childId=${childId}`,
       method: 'GET',
@@ -1491,7 +1537,7 @@ export const fetchStorySections = async (
       `/stories/${storyId}/sections?childId=${childId}`
     );
 
-    console.log('동화 단락 조회 성공:', {
+    console.log('✅ 동화 단락 조회 API 응답 성공:', {
       status: response.status,
       sectionCount: response.data?.data?.length || 0,
       responseStatus: response.data?.status,
@@ -1525,8 +1571,13 @@ export const fetchStorySections = async (
             : '없음',
       });
 
-      // 로컬 캐시 저장 제거 - 서버 데이터 우선 정책
-      console.log(`동화 ${storyId} 단락 조회 완료 (로컬 캐시 저장 없음)`);
+      // 로컬 캐시에 저장
+      try {
+        await saveStorySections(childId, storyId, sortedSections);
+        console.log(`💾 동화 ${storyId} 단락 로컬 캐시 저장 완료`);
+      } catch (saveError) {
+        console.warn(`⚠️ 동화 ${storyId} 단락 로컬 캐시 저장 실패:`, saveError);
+      }
 
       return sortedSections;
     } else {

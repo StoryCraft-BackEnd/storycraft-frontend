@@ -23,6 +23,15 @@ export default function AuthLayout() {
         },
       }}
     >
+      {/* 로그인 화면 설정 (기본 화면) */}
+      <Stack.Screen
+        name="index"
+        options={{
+          title: '로그인',
+          headerShown: true, // 헤더 표시
+          headerBackVisible: false, // 뒤로가기 버튼 숨김 (기본 화면이므로)
+        }}
+      />
       {/* 약관 동의 화면 설정 */}
       <Stack.Screen
         name="terms-agreement"
@@ -34,18 +43,9 @@ export default function AuthLayout() {
       />
       {/* StoryCraft Dev 화면 설정 */}
       <Stack.Screen
-        name="index"
+        name="dev"
         options={{
           title: 'StoryCraft Dev',
-          headerBackVisible: false, // 뒤로가기 버튼 숨김
-        }}
-      />
-      {/* 로그인 화면 설정 */}
-      <Stack.Screen
-        name="login"
-        options={{
-          title: '로그인',
-          headerShown: true, // 헤더 표시
           headerBackVisible: true, // 뒤로가기 버튼 표시
         }}
       />

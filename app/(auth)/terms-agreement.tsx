@@ -80,8 +80,8 @@ const TermsAgreementScreen = () => {
       // 캐시 업데이트
       setCachedTermsAgreement(true);
 
-      console.log('✅ 약관 동의 완료 - 인증 화면으로 이동');
-      // 인증 화면으로 이동 (로그인/테스트 버튼이 있는 화면)
+      console.log('✅ 약관 동의 완료 - 로그인 화면으로 이동');
+      // 로그인 화면으로 직접 이동 (index.tsx가 기본 화면)
       router.replace('/(auth)');
     } catch (error) {
       console.error('❌ 약관 동의 저장 중 오류:', error);

@@ -103,11 +103,29 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => {
     // 정상적인 응답(2xx 상태 코드)인 경우 응답을 그대로 반환합니다
+
+    // 데이터가 너무 길면 3줄로 줄여서 표시
+    let displayData = response.data;
+    if (response.data && typeof response.data === 'object') {
+      const dataString = JSON.stringify(response.data, null, 2);
+      if (dataString.length > 500) {
+        // 500자 이상이면 줄이기
+        const lines = dataString.split('\n');
+        if (lines.length > 3) {
+          displayData = {
+            ...response.data,
+            _truncated: `데이터가 너무 길어서 처음 3줄만 표시 (전체: ${lines.length}줄, ${dataString.length}자)`,
+            _preview: lines.slice(0, 3).join('\n') + '\n...',
+          };
+        }
+      }
+    }
+
     console.log('✅ API 응답 성공:', {
       url: response.config.url,
       status: response.status,
       statusText: response.statusText,
-      data: response.data,
+      data: displayData,
       headers: response.headers,
     });
     return response;
@@ -191,14 +209,14 @@ apiClient.interceptors.response.use(
     }
 
     // 401 에러가 아니거나 이미 재시도한 요청인 경우 에러를 그대로 전파합니다
-    console.error('❌ API 응답 에러:', {
-      url: originalRequest?.url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message,
-      code: error.code,
-    });
+    // console.error('❌ API 응답 에러:', {
+    //   url: originalRequest?.url,
+    //   status: error.response?.status,
+    //   statusText: error.response?.statusText,
+    //   data: error.response?.data,
+    //   message: error.message,
+    //   code: error.code,
+    // });
     return Promise.reject(error);
   }
 );

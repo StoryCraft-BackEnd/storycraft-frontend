@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { ThemedView } from '../../components/ui/ThemedView';
 import { useThemeColor } from '../../hooks/useThemeColor';
@@ -15,9 +16,15 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import { findAccountScreenStyles as styles } from '../../styles/FindAccountScreen.styles';
 import { sendEmailVerificationCode, verifyEmailCode, resetPassword } from '@/features/auth/authApi';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useFocusEffect } from 'expo-router';
+import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function FindAccountScreen() {
+  // 안전 영역 정보 가져오기
+  const insets = useSafeAreaInsets();
+
   // 상태 관리
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -35,9 +42,44 @@ export default function FindAccountScreen() {
   const placeholderColor = useThemeColor('secondary');
   const backgroundColor = useThemeColor('background');
 
-  // 화이트모드에서만 크림베이지 색상 적용
+  // 화이트모드에서만 밝은 살구색 배경 적용 (로그인 화면과 동일)
   const colorScheme = useColorScheme();
-  const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
+  const finalBackgroundColor = colorScheme === 'light' ? '#FFF5E6' : backgroundColor;
+
+  // 화면이 포커스될 때 네비게이션 바와 상태바 숨기기
+  useFocusEffect(
+    React.useCallback(() => {
+      const hideSystemUI = async () => {
+        try {
+          // 네비게이션 바 숨기기
+          await NavigationBar.setVisibilityAsync('hidden');
+          // 상태바 숨기기
+          StatusBar.setHidden(true);
+          // 전체 화면 모드 설정 (Immersive Mode)
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+        } catch (error) {
+          console.log('시스템 UI 숨기기 실패:', error);
+        }
+      };
+
+      hideSystemUI();
+
+      // 화면이 포커스를 잃을 때 시스템 UI 복원
+      return () => {
+        const restoreSystemUI = async () => {
+          try {
+            await NavigationBar.setVisibilityAsync('visible');
+            StatusBar.setHidden(false);
+            // 화면 방향 잠금 해제
+            await ScreenOrientation.unlockAsync();
+          } catch (error) {
+            console.log('시스템 UI 복원 실패:', error);
+          }
+        };
+        restoreSystemUI();
+      };
+    }, [])
+  );
 
   // 라우터
   const router = useRouter();
@@ -177,15 +219,27 @@ export default function FindAccountScreen() {
   };
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
+    <ThemedView
+      style={[
+        styles.container,
+        {
+          backgroundColor: finalBackgroundColor,
+          paddingTop: Math.max(insets.top, 20), // 최소 20px 여백 보장
+          paddingBottom: Math.max(insets.bottom, 20),
+          paddingLeft: Math.max(insets.left, 16),
+          paddingRight: Math.max(insets.right, 16),
+        },
+      ]}
+    >
       <Stack.Screen options={{ headerShown: false }} />
+      <StatusBar hidden />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, alignItems: 'flex-start', paddingTop: 48 }}
+          contentContainerStyle={{ flexGrow: 1, alignItems: 'flex-start', paddingTop: 24 }}
         >
           {/* 상단 타이틀 및 안내문구 */}
           <Text

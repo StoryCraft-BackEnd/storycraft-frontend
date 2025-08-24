@@ -17,6 +17,7 @@ import nightBg from '../../../../assets/images/background/night-bg.png';
 import { getMyInfo, updateNickname, UserInfo } from '../../../../features/user/userApi';
 import ProfileImageSelector from '../../../../components/ui/ProfileImageSelector';
 import { getProfileImageById } from '../../../../types/ProfileImageTypes';
+import { saveProfileImage, loadProfileImage } from '../../../../features/profile/profileStorage';
 
 export default function MyInfoScreen() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -37,6 +38,14 @@ export default function MyInfoScreen() {
       console.log('사용자 정보 조회 시작...');
       const data = await getMyInfo();
       console.log('조회된 사용자 정보:', data);
+
+      // 로컬에서 프로필 이미지 불러오기
+      const localProfileImage = await loadProfileImage();
+      if (localProfileImage) {
+        data.profileImage = localProfileImage;
+        console.log('✅ 로컬 프로필 이미지 적용:', localProfileImage);
+      }
+
       setUserInfo(data);
       setNicknameInput(data.nickname);
       console.log('상태 업데이트 완료');
@@ -81,10 +90,20 @@ export default function MyInfoScreen() {
   };
 
   // 프로필 이미지 선택 핸들러
-  const handleImageSelect = (imageId: string) => {
-    // 로컬 상태에서만 프로필 이미지 업데이트
-    setUserInfo((prev) => (prev ? { ...prev, profileImage: imageId } : null));
-    Alert.alert('성공', '프로필 이미지가 변경되었습니다.');
+  const handleImageSelect = async (imageId: string) => {
+    try {
+      // 로컬 상태 업데이트
+      setUserInfo((prev) => (prev ? { ...prev, profileImage: imageId } : null));
+
+      // 로컬 저장소에 프로필 이미지 저장
+      await saveProfileImage(imageId);
+
+      Alert.alert('성공', '프로필 이미지가 변경되었습니다.');
+      console.log('✅ 프로필 이미지 변경 및 로컬 저장 완료:', imageId);
+    } catch (error) {
+      console.error('❌ 프로필 이미지 저장 실패:', error);
+      Alert.alert('오류', '프로필 이미지 저장에 실패했습니다.');
+    }
   };
 
   // 편집 모드 토글

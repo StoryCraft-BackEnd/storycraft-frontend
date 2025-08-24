@@ -143,6 +143,17 @@ export default function EnglishLearningScreen() {
         return wordDefinitions[word];
       }
 
+      // 로컬 저장소에서 단어 뜻 확인
+      const localMeaning = await getWordMeaningFromStorage(word);
+      if (localMeaning) {
+        // 로컬에 저장된 뜻을 상태에 추가
+        setWordDefinitions((prev) => ({
+          ...prev,
+          [word]: localMeaning,
+        }));
+        return localMeaning;
+      }
+
       // API로 단어 뜻 조회 (apiClient 사용)
       const response = await apiClient.get(`/dictionaries/words?word=${encodeURIComponent(word)}`);
 
@@ -161,10 +172,106 @@ export default function EnglishLearningScreen() {
         [word]: meaning,
       }));
 
+      // 로컬 저장소에 단어 뜻 저장
+      await saveWordMeaningToStorage(word, meaning);
+
       return meaning;
     } catch (error) {
       console.error(`단어 "${word}" 뜻 조회 실패:`, error);
       return '의미를 가져올 수 없습니다.';
+    }
+  };
+
+  // 로컬 저장소에 단어 뜻 저장
+  const saveWordMeaningToStorage = async (word: string, meaning: string) => {
+    try {
+      const key = `word_meaning_${word.toLowerCase()}`;
+      const data = {
+        word: word.toLowerCase(),
+        meaning,
+        timestamp: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+      console.log(`💾 단어 "${word}" 뜻 로컬 저장 완료:`, meaning);
+    } catch (error) {
+      console.error(`❌ 단어 "${word}" 뜻 로컬 저장 실패:`, error);
+    }
+  };
+
+  // 로컬 저장소에서 단어 뜻 불러오기
+  const getWordMeaningFromStorage = async (word: string): Promise<string | null> => {
+    try {
+      const key = `word_meaning_${word.toLowerCase()}`;
+      const storedData = await AsyncStorage.getItem(key);
+
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        const isExpired =
+          new Date().getTime() - new Date(data.timestamp).getTime() > 7 * 24 * 60 * 60 * 1000; // 7일
+
+        if (!isExpired && data.meaning) {
+          console.log(`📖 로컬에서 단어 "${word}" 뜻 불러오기 성공:`, data.meaning);
+          return data.meaning;
+        } else if (isExpired) {
+          console.log(`⏰ 단어 "${word}" 뜻이 만료되었습니다.`);
+          await AsyncStorage.removeItem(key); // 만료된 데이터 삭제
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`❌ 로컬에서 단어 "${word}" 뜻 불러오기 실패:`, error);
+      return null;
+    }
+  };
+
+  // 앱 시작 시 로컬 저장소에서 모든 단어 뜻 복원
+  const restoreWordDefinitionsFromStorage = async () => {
+    try {
+      console.log('🔄 로컬 저장소에서 단어 뜻 복원 시작...');
+
+      // AsyncStorage의 모든 키를 가져와서 word_meaning_으로 시작하는 것들만 필터링
+      const keys = await AsyncStorage.getAllKeys();
+      const wordMeaningKeys = keys.filter((key) => key.startsWith('word_meaning_'));
+
+      if (wordMeaningKeys.length === 0) {
+        console.log('📚 로컬에 저장된 단어 뜻이 없습니다.');
+        return;
+      }
+
+      const restoredDefinitions: { [word: string]: string } = {};
+      let restoredCount = 0;
+
+      for (const key of wordMeaningKeys) {
+        try {
+          const storedData = await AsyncStorage.getItem(key);
+          if (storedData) {
+            const data = JSON.parse(storedData);
+            const isExpired =
+              new Date().getTime() - new Date(data.timestamp).getTime() > 7 * 24 * 60 * 60 * 1000; // 7일
+
+            if (!isExpired && data.word && data.meaning) {
+              restoredDefinitions[data.word] = data.meaning;
+              restoredCount++;
+            } else if (isExpired) {
+              // 만료된 데이터 삭제
+              await AsyncStorage.removeItem(key);
+              console.log(`🗑️ 만료된 단어 "${data.word}" 뜻 삭제`);
+            }
+          }
+        } catch (error) {
+          console.error(`❌ 키 "${key}"에서 데이터 복원 실패:`, error);
+        }
+      }
+
+      if (restoredCount > 0) {
+        setWordDefinitions(restoredDefinitions);
+        console.log(`✅ ${restoredCount}개 단어 뜻 복원 완료:`, Object.keys(restoredDefinitions));
+      } else {
+        console.log('📚 복원할 수 있는 단어 뜻이 없습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 단어 뜻 복원 실패:', error);
     }
   };
 
@@ -182,16 +289,27 @@ export default function EnglishLearningScreen() {
 
       console.log('🔍 동화 단락에서 추출된 단어들:', words);
 
-      // 각 단어의 뜻을 병렬로 가져오기
+      // 각 단어의 뜻을 병렬로 가져오기 (로컬에 이미 있으면 건너뛰기)
       const wordPromises = words.map(async (word) => {
         const cleanWord = word.toLowerCase().replace(/[^a-zA-Z]/g, '');
         if (cleanWord.length > 0) {
-          await getWordDefinition(cleanWord);
+          // 이미 로컬에 저장된 뜻이 있는지 확인
+          const localMeaning = await getWordMeaningFromStorage(cleanWord);
+          if (!localMeaning) {
+            // 로컬에 없으면 API에서 가져오기
+            await getWordDefinition(cleanWord);
+          } else {
+            // 로컬에 있으면 상태에만 추가
+            setWordDefinitions((prev) => ({
+              ...prev,
+              [cleanWord]: localMeaning,
+            }));
+          }
         }
       });
 
       await Promise.all(wordPromises);
-      console.log('✅ 모든 단어의 뜻 저장 완료');
+      console.log('✅ 모든 단어의 뜻 처리 완료 (로컬 우선, API는 필요시만)');
     } catch (error) {
       console.error('❌ 동화 단어 처리 실패:', error);
     }
@@ -379,6 +497,12 @@ export default function EnglishLearningScreen() {
 
     const initializeStoryAndTTS = async () => {
       try {
+        // 로컬 저장소에서 단어 뜻 복원
+        await restoreWordDefinitionsFromStorage();
+      } catch (error) {
+        console.error('❌ 단어 뜻 복원 실패:', error);
+      }
+      try {
         if (params.storyId && params.title && params.content) {
           // === 1. 동화 데이터 준비 ===
           const storyData: Story = {
@@ -484,68 +608,30 @@ export default function EnglishLearningScreen() {
 
             // === 8. TTS 생성 ===
             try {
-              // TTS 중복 요청 방지 체크
-              const isTTSAlreadyRequested = ttsRequested.has(storyData.storyId);
-              console.log('🔍 TTS 중복 요청 방지 체크:', {
-                storyId: storyData.storyId,
-                ttsRequestedSize: ttsRequested.size,
-                ttsRequestedValues: Array.from(ttsRequested),
-                isTTSAlreadyRequested,
-                shouldSkip: isTTSAlreadyRequested,
-              });
-
-              if (isTTSAlreadyRequested) {
-                console.log('⏭️ TTS 이미 요청됨, 서버 요청 건너뛰기');
-                return;
-              }
-
-              // TTS 요청 상태 추가
-              setTtsRequested((prev) => {
-                const newSet = new Set(prev);
-                newSet.add(storyData.storyId);
-                console.log('✅ TTS 요청 상태 추가됨:', {
-                  storyId: storyData.storyId,
-                  newSetSize: newSet.size,
-                  newSetValues: Array.from(newSet),
-                });
-                return newSet;
-              });
-
-              // 먼저 로컬에서 기존 TTS 정보 확인
-              console.log('🔍 로컬 TTS 정보 확인 중...');
-              const localTTSMap = await loadStoryTTSFromStorage(
+              // 로컬 TTS 정보 확인
+              const localTTSInfo = await loadStoryTTSFromStorage(
                 storyData.childId,
                 storyData.storyId
               );
+              const hasLocalTTS = localTTSInfo && Object.keys(localTTSInfo).length > 0;
 
-              // 로컬 TTS 정보 완전성 검증
-              const isLocalTTSComplete = validateLocalTTSCompleteness(localTTSMap, sections.length);
-              console.log('🔍 로컬 TTS 정보 완전성 검증:', {
-                hasLocalData: !!localTTSMap && Object.keys(localTTSMap).length > 0,
-                localVoiceCount: localTTSMap ? Object.keys(localTTSMap).length : 0,
-                expectedVoiceCount: 2, // Joanna, Seoyeon
-                expectedSectionCount: sections.length,
-                isComplete: isLocalTTSComplete,
-              });
+              if (hasLocalTTS) {
+                console.log('📱 로컬 TTS 정보 발견, 서버 요청 건너뛰기');
 
-              if (localTTSMap && Object.keys(localTTSMap).length > 0 && isLocalTTSComplete) {
-                console.log('✅ 로컬 TTS 정보 완전함, 서버 요청 건너뛰기');
-
-                // 로컬 TTS 정보를 VoiceBasedTTSInfo 형식으로 변환하여 voiceBasedTTSMap에 설정
-                const convertedTTSMap: VoiceBasedTTSInfo = {};
-                Object.entries(localTTSMap).forEach(([voiceId, sectionMap]) => {
-                  convertedTTSMap[voiceId] = {};
-                  Object.entries(sectionMap).forEach(([sectionId, ttsInfo]) => {
-                    convertedTTSMap[voiceId][parseInt(sectionId)] = {
+                // 로컬 TTS 정보를 상태에 설정 (타입 변환 필요)
+                const convertedLocalTTS: VoiceBasedTTSInfo = {};
+                Object.entries(localTTSInfo).forEach(([voiceId, sectionMap]) => {
+                  convertedLocalTTS[voiceId] = Object.entries(sectionMap).map(
+                    ([sectionId, ttsData]) => ({
                       storyId: storyData.storyId,
                       sectionId: parseInt(sectionId),
-                      audioPath: ttsInfo.audioPath,
-                      ttsUrl: ttsInfo.ttsUrl,
-                    };
-                  });
+                      audioPath: ttsData.audioPath,
+                      ttsUrl: ttsData.ttsUrl,
+                    })
+                  );
                 });
 
-                setVoiceBasedTTSMap(convertedTTSMap);
+                setVoiceBasedTTSMap(convertedLocalTTS);
 
                 // 현재 선택된 음성에 맞는 TTS 정보를 ttsAudioMap에 설정
                 const voiceMapping: { [key: string]: string } = {
@@ -553,63 +639,35 @@ export default function EnglishLearningScreen() {
                   Joanna: 'Joanna',
                 };
                 const actualVoiceId = voiceMapping[ttsVoiceId];
-                const currentVoiceTTS = convertedTTSMap[actualVoiceId] || {};
+                const currentVoiceTTS = convertedLocalTTS[actualVoiceId] || [];
+                const newTtsAudioMap: { [sectionId: number]: TTSAudioInfo } = {};
 
-                if (Object.keys(currentVoiceTTS).length > 0) {
-                  setTtsAudioMap(currentVoiceTTS);
-                  console.log(
-                    '🎵 로컬 TTS 정보 사용 완료:',
-                    Object.keys(currentVoiceTTS).length,
-                    '개 단락'
-                  );
-                } else {
-                  console.log('⚠️ 현재 선택된 음성의 TTS 정보가 없음, 서버에 TTS 요청');
-                  await generateTTSFromServer();
-                }
-              } else {
-                console.log('🔄 로컬 TTS 정보 없음 또는 불완전함, 서버에 TTS 요청');
-                await generateTTSFromServer();
-              }
-
-              // 로컬 TTS 정보 완전성 검증 함수
-              function validateLocalTTSCompleteness(
-                localTTSMap: any,
-                expectedSectionCount: number
-              ): boolean {
-                if (!localTTSMap || Object.keys(localTTSMap).length === 0) {
-                  return false;
-                }
-
-                // Joanna와 Seoyeon 두 음성이 모두 있는지 확인
-                const expectedVoices = ['Joanna', 'Seoyeon'];
-                for (const voice of expectedVoices) {
-                  if (!localTTSMap[voice] || Object.keys(localTTSMap[voice]).length === 0) {
-                    console.log(`⚠️ ${voice} 음성 TTS 정보 누락`);
-                    return false;
-                  }
-
-                  // 각 음성별로 모든 단락의 TTS가 있는지 확인
-                  const voiceSectionCount = Object.keys(localTTSMap[voice]).length;
-                  if (voiceSectionCount < expectedSectionCount) {
-                    console.log(
-                      `⚠️ ${voice} 음성 TTS 단락 수 부족: ${voiceSectionCount}/${expectedSectionCount}`
-                    );
-                    return false;
-                  }
-
-                  // 파일명에 voiceId가 포함되어 있는지 확인 (새로운 형식)
-                  const firstSection = Object.values(localTTSMap[voice])[0] as any;
-                  if (firstSection && firstSection.audioPath) {
-                    const fileName = firstSection.audioPath.split('/').pop();
-                    if (fileName && !fileName.includes(voice)) {
-                      console.log(`⚠️ ${voice} 음성 TTS 파일명에 voiceId 누락: ${fileName}`);
-                      return false;
+                if (Array.isArray(currentVoiceTTS)) {
+                  currentVoiceTTS.forEach((ttsInfo) => {
+                    if (ttsInfo && ttsInfo.sectionId) {
+                      newTtsAudioMap[ttsInfo.sectionId] = ttsInfo;
                     }
-                  }
+                  });
                 }
 
-                console.log('✅ 로컬 TTS 정보 완전성 검증 통과');
-                return true;
+                setTtsAudioMap(newTtsAudioMap);
+                console.log('✅ 로컬 TTS 정보 로드 완료');
+              } else {
+                console.log('🔄 로컬 TTS 정보 없음, 서버에서 새로 생성');
+
+                // TTS 요청 상태 추가
+                setTtsRequested((prev) => {
+                  const newSet = new Set(prev);
+                  newSet.add(storyData.storyId);
+                  console.log('✅ TTS 요청 상태 추가됨:', {
+                    storyId: storyData.storyId,
+                    newSetSize: newSet.size,
+                    newSetValues: Array.from(newSet),
+                  });
+                  return newSet;
+                });
+
+                await generateTTSFromServer();
               }
 
               // 서버에서 TTS 생성하는 함수
@@ -1053,7 +1111,7 @@ export default function EnglishLearningScreen() {
           setSelectedWordMeaning(meaning);
         })
         .catch((error) => {
-          console.error('단어 뜻 조회 실패:', error);
+          console.log('❌ 단어 뜻 조회 실패:', error);
           setSelectedWordMeaning('의미를 가져올 수 없습니다.');
         });
     }
