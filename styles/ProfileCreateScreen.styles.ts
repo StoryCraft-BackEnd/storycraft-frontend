@@ -167,5 +167,53 @@ export const createProfileCreateScreenStyles = () => {
       fontSize: wp('4%'), // 화면 너비의 4%를 폰트 크기로 사용
       fontWeight: 'bold',
     },
+
+    // 이미지 선택 컨테이너
+    imageContainer: {
+      marginBottom: hp('2.5%'), // 화면 높이의 2.5%를 하단 여백으로 사용
+      alignItems: 'center',
+    },
+
+    // 이미지 미리보기 컨테이너
+    imagePreviewContainer: {
+      alignItems: 'center',
+      gap: hp('2%'), // 화면 높이의 2%를 간격으로 사용
+    },
+
+    // 프로필 이미지 미리보기
+    profileImagePreview: {
+      width: wp('20%'), // 화면 너비의 20%를 이미지 너비로 사용
+      height: wp('20%'), // 화면 너비의 20%를 이미지 높이로 사용
+      borderRadius: wp('10%'), // 화면 너비의 10%를 모서리 둥글기로 사용 (원형)
+      borderWidth: 3,
+      borderColor: theme.colors.primary,
+    },
+
+    // 이미지 변경 버튼
+    changeImageButton: {
+      backgroundColor: theme.colors.secondary || '#6c757d',
+      paddingHorizontal: wp('4%'), // 화면 너비의 4%를 좌우 패딩으로 사용
+      paddingVertical: hp('1.5%'), // 화면 높이의 1.5%를 상하 패딩으로 사용
+      borderRadius: wp('2.5%'), // 화면 너비의 2.5%를 모서리 둥글기로 사용
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+
+    // 이미지 변경 버튼 텍스트
+    changeImageButtonText: {
+      color: '#FFFFFF',
+      fontSize: wp('3.5%'), // 화면 너비의 3.5%를 폰트 크기로 사용
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+
+    // 디버그 텍스트
+    debugText: {
+      fontSize: wp('3%'), // 화면 너비의 3%를 폰트 크기로 사용
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginTop: hp('1%'), // 화면 높이의 1%를 상단 여백으로 사용
+      opacity: 0.7,
+    },
   });
 };

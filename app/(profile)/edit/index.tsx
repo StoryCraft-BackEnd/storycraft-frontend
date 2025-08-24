@@ -3,7 +3,15 @@
  * 이름, 나이, 학습 레벨만 수정 가능한 간단한 편집 화면
  */
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Alert, ScrollView, StatusBar } from 'react-native';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  StatusBar,
+  Image,
+} from 'react-native';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -16,6 +24,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { ChildProfile, LearningLevel } from '@/features/profile/types';
 import { updateProfile } from '@/features/profile/profileApi';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { getRandomAnimalImage, AnimalImageType } from '@/shared/utils/profileImageUtils';
+import { loadImage } from '@/features/main/imageLoader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileEditScreen() {
   const backgroundColor = useThemeColor('background');
@@ -35,6 +46,7 @@ export default function ProfileEditScreen() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [learningLevel, setLearningLevel] = useState('');
+  const [selectedImage, setSelectedImage] = useState<AnimalImageType>('african_elephant9');
   const [isLoading, setIsLoading] = useState(false);
 
   // 프로필 정보 파싱 및 초기화
@@ -48,6 +60,10 @@ export default function ProfileEditScreen() {
         setName(parsedProfile.name || '');
         setAge(parsedProfile.age?.toString() || '');
         setLearningLevel(parsedProfile.learningLevel || '');
+        // 프로필 이미지 설정
+        if (parsedProfile.profileImage) {
+          setSelectedImage(parsedProfile.profileImage);
+        }
       } catch (error) {
         console.error('프로필 정보 파싱 실패:', error);
         Alert.alert('오류', '프로필 정보를 불러오는데 실패했습니다.');
@@ -68,6 +84,12 @@ export default function ProfileEditScreen() {
 
     lockOrientation();
   }, []);
+
+  // 다른 이미지로 변경하는 함수
+  const handleChangeImage = () => {
+    const randomImage = getRandomAnimalImage();
+    setSelectedImage(randomImage);
+  };
 
   // 수정 완료 처리
   const handleSave = async () => {
@@ -111,7 +133,25 @@ export default function ProfileEditScreen() {
         name,
         age: ageNum,
         learningLevel: learningLevel as LearningLevel,
+        // profileImage: selectedImage, // 서버에서 지원하지 않으므로 주석 처리
       });
+
+      // 로컬에 이미지 정보 저장
+      const existingProfiles = await AsyncStorage.getItem('profiles');
+      if (existingProfiles) {
+        const profiles = JSON.parse(existingProfiles);
+        const profileIndex = profiles.findIndex((p: any) => p.childId === profileId);
+        if (profileIndex !== -1) {
+          profiles[profileIndex] = {
+            ...profiles[profileIndex],
+            name,
+            age: ageNum,
+            learningLevel: learningLevel as LearningLevel,
+            profileImage: selectedImage,
+          };
+          await AsyncStorage.setItem('profiles', JSON.stringify(profiles));
+        }
+      }
 
       Alert.alert('성공', '프로필이 수정되었습니다.', [
         {
@@ -153,6 +193,22 @@ export default function ProfileEditScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formContainer}>
+          {/* 프로필 이미지 선택 */}
+          <View style={styles.imageContainer}>
+            <ThemedText style={styles.inputLabel}>프로필 이미지</ThemedText>
+            <View style={styles.imagePreviewContainer}>
+              <Image 
+                source={loadImage(selectedImage)} 
+                style={styles.profileImagePreview}
+                onError={(error) => console.log('이미지 로딩 에러:', error)}
+                onLoad={() => console.log('이미지 로딩 성공:', selectedImage)}
+              />
+              <TouchableOpacity style={styles.changeImageButton} onPress={handleChangeImage}>
+                <ThemedText style={styles.changeImageButtonText}>다른 이미지</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* 이름 입력 */}
           <View style={styles.inputContainer}>
             <ThemedText style={styles.inputLabel}>이름</ThemedText>

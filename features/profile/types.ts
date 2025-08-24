@@ -1,6 +1,9 @@
 // 학습 레벨 타입 (초급, 중급, 고급 중 하나)
 export type LearningLevel = '초급' | '중급' | '고급';
 
+// 동물 이미지 타입 import
+import { AnimalImageType } from '@/shared/utils/profileImageUtils';
+
 // 자녀 프로필 타입
 export interface ChildProfile {
   // 프로필 고유 ID (서버에서 사용하는 camelCase 형태)
@@ -12,6 +15,9 @@ export interface ChildProfile {
 
   // 학습 레벨 (서버에서 사용하는 camelCase 형태)
   learningLevel: LearningLevel; // 학습 레벨 (초급, 중급, 고급)
+
+  // 프로필 이미지 (동물 캐릭터)
+  profileImage?: AnimalImageType; // 프로필 이미지 (선택사항)
 
   // 생성 시간 (선택사항)
   createdAt?: string; // 프로필 생성 날짜/시간

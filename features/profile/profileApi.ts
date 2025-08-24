@@ -110,6 +110,7 @@ export const createProfile = async (
       name: profileData.name, // 이름
       age: profileData.age, // 나이
       learningLevel: profileData.learningLevel, // 학습레벨
+      profileImage: profileData.profileImage, // 프로필 이미지
     });
 
     console.log(`   📊 응답 상태: ${response.status} ${response.statusText}`);
@@ -149,6 +150,7 @@ export const updateProfile = async (
       name: profileData.name, // 이름
       age: profileData.age, // 나이
       learningLevel: profileData.learningLevel, // 학습레벨
+      profileImage: profileData.profileImage, // 프로필 이미지
     };
 
     // apiClient를 사용하여 자동으로 토큰이 헤더에 추가됨
