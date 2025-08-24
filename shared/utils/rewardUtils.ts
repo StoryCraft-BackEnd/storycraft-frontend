@@ -117,7 +117,16 @@ export const checkBadges = async (childId: number, activityType: string) => {
 
     if (response.newBadges.length > 0) {
       const badgeNames = response.newBadges.map((badge) => badge.badgeName).join(', ');
-      Alert.alert('새로운 배지 획득! 🏆', `${badgeNames} 배지를 획득했습니다!`, [{ text: '확인' }]);
+
+      // 퀴즈 관련 배지 체크 시에는 팝업을 표시하지 않음 (퀴즈창과 겹치는 문제 방지)
+      if (activityType !== 'QUIZ_CORRECT') {
+        Alert.alert('새로운 배지 획득! 🏆', `${badgeNames} 배지를 획득했습니다!`, [
+          { text: '확인' },
+        ]);
+      } else {
+        // 퀴즈 관련 배지 획득 시에는 콘솔 로그만 남김
+        console.log('🏆 퀴즈 관련 배지 획득:', badgeNames);
+      }
     }
 
     return response;
