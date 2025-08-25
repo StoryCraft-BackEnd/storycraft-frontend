@@ -20,6 +20,8 @@ import {
 
 const TermsAgreementScreen = () => {
   console.log('🎯 TermsAgreementScreen 컴포넌트 마운트');
+  console.log('🔍 약관 동의 화면이 렌더링되었습니다');
+  console.log('🔍 현재 경로: /(terms-agreement)');
 
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];

@@ -32,15 +32,7 @@ export default function AuthLayout() {
           headerBackVisible: false, // 뒤로가기 버튼 숨김 (기본 화면이므로)
         }}
       />
-      {/* 약관 동의 화면 설정 */}
-      <Stack.Screen
-        name="terms-agreement"
-        options={{
-          title: '약관 동의',
-          headerShown: false, // 헤더 숨김
-          headerBackVisible: false, // 뒤로가기 버튼 숨김
-        }}
-      />
+
       {/* StoryCraft Dev 화면 설정 */}
       <Stack.Screen
         name="dev"

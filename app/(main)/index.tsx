@@ -234,7 +234,7 @@ export default function MainScreen() {
     };
   }, []);
 
-  // 화면이 포커스될 때마다 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
+  // 화면이 포커스될 때마다 프로필 및 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
   useFocusEffect(
     React.useCallback(() => {
       let isMounted = true;
@@ -242,30 +242,76 @@ export default function MainScreen() {
       // 🔒 포커스 시 상태바 계속 숨김 유지
       setStatusBarHidden(true);
 
-      const refreshStories = async () => {
-        // 초기 로딩 중이거나 프로필이 없으면 새로고침 건너뛰기
-        if (selectedProfile && isMounted && !isInitialLoading) {
-          // 캐시 유효성 검사
-          const isCacheValid = await isStoriesCacheValid(selectedProfile.childId);
+      const refreshData = async () => {
+        try {
+          // 프로필 정보 새로고침 (마이페이지에서 프로필 변경 시 대응)
+          console.log('🔄 메인 화면 포커스 - 프로필 정보 새로고침 시작');
+          const updatedProfile = await loadSelectedProfile();
 
-          if (isCacheValid && illustrationsReady && userStories.length > 0) {
-            console.log('메인 화면 포커스 - 캐시 유효, 새로고침 건너뛰기');
-            return;
+          if (updatedProfile && isMounted) {
+            // 프로필이 변경되었는지 확인 (childId 또는 프로필 이미지 변경)
+            const currentProfileImage = await loadProfileImage();
+            const isProfileChanged =
+              !selectedProfile ||
+              selectedProfile.childId !== updatedProfile.childId ||
+              profileImageId !== currentProfileImage;
+
+            if (isProfileChanged) {
+              console.log('🔄 프로필 변경 감지 - 새로운 프로필로 업데이트');
+              console.log('🔍 변경 사항:', {
+                childIdChanged:
+                  !selectedProfile || selectedProfile.childId !== updatedProfile.childId,
+                imageChanged: profileImageId !== currentProfileImage,
+                oldImage: profileImageId,
+                newImage: currentProfileImage,
+              });
+
+              setSelectedProfile(updatedProfile);
+
+              // 새로운 프로필로 학습시간 측정 재시작
+              await startLearningTimeTracking(updatedProfile.childId);
+              console.log('⏰ 새로운 프로필로 학습시간 측정 재시작:', updatedProfile.childId);
+
+              // 새로운 프로필의 보상 현황 조회
+              await fetchRewardProfile(updatedProfile.childId);
+
+              // 새로운 프로필의 동화 목록 로드
+              await loadStories(updatedProfile.childId, false);
+
+              // 새로운 프로필의 이미지 로드
+              await loadProfileImageFromStorage();
+
+              return; // 프로필이 변경되었으면 여기서 종료
+            }
           }
 
-          console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
+          // 기존 프로필이 유지되는 경우 기존 로직 실행
+          if (selectedProfile && isMounted && !isInitialLoading) {
+            // 캐시 유효성 검사
+            const isCacheValid = await isStoriesCacheValid(selectedProfile.childId);
 
-          // 보상 현황 새로고침
-          await fetchRewardProfile(selectedProfile.childId);
+            if (isCacheValid && illustrationsReady && userStories.length > 0) {
+              console.log('메인 화면 포커스 - 캐시 유효, 새로고침 건너뛰기');
+              return;
+            }
 
-          // 동화 목록 새로고침
-          await loadStories(selectedProfile.childId, false);
+            console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
 
-          // 프로필 이미지 새로고침
-          await loadProfileImageFromStorage();
+            // 보상 현황 새로고침
+            await fetchRewardProfile(selectedProfile.childId);
+
+            // 동화 목록 새로고침
+            await loadStories(selectedProfile.childId, false);
+
+            // 프로필 이미지 새로고침
+            await loadProfileImageFromStorage();
+          }
+        } catch (error) {
+          console.error('❌ 메인 화면 포커스 시 데이터 새로고침 실패:', error);
         }
       };
 
+      refreshData();
 
       return () => {
         isMounted = false;

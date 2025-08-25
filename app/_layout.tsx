@@ -61,7 +61,9 @@ function RootLayout() {
         // 약관에 동의하지 않은 경우 다른 초기화 작업은 건너뛰고 바로 약관 동의 페이지로
         if (!termsAgreed) {
           console.log('❌ 약관 미동의 - 약관 동의 페이지로 이동');
+          console.log('🔍 setIsLoading(false) 호출');
           setIsLoading(false);
+          console.log('🔍 return으로 함수 종료');
           return;
         }
 
@@ -98,34 +100,30 @@ function RootLayout() {
     return <LoadingScreen />;
   }
 
-  // 약관 동의하지 않은 경우 약관 동의 화면으로 리다이렉트
+  // 약관 동의하지 않은 경우 약관 동의 화면만 렌더링
   if (hasAgreedToTerms === false) {
     console.log('📄 약관 동의 페이지 렌더링');
+    console.log('🔍 hasAgreedToTerms:', hasAgreedToTerms);
+    console.log('🔍 isLoading:', isLoading);
+    console.log('🔍 (terms-agreement) 그룹만 렌더링합니다');
     return (
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="terms-agreement" options={{ headerShown: false }} />
-      </Stack>
-    );
-  }
-
-  // 약관 동의 완료 후 인증 화면으로 라우팅
-  if (hasAgreedToTerms === true) {
-    console.log('🔐 인증 화면 렌더링');
-    return (
-      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(terms-agreement)" />
         <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(main)" />
-        <Stack.Screen name="(english-learning)" />
-        <Stack.Screen name="(profile)" />
       </Stack>
     );
   }
 
-  // 약관 동의 상태가 아직 확인되지 않은 경우 (초기 로딩 중) 약관 동의 페이지 표시
-  console.log('📄 기본 상태 - 약관 동의 페이지 렌더링');
+  // 약관 동의 완료 후 모든 그룹 포함하여 렌더링
+  console.log('🔐 인증 및 메인 화면 렌더링 - hasAgreedToTerms:', hasAgreedToTerms);
+  console.log('🔍 (auth), (main), (english-learning), (profile) 그룹을 렌더링합니다');
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="terms-agreement" />
+      <Stack.Screen name="(terms-agreement)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(main)" />
+      <Stack.Screen name="(english-learning)" />
+      <Stack.Screen name="(profile)" />
     </Stack>
   );
 }

@@ -160,7 +160,7 @@ export default function HomeScreen() {
         </ThemedText>
 
         {/* 로그인 버튼 */}
-        <TouchableOpacity style={[styles.button]} onPress={() => router.push('/login')}>
+        <TouchableOpacity style={[styles.button]} onPress={() => router.push('/(auth)')}>
           <ThemedText style={styles.buttonText}>로그인</ThemedText>
         </TouchableOpacity>
 
@@ -237,7 +237,7 @@ export default function HomeScreen() {
       {/* 약관 동의 페이지로 이동 버튼 */}
       <TouchableOpacity
         style={[styles.button, { marginTop: 10, backgroundColor: '#28a745' }]}
-        onPress={() => router.push('/(auth)/terms-agreement')}
+        onPress={() => router.push('/(terms-agreement)')}
       >
         <ThemedText style={styles.buttonText}>약관 동의 페이지로 이동</ThemedText>
       </TouchableOpacity>
