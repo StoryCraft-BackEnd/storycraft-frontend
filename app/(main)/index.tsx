@@ -190,7 +190,7 @@ export default function MainScreen() {
             error.message.includes('인증이 만료')
           ) {
             console.log('🔐 인증 문제 - 로그인 화면으로 이동');
-            router.replace('/(auth)/login');
+            router.replace('/(auth)');
             return;
           } else if (error.message.includes('서버 오류')) {
             console.log('🌐 서버 오류 - 프로필 선택 화면으로 이동');
@@ -266,7 +266,6 @@ export default function MainScreen() {
         }
       };
 
-      refreshStories();
 
       return () => {
         isMounted = false;

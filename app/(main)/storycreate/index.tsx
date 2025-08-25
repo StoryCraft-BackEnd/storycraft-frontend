@@ -205,7 +205,7 @@ const StoryCreateScreen = () => {
         console.log('❌ 로그인 토큰이 없습니다. 로그인 화면으로 이동합니다.');
         showPopup('알림', '동화 생성을 위해 로그인이 필요합니다.');
         setTimeout(() => {
-          router.push('/(auth)/login');
+          router.push('/(auth)');
         }, 1500);
         return;
       }

@@ -122,7 +122,7 @@ export default function SignupScreen() {
       Alert.alert('회원가입 완료! 🎉', `${result.message}\n로그인 화면으로 이동합니다.`, [
         {
           text: '확인',
-          onPress: () => router.replace('/login'),
+          onPress: () => router.replace('/(auth)'),
         },
       ]);
     } catch (error: unknown) {

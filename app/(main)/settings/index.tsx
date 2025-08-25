@@ -86,12 +86,12 @@ const SettingsScreen = () => {
       await logout();
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('refreshToken');
-      router.replace('/login');
+      router.replace('/(auth)');
     } catch {
       // 실패해도 토큰 삭제 및 이동
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('refreshToken');
-      router.replace('/login');
+      router.replace('/(auth)');
     }
   };
 
@@ -238,11 +238,11 @@ const SettingsScreen = () => {
                       await withdraw();
                       await AsyncStorage.removeItem('token');
                       await AsyncStorage.removeItem('refreshToken');
-                      router.replace('/login');
+                      router.replace('/(auth)');
                     } catch {
                       await AsyncStorage.removeItem('token');
                       await AsyncStorage.removeItem('refreshToken');
-                      router.replace('/login');
+                      router.replace('/(auth)');
                     }
                   }}
                 >
