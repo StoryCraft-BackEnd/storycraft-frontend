@@ -83,7 +83,7 @@ const TermsAgreementScreen = () => {
       setCachedTermsAgreement(true);
 
       console.log('✅ 약관 동의 완료 - 로그인 화면으로 이동');
-      // 로그인 화면으로 직접 이동 (index.tsx가 기본 화면)
+      // 약관 동의 완료 후 로그인 화면으로 이동
       router.replace('/(auth)');
     } catch (error) {
       console.error('❌ 약관 동의 저장 중 오류:', error);

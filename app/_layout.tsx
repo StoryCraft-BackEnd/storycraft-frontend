@@ -94,6 +94,26 @@ function RootLayout() {
     initialize();
   }, []); // 빈 배열: 컴포넌트 마운트 시에만 실행
 
+  // 약관 동의 상태를 주기적으로 확인하는 useEffect 추가
+  useEffect(() => {
+    const checkTermsStatus = async () => {
+      if (hasAgreedToTerms === false) {
+        const termsAgreed = await checkTermsAgreement();
+        if (termsAgreed !== hasAgreedToTerms) {
+          console.log('🔍 약관 동의 상태 변경 감지:', termsAgreed);
+          setHasAgreedToTerms(termsAgreed);
+          setCachedTermsAgreement(termsAgreed);
+        }
+      }
+    };
+
+    // 약관 미동의 상태일 때만 주기적으로 확인
+    if (hasAgreedToTerms === false) {
+      const interval = setInterval(checkTermsStatus, 1000); // 1초마다 확인
+      return () => clearInterval(interval);
+    }
+  }, [hasAgreedToTerms]);
+
   // 로딩 중이고 약관 동의 상태가 아직 확인되지 않은 경우에만 로딩 화면 표시
   if (isLoading && hasAgreedToTerms === null) {
     console.log('⏳ 초기 로딩 중...');
