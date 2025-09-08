@@ -1,28 +1,60 @@
+/**
+ * 정책 모달 컴포넌트
+ * 개인정보 처리방침과 서비스 이용약관을 표시하는 모달 컴포넌트입니다.
+ * 사용자가 설정 화면에서 정책 관련 버튼을 클릭했을 때 나타나는 전체 화면 모달로,
+ * 스크롤 가능한 긴 텍스트 내용을 보여주고 닫기 버튼을 통해 모달을 닫을 수 있습니다.
+ */
+
+// React: React 라이브러리의 기본 기능들
 import React from 'react';
+// React Native: 네이티브 UI 컴포넌트들
 import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  SafeAreaView,
-  StyleSheet,
+  View, // 컨테이너 컴포넌트 (div와 비슷한 역할)
+  Text, // 텍스트 표시 컴포넌트
+  Modal, // 모달 컴포넌트 (전체 화면 오버레이)
+  TouchableOpacity, // 터치 가능한 버튼 컴포넌트
+  ScrollView, // 스크롤 가능한 컨테이너
+  SafeAreaView, // 안전 영역을 고려한 컨테이너
+  StyleSheet, // 스타일시트 생성 함수
 } from 'react-native';
+// Expo Vector Icons: 닫기 아이콘
 import { MaterialIcons } from '@expo/vector-icons';
 
+/**
+ * 정책 모달 컴포넌트의 Props 인터페이스
+ * @interface PolicyModalProps
+ * @property {boolean} visible - 모달 표시 여부
+ * @property {() => void} onClose - 모달 닫기 함수
+ * @property {'privacy' | 'terms'} type - 정책 타입 ('privacy': 개인정보처리방침, 'terms': 이용약관)
+ */
 interface PolicyModalProps {
-  visible: boolean;
-  onClose: () => void;
-  type: 'privacy' | 'terms';
+  visible: boolean; // 모달 표시 여부
+  onClose: () => void; // 모달 닫기 함수
+  type: 'privacy' | 'terms'; // 정책 타입 ('privacy': 개인정보처리방침, 'terms': 이용약관)
 }
 
+/**
+ * 정책 모달 컴포넌트
+ * 개인정보 처리방침과 서비스 이용약관을 표시하는 모달입니다.
+ * @param {PolicyModalProps} props - 컴포넌트 props
+ * @returns JSX.Element - 정책 모달 컴포넌트
+ */
 const PolicyModal: React.FC<PolicyModalProps> = ({ visible, onClose, type }) => {
+  /**
+   * 정책 타입에 따른 제목 반환 함수
+   * @returns {string} - 정책 제목 ('개인정보 처리방침' 또는 '서비스 이용약관')
+   */
   const getTitle = () => {
     return type === 'privacy' ? '개인정보 처리방침' : '서비스 이용약관';
   };
 
+  /**
+   * 정책 타입에 따른 내용 반환 함수
+   * @returns {string} - 정책 내용 (개인정보 처리방침 또는 서비스 이용약관)
+   */
   const getContent = () => {
     if (type === 'privacy') {
+      // 개인정보 처리방침 내용
       return `개인정보 처리방침
 
 제1조 (개인정보의 처리 목적)
@@ -71,6 +103,7 @@ StoryCraft는 개인정보보호법 제29조에 따라 다음과 같은 안전�
 제10조 (개인정보 처리방침의 변경)
 이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.`;
     } else {
+      // 서비스 이용약관 내용
       return `서비스 이용약관
 
 제1조 (목적)
@@ -143,65 +176,69 @@ StoryCraft는 개인정보보호법 제29조에 따라 다음과 같은 안전�
     }
   };
 
+  // 메인 모달 렌더링
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      visible={visible} // 모달 표시 여부
+      animationType="slide" // 슬라이드 애니메이션
+      presentationStyle="pageSheet" // 페이지 시트 스타일 (iOS)
+      onRequestClose={onClose} // 모달 닫기 요청 시 호출되는 함수
     >
       <SafeAreaView style={styles.container}>
+        {/* 모달 헤더 (닫기 버튼, 제목, 공간 채우기) */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <MaterialIcons name="close" size={24} color="#fff" />
+            <MaterialIcons name="close" size={24} color="#fff" /> {/* 닫기 아이콘 */}
           </TouchableOpacity>
-          <Text style={styles.title}>{getTitle()}</Text>
-          <View style={styles.placeholder} />
+          <Text style={styles.title}>{getTitle()}</Text> {/* 정책 제목 */}
+          <View style={styles.placeholder} /> {/* 공간 채우기 (닫기 버튼과 균형 맞추기) */}
         </View>
+        {/* 스크롤 가능한 정책 내용 */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.contentText}>{getContent()}</Text>
+          <Text style={styles.contentText}>{getContent()}</Text> {/* 정책 내용 텍스트 */}
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
 };
 
+// 모달 컴포넌트 스타일 정의
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
+    flex: 1, // 전체 화면 차지
+    backgroundColor: '#1a1a2e', // 어두운 배경색
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#2a2a3e',
+    flexDirection: 'row', // 가로 방향 배치
+    alignItems: 'center', // 세로 중앙 정렬
+    justifyContent: 'space-between', // 양 끝 정렬
+    paddingHorizontal: 20, // 좌우 패딩
+    paddingVertical: 15, // 상하 패딩
+    borderBottomWidth: 1, // 하단 테두리 두께
+    borderBottomColor: '#2a2a3e', // 하단 테두리 색상
   },
   closeButton: {
-    padding: 5,
+    padding: 5, // 버튼 내부 패딩
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    flex: 1,
-    textAlign: 'center',
+    fontSize: 18, // 제목 폰트 크기
+    fontWeight: 'bold', // 굵은 글씨
+    color: '#fff', // 흰색 텍스트
+    flex: 1, // 남은 공간 차지
+    textAlign: 'center', // 텍스트 중앙 정렬
   },
   placeholder: {
-    width: 34,
+    width: 34, // 닫기 버튼과 동일한 너비 (균형 맞추기)
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 20,
+    flex: 1, // 남은 공간 차지
+    paddingHorizontal: 20, // 좌우 패딩
   },
   contentText: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#e0e0e0',
-    paddingVertical: 20,
+    fontSize: 14, // 내용 텍스트 크기
+    lineHeight: 22, // 줄 간격
+    color: '#e0e0e0', // 밝은 회색 텍스트
+    paddingVertical: 20, // 상하 패딩
   },
 });
 

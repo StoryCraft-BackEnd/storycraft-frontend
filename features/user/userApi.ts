@@ -11,6 +11,7 @@ export interface UserInfo {
   nickname: string;
   role: string;
   signup_date: string;
+  profileImage?: string; // 프로필 이미지 ID (선택적 속성)
 }
 
 /**
