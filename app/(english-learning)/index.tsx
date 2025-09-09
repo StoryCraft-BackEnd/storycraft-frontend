@@ -482,6 +482,530 @@ export default function EnglishLearningScreen() {
     [currentStory?.storyId]
   );
 
+  /**
+   * 동화와 TTS 초기화 함수
+   */
+  const initializeStoryAndTTS = async () => {
+    try {
+      // 로컬 저장소에서 단어 뜻 복원
+      await restoreWordDefinitionsFromStorage();
+    } catch (error) {
+      console.error('❌ 단어 뜻 복원 실패:', error);
+    }
+    try {
+      if (params.storyId && params.title && params.content) {
+        // === 1. 동화 데이터 준비 ===
+        const storyData: Story = {
+          storyId: parseInt(params.storyId as string),
+          title: params.title as string,
+          content: params.content as string,
+          contentKr: params.contentKr as string,
+          keywords: params.keywords ? (params.keywords as string).split(',') : [],
+          childId: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // === 2. 프로필 정보 로드 ===
+        const selectedProfile = await loadSelectedProfile();
+        if (selectedProfile && selectedProfile.childId) {
+          storyData.childId = selectedProfile.childId;
+          console.log('✅ 선택된 프로필에서 childId 설정:', storyData.childId);
+        } else {
+          console.warn('⚠️ 선택된 프로필이 없거나 childId가 유효하지 않음:', selectedProfile);
+          console.log('기본 childId 사용:', storyData.childId);
+        }
+
+        console.log('동화 데이터 로드 시작:', {
+          storyId: storyData.storyId,
+          title: storyData.title,
+          childId: storyData.childId,
+          hasValidChildId: storyData.childId > 0,
+        });
+
+        // === 3. TTS 요청 상태 설정 (중복 방지) ===
+        if (ttsRequested.has(storyData.storyId)) {
+          console.log('🎵 TTS 이미 요청됨, 동화 데이터 로드 건너뛰기:', storyData.storyId);
+          return;
+        }
+        setTtsRequested((prev) => new Set(prev).add(storyData.storyId));
+
+        try {
+          // === 4. 동화 단락 조회 ===
+          console.log(`동화 ${storyData.storyId} 단락 조회 시작...`);
+          const sections = await fetchStorySections(storyData.storyId, storyData.childId);
+          console.log(`동화 ${storyData.storyId} 단락 조회 완료:`, sections.length, '개 단락');
+
+          if (sections.length === 0) {
+            console.warn(`⚠️ 동화 ${storyData.storyId}의 단락이 0개입니다.`);
+          }
+
+          // === 5. 동화 데이터 변환 및 설정 ===
+          const learningStory = convertStoryToLearningStoryWithSections(storyData, sections);
+          console.log('✅ 동화 단락 변환 완료:', {
+            title: learningStory.title,
+            contentLength: learningStory.content?.length || 0,
+            sectionsCount: learningStory.sections?.length || 0,
+          });
+
+          setCurrentStory(learningStory);
+          setIsStoryLoaded(true);
+
+          // === 6. 단어 상태 초기화 ===
+          setWordFavorites(new Array(learningStory.savedWords?.length || 0).fill(false));
+          setWordClicked(new Array(learningStory.savedWords?.length || 0).fill(false));
+
+          // === 7. 단어 데이터 로드 ===
+          await getWordsForStory(storyData.storyId, storyData.childId);
+
+          // === 7.2. 동화 단락의 모든 단어 처리 ===
+          if (learningStory.sections && learningStory.sections.length > 0) {
+            // 모든 단락의 단어들을 처리
+            for (const section of learningStory.sections) {
+              if (section.paragraphText) {
+                await processStoryWords(section.paragraphText);
+              }
+            }
+          } else if (learningStory.content) {
+            // fallback: 전체 내용에서 단어 처리
+            await processStoryWords(learningStory.content);
+          }
+
+          // === 7.5. 퀴즈 로드 ===
+          console.log('🎯 동화 로드 완료, 퀴즈 준비');
+          // console.log('🔍 퀴즈 로드 전 storyData 확인:', {
+          //   storyId: storyData.storyId,
+          //   childId: storyData.childId,
+          //   hasStoryId: !!storyData.storyId,
+          //   hasChildId: !!storyData.childId,
+          //   storyDataType: typeof storyData.storyId,
+          //   childIdType: typeof storyData.childId,
+          //   storyDataKeys: Object.keys(storyData),
+          //   storyDataFull: storyData,
+          // });
+
+          if (storyData.storyId && storyData.childId) {
+            console.log('✅ 퀴즈 로드 시작 - 유효한 storyId와 childId 확인됨');
+            loadQuizzes(storyData);
+          } else {
+            console.warn('⚠️ 퀴즈 로드 건너뛰기: storyId 또는 childId가 유효하지 않음', {
+              storyId: storyData.storyId,
+              childId: storyData.childId,
+              storyIdValid: !!storyData.storyId,
+              childIdValid: !!storyData.childId,
+            });
+          }
+
+          // === 8. TTS 생성 ===
+          try {
+            // 로컬 TTS 정보 확인
+            const localTTSInfo = await loadStoryTTSFromStorage(
+              storyData.childId,
+              storyData.storyId
+            );
+            const hasLocalTTS = localTTSInfo && Object.keys(localTTSInfo).length > 0;
+
+            if (hasLocalTTS) {
+              console.log('📱 로컬 TTS 정보 발견, 서버 요청 건너뛰기');
+
+              // 로컬 TTS 정보를 상태에 설정 (타입 변환 필요)
+              const convertedLocalTTS: VoiceBasedTTSInfo = {};
+              Object.entries(localTTSInfo).forEach(([voiceId, sectionMap]) => {
+                convertedLocalTTS[voiceId] = Object.entries(sectionMap).map(
+                  ([sectionId, ttsData]) => ({
+                    storyId: storyData.storyId,
+                    sectionId: parseInt(sectionId),
+                    audioPath: ttsData.audioPath,
+                    ttsUrl: ttsData.ttsUrl,
+                  })
+                );
+              });
+
+              setVoiceBasedTTSMap(convertedLocalTTS);
+
+              // 현재 선택된 음성에 맞는 TTS 정보를 ttsAudioMap에 설정
+              const voiceMapping: { [key: string]: string } = {
+                세연: 'Seoyeon',
+                Joanna: 'Joanna',
+              };
+              const actualVoiceId = voiceMapping[ttsVoiceId];
+              const currentVoiceTTS = convertedLocalTTS[actualVoiceId] || [];
+              const newTtsAudioMap: { [sectionId: number]: TTSAudioInfo } = {};
+
+              if (Array.isArray(currentVoiceTTS)) {
+                currentVoiceTTS.forEach((ttsInfo) => {
+                  if (ttsInfo && ttsInfo.sectionId) {
+                    newTtsAudioMap[ttsInfo.sectionId] = ttsInfo;
+                  }
+                });
+              }
+
+              setTtsAudioMap(newTtsAudioMap);
+              console.log('✅ 로컬 TTS 정보 로드 완료');
+            } else {
+              console.log('🔄 로컬 TTS 정보 없음, 서버에서 새로 생성');
+
+              // TTS 요청 상태 추가
+              setTtsRequested((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(storyData.storyId);
+                console.log('✅ TTS 요청 상태 추가됨:', {
+                  storyId: storyData.storyId,
+                  newSetSize: newSet.size,
+                  newSetValues: Array.from(newSet),
+                });
+                return newSet;
+              });
+
+              await generateTTSFromServer();
+            }
+
+            // 서버에서 TTS 생성하는 함수
+            async function generateTTSFromServer() {
+              console.log('🎵 TTS 생성 시작 - 학습 화면에서 동화 조회 시 생성');
+
+              const ttsResults = await generateTTSForStory(storyData.childId, storyData.storyId);
+              console.log(`✅ 동화 ${storyData.storyId} TTS 생성 완료:`, {
+                Joanna: ttsResults['Joanna']?.length || 0,
+                Seoyeon: ttsResults['Seoyeon']?.length || 0,
+              });
+
+              // === 9. TTS 데이터 설정 ===
+              if (ttsResults && Object.keys(ttsResults).length > 0) {
+                setVoiceBasedTTSMap(ttsResults);
+
+                // 현재 선택된 음성에 맞는 TTS 정보를 ttsAudioMap에 설정
+                const voiceMapping: { [key: string]: string } = {
+                  세연: 'Seoyeon',
+                  Joanna: 'Joanna',
+                };
+                const actualVoiceId = voiceMapping[ttsVoiceId];
+                const currentVoiceTTS = ttsResults[actualVoiceId] || [];
+                const newTtsAudioMap: { [sectionId: number]: TTSAudioInfo } = {};
+
+                currentVoiceTTS.forEach((ttsInfo) => {
+                  if (ttsInfo && ttsInfo.sectionId) {
+                    newTtsAudioMap[ttsInfo.sectionId] = ttsInfo;
+                  }
+                });
+
+                setTtsAudioMap(newTtsAudioMap);
+
+                // === 10. TTS 정보 로컬 저장 (모든 음성) ===
+                try {
+                  // 모든 음성의 TTS 정보를 voiceId를 키로 하여 저장
+                  const allTTSInfoForStorage: {
+                    [voiceId: string]: {
+                      [sectionId: number]: { audioPath: string; ttsUrl: string };
+                    };
+                  } = {};
+
+                  // Joanna와 Seoyeon 음성 모두 저장
+                  Object.entries(ttsResults).forEach(([voiceId, ttsArray]) => {
+                    allTTSInfoForStorage[voiceId] = {};
+                    ttsArray.forEach((ttsInfo) => {
+                      if (ttsInfo && ttsInfo.sectionId) {
+                        allTTSInfoForStorage[voiceId][ttsInfo.sectionId] = {
+                          audioPath: ttsInfo.audioPath,
+                          ttsUrl: ttsInfo.ttsUrl,
+                        };
+                      }
+                    });
+                  });
+
+                  await saveStoryTTS(storyData.childId, storyData.storyId, allTTSInfoForStorage);
+                  console.log(
+                    '💾 모든 음성 TTS 정보 로컬 저장 완료:',
+                    Object.keys(allTTSInfoForStorage).length,
+                    '개 음성'
+                  );
+                } catch (storageError) {
+                  console.warn('⚠️ TTS 정보 로컬 저장 실패:', storageError);
+                }
+              } else {
+                console.warn(`⚠️ ${ttsVoiceId} 음성의 TTS 정보가 없습니다.`);
+              }
+            }
+          } catch (ttsError) {
+            console.warn(`⚠️ 동화 ${storyData.storyId} TTS 처리 중 오류:`, ttsError);
+          }
+
+          // === 11. 삽화 이미지 로드 ===
+          if (storyData.childId && storyData.childId > 0) {
+            try {
+              console.log(`동화 ${storyData.storyId} 삽화 이미지 로드 시작...`);
+
+              // 삽화 동기화 (새 동화인 경우 강제 다운로드)
+              const isNewStory = params.isNewStory === 'true';
+              const storyTitleMap = { [storyData.storyId]: storyData.title };
+              await syncMissingIllustrations(
+                [storyData.storyId],
+                storyData.childId,
+                undefined,
+                isNewStory,
+                storyTitleMap
+              );
+
+              // 삽화 목록 조회
+              const illustrations = await fetchIllustrations(storyData.childId);
+              const storyIllustrations = illustrations.filter(
+                (illustration) => illustration.storyId === storyData.storyId
+              );
+
+              console.log(`동화 ${storyData.storyId} 삽화 정보:`, {
+                totalIllustrations: illustrations.length,
+                storyIllustrations: storyIllustrations.length,
+              });
+
+              if (storyIllustrations.length > 0) {
+                // Story 객체에 삽화 정보 추가
+                const storyWithIllustrations = {
+                  ...storyData,
+                  illustrations: storyIllustrations.map((illustration) => ({
+                    illustrationId: illustration.illustrationId,
+                    storyId: illustration.storyId,
+                    orderIndex: illustration.orderIndex,
+                    localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${storyData.title
+                      .replace(/[<>:"/\\|?*]/g, '')
+                      .replace(/\s+/g, '_')
+                      .substring(0, 50)}.jpg`,
+                    imageUrl: illustration.imageUrl,
+                    description: illustration.description,
+                    createdAt: illustration.createdAt,
+                  })),
+                };
+
+                // Story 객체 저장
+                await addStoryToStorage(storyWithIllustrations);
+
+                // currentStory에 삽화 정보 추가
+                setCurrentStory((prevStory) => {
+                  const learningStoryWithIllustrations = {
+                    ...prevStory,
+                    illustrations: storyWithIllustrations.illustrations,
+                    content: prevStory?.content || storyData.content,
+                    title: prevStory?.title || storyData.title,
+                    contentKr: prevStory?.contentKr || storyData.contentKr,
+                    highlightedWords: prevStory?.highlightedWords || [],
+                    sections: prevStory?.sections || [],
+                    totalPages: prevStory?.sections?.length || 1,
+                    storyId: prevStory?.storyId || storyData.storyId,
+                    childId: prevStory?.childId || storyData.childId,
+                    keywords: prevStory?.keywords || storyData.keywords,
+                    savedWords: prevStory?.savedWords || [],
+                  };
+                  console.log('✅ 삽화 정보 추가 후 currentStory 업데이트:', {
+                    title: learningStoryWithIllustrations.title,
+                    contentLength: learningStoryWithIllustrations.content?.length || 0,
+                    sectionsCount: learningStoryWithIllustrations.sections?.length || 0,
+                    illustrationsCount: learningStoryWithIllustrations.illustrations?.length || 0,
+                  });
+                  return learningStoryWithIllustrations;
+                });
+
+                // 삽화 경로 확인 및 배경 설정
+                const illustrationPath =
+                  await getStoryIllustrationPathFromStory(storyWithIllustrations);
+                if (illustrationPath) {
+                  setBackgroundImage(illustrationPath);
+                  console.log(`동화 ${storyData.storyId} 로컬 삽화 배경 설정:`, illustrationPath);
+                } else {
+                  setBackgroundImage(null);
+                  console.log(`동화 ${storyData.storyId} 삽화 이미지가 없습니다. 기본 배경 사용`);
+                }
+              } else {
+                setBackgroundImage(null);
+                console.log(`동화 ${storyData.storyId}에 해당하는 삽화가 없습니다. 기본 배경 사용`);
+              }
+            } catch (illustrationError) {
+              console.error('삽화 정보 조회 실패:', illustrationError);
+              setBackgroundImage(null);
+            }
+          } else {
+            setBackgroundImage(null);
+            console.log('삽화 로드 건너뛰기 - childId가 유효하지 않음');
+          }
+
+          // === 12. 동기화 화면 타이머는 useEffect에서 설정됨 ===
+        } catch (sectionError) {
+          console.error(`동화 ${storyData.storyId} 단락 조회 실패:`, sectionError);
+
+          // === 13. Fallback: 기존 방식으로 동화 로드 ===
+          console.log('기존 방식으로 동화 로드 (프론트엔드 단락 분할)...');
+
+          const learningStory = convertStoryToLearningStoryWithPages(storyData);
+          const fallbackStory = {
+            ...learningStory,
+            sections: [],
+            highlightedWords: learningStory.highlightedWords || [],
+          };
+
+          setCurrentStory(fallbackStory);
+          setIsStoryLoaded(true);
+          setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+          setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+
+          // fallback 케이스에서도 단어 처리
+          if (learningStory.content) {
+            await processStoryWords(learningStory.content);
+          }
+
+          console.log('🎵 TTS 생성 건너뛰기 - fallback 케이스');
+
+          // 동기화 화면 타이머 설정
+          if (params.isNewStory === 'true') {
+            // 새 동화인 경우 5초 후 동기화 화면 숨김
+            setTimeout(() => setIsSyncing(false), 20000);
+          } else {
+            // 기존 동화인 경우 1초 후 동기화 화면 숨김
+            setTimeout(() => setIsSyncing(false), 2000);
+          }
+        }
+      } else {
+        // === 14. 기존 로직: 선택된 프로필의 최신 동화 사용 ===
+        const selectedProfile = await loadSelectedProfile();
+        if (!selectedProfile || !selectedProfile.childId || selectedProfile.childId <= 0) {
+          console.warn('⚠️ 선택된 프로필이 없거나 childId가 유효하지 않음:', selectedProfile);
+          return;
+        }
+
+        console.log('✅ 선택된 프로필 확인:', {
+          childId: selectedProfile.childId,
+          name: selectedProfile.name,
+        });
+
+        const stories = await loadStoriesByChildId(selectedProfile.childId);
+        if (stories.length === 0) {
+          console.log('동화가 없습니다.');
+          return;
+        }
+
+        const latestStory = stories[0];
+        console.log('최신 동화 데이터:', {
+          storyId: latestStory.storyId,
+          title: latestStory.title,
+          childId: latestStory.childId,
+        });
+
+        try {
+          // 최신 동화 단락 조회
+          const sections = await fetchStorySections(latestStory.storyId, latestStory.childId);
+          const learningStory = convertStoryToLearningStoryWithSections(latestStory, sections);
+
+          setCurrentStory(learningStory);
+          setIsStoryLoaded(true);
+          setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+          setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+
+          await getWordsForStory(latestStory.storyId, latestStory.childId);
+
+          // 최신 동화 단락의 단어들도 처리
+          if (learningStory.sections && learningStory.sections.length > 0) {
+            for (const section of learningStory.sections) {
+              if (section.paragraphText) {
+                await processStoryWords(section.paragraphText);
+              }
+            }
+          } else if (learningStory.content) {
+            await processStoryWords(learningStory.content);
+          }
+
+          // 동기화 화면 타이머는 useEffect에서 설정됨
+        } catch (sectionError) {
+          console.error(`최신 동화 ${latestStory.storyId} 단락 조회 실패:`, sectionError);
+
+          // Fallback 방식
+          const learningStory = convertStoryToLearningStoryWithPages(latestStory);
+          const fallbackStory = {
+            ...learningStory,
+            sections: [],
+            highlightedWords: learningStory.highlightedWords || [],
+          };
+
+          setCurrentStory(fallbackStory);
+          setIsStoryLoaded(true);
+          setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+          setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
+        }
+
+        // 최신 동화 삽화 로드
+        if (latestStory.childId && latestStory.childId > 0) {
+          try {
+            const isNewStory = params.isNewStory === 'true';
+            const storyTitleMap = { [latestStory.storyId]: latestStory.title };
+            await syncMissingIllustrations(
+              [latestStory.storyId],
+              latestStory.childId,
+              undefined,
+              isNewStory,
+              storyTitleMap
+            );
+            const illustrations = await fetchIllustrations(latestStory.childId);
+            const storyIllustrations = illustrations.filter(
+              (illustration) => illustration.storyId === latestStory.storyId
+            );
+
+            if (storyIllustrations.length > 0) {
+              const storyWithIllustrations = {
+                ...latestStory,
+                illustrations: storyIllustrations.map((illustration) => ({
+                  illustrationId: illustration.illustrationId,
+                  storyId: illustration.storyId,
+                  orderIndex: illustration.orderIndex,
+                  localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${latestStory.title
+                    .replace(/[<>:"/\\|?*]/g, '')
+                    .replace(/\s+/g, '_')
+                    .substring(0, 50)}.jpg`,
+                  imageUrl: illustration.imageUrl,
+                  description: illustration.description,
+                  createdAt: illustration.createdAt,
+                })),
+              };
+
+              await addStoryToStorage(storyWithIllustrations);
+
+              setCurrentStory((prevStory) => {
+                const learningStoryWithIllustrations = {
+                  ...prevStory,
+                  illustrations: storyWithIllustrations.illustrations,
+                  content: prevStory?.content || latestStory.content,
+                  title: prevStory?.title || latestStory.title,
+                  contentKr: prevStory?.contentKr || latestStory.contentKr,
+                  highlightedWords: prevStory?.highlightedWords || [],
+                  sections: prevStory?.sections || [],
+                  totalPages: prevStory?.sections?.length || 1,
+                  storyId: prevStory?.storyId || latestStory.storyId,
+                  childId: prevStory?.childId || latestStory.childId,
+                  keywords: prevStory?.keywords || latestStory.keywords,
+                  savedWords: prevStory?.savedWords || [],
+                };
+                return learningStoryWithIllustrations;
+              });
+
+              const illustrationPath =
+                await getStoryIllustrationPathFromStory(storyWithIllustrations);
+              if (illustrationPath) {
+                setBackgroundImage(illustrationPath);
+              } else {
+                setBackgroundImage(null);
+              }
+            } else {
+              setBackgroundImage(null);
+            }
+          } catch (illustrationError) {
+            console.error('최신 동화 삽화 정보 조회 실패:', illustrationError);
+            setBackgroundImage(null);
+          }
+        }
+      }
+
+      console.log('🎯 동화 초기화 완료');
+    } catch (error) {
+      console.error('동화 초기화 실패:', error);
+    }
+  };
+
+  // ===== 실행 부분 =====
   // 컴포넌트 마운트 시 모든 로직을 한 번에 실행
   useEffect(() => {
     // 동기화 화면 표시 (새 동화: 5초, 기존 동화: 1초)
@@ -494,528 +1018,6 @@ export default function EnglishLearningScreen() {
       // 1초 후 동기화 화면 숨김
       setTimeout(() => setIsSyncing(false), 2000);
     }
-
-    const initializeStoryAndTTS = async () => {
-      try {
-        // 로컬 저장소에서 단어 뜻 복원
-        await restoreWordDefinitionsFromStorage();
-      } catch (error) {
-        console.error('❌ 단어 뜻 복원 실패:', error);
-      }
-      try {
-        if (params.storyId && params.title && params.content) {
-          // === 1. 동화 데이터 준비 ===
-          const storyData: Story = {
-            storyId: parseInt(params.storyId as string),
-            title: params.title as string,
-            content: params.content as string,
-            contentKr: params.contentKr as string,
-            keywords: params.keywords ? (params.keywords as string).split(',') : [],
-            childId: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          // === 2. 프로필 정보 로드 ===
-          const selectedProfile = await loadSelectedProfile();
-          if (selectedProfile && selectedProfile.childId) {
-            storyData.childId = selectedProfile.childId;
-            console.log('✅ 선택된 프로필에서 childId 설정:', storyData.childId);
-          } else {
-            console.warn('⚠️ 선택된 프로필이 없거나 childId가 유효하지 않음:', selectedProfile);
-            console.log('기본 childId 사용:', storyData.childId);
-          }
-
-          console.log('동화 데이터 로드 시작:', {
-            storyId: storyData.storyId,
-            title: storyData.title,
-            childId: storyData.childId,
-            hasValidChildId: storyData.childId > 0,
-          });
-
-          // === 3. TTS 요청 상태 설정 (중복 방지) ===
-          if (ttsRequested.has(storyData.storyId)) {
-            console.log('🎵 TTS 이미 요청됨, 동화 데이터 로드 건너뛰기:', storyData.storyId);
-            return;
-          }
-          setTtsRequested((prev) => new Set(prev).add(storyData.storyId));
-
-          try {
-            // === 4. 동화 단락 조회 ===
-            console.log(`동화 ${storyData.storyId} 단락 조회 시작...`);
-            const sections = await fetchStorySections(storyData.storyId, storyData.childId);
-            console.log(`동화 ${storyData.storyId} 단락 조회 완료:`, sections.length, '개 단락');
-
-            if (sections.length === 0) {
-              console.warn(`⚠️ 동화 ${storyData.storyId}의 단락이 0개입니다.`);
-            }
-
-            // === 5. 동화 데이터 변환 및 설정 ===
-            const learningStory = convertStoryToLearningStoryWithSections(storyData, sections);
-            console.log('✅ 동화 단락 변환 완료:', {
-              title: learningStory.title,
-              contentLength: learningStory.content?.length || 0,
-              sectionsCount: learningStory.sections?.length || 0,
-            });
-
-            setCurrentStory(learningStory);
-            setIsStoryLoaded(true);
-
-            // === 6. 단어 상태 초기화 ===
-            setWordFavorites(new Array(learningStory.savedWords?.length || 0).fill(false));
-            setWordClicked(new Array(learningStory.savedWords?.length || 0).fill(false));
-
-            // === 7. 단어 데이터 로드 ===
-            await getWordsForStory(storyData.storyId, storyData.childId);
-
-            // === 7.2. 동화 단락의 모든 단어 처리 ===
-            if (learningStory.sections && learningStory.sections.length > 0) {
-              // 모든 단락의 단어들을 처리
-              for (const section of learningStory.sections) {
-                if (section.paragraphText) {
-                  await processStoryWords(section.paragraphText);
-                }
-              }
-            } else if (learningStory.content) {
-              // fallback: 전체 내용에서 단어 처리
-              await processStoryWords(learningStory.content);
-            }
-
-            // === 7.5. 퀴즈 로드 ===
-            console.log('🎯 동화 로드 완료, 퀴즈 준비');
-            // console.log('🔍 퀴즈 로드 전 storyData 확인:', {
-            //   storyId: storyData.storyId,
-            //   childId: storyData.childId,
-            //   hasStoryId: !!storyData.storyId,
-            //   hasChildId: !!storyData.childId,
-            //   storyDataType: typeof storyData.storyId,
-            //   childIdType: typeof storyData.childId,
-            //   storyDataKeys: Object.keys(storyData),
-            //   storyDataFull: storyData,
-            // });
-
-            if (storyData.storyId && storyData.childId) {
-              console.log('✅ 퀴즈 로드 시작 - 유효한 storyId와 childId 확인됨');
-              loadQuizzes(storyData);
-            } else {
-              console.warn('⚠️ 퀴즈 로드 건너뛰기: storyId 또는 childId가 유효하지 않음', {
-                storyId: storyData.storyId,
-                childId: storyData.childId,
-                storyIdValid: !!storyData.storyId,
-                childIdValid: !!storyData.childId,
-              });
-            }
-
-            // === 8. TTS 생성 ===
-            try {
-              // 로컬 TTS 정보 확인
-              const localTTSInfo = await loadStoryTTSFromStorage(
-                storyData.childId,
-                storyData.storyId
-              );
-              const hasLocalTTS = localTTSInfo && Object.keys(localTTSInfo).length > 0;
-
-              if (hasLocalTTS) {
-                console.log('📱 로컬 TTS 정보 발견, 서버 요청 건너뛰기');
-
-                // 로컬 TTS 정보를 상태에 설정 (타입 변환 필요)
-                const convertedLocalTTS: VoiceBasedTTSInfo = {};
-                Object.entries(localTTSInfo).forEach(([voiceId, sectionMap]) => {
-                  convertedLocalTTS[voiceId] = Object.entries(sectionMap).map(
-                    ([sectionId, ttsData]) => ({
-                      storyId: storyData.storyId,
-                      sectionId: parseInt(sectionId),
-                      audioPath: ttsData.audioPath,
-                      ttsUrl: ttsData.ttsUrl,
-                    })
-                  );
-                });
-
-                setVoiceBasedTTSMap(convertedLocalTTS);
-
-                // 현재 선택된 음성에 맞는 TTS 정보를 ttsAudioMap에 설정
-                const voiceMapping: { [key: string]: string } = {
-                  세연: 'Seoyeon',
-                  Joanna: 'Joanna',
-                };
-                const actualVoiceId = voiceMapping[ttsVoiceId];
-                const currentVoiceTTS = convertedLocalTTS[actualVoiceId] || [];
-                const newTtsAudioMap: { [sectionId: number]: TTSAudioInfo } = {};
-
-                if (Array.isArray(currentVoiceTTS)) {
-                  currentVoiceTTS.forEach((ttsInfo) => {
-                    if (ttsInfo && ttsInfo.sectionId) {
-                      newTtsAudioMap[ttsInfo.sectionId] = ttsInfo;
-                    }
-                  });
-                }
-
-                setTtsAudioMap(newTtsAudioMap);
-                console.log('✅ 로컬 TTS 정보 로드 완료');
-              } else {
-                console.log('🔄 로컬 TTS 정보 없음, 서버에서 새로 생성');
-
-                // TTS 요청 상태 추가
-                setTtsRequested((prev) => {
-                  const newSet = new Set(prev);
-                  newSet.add(storyData.storyId);
-                  console.log('✅ TTS 요청 상태 추가됨:', {
-                    storyId: storyData.storyId,
-                    newSetSize: newSet.size,
-                    newSetValues: Array.from(newSet),
-                  });
-                  return newSet;
-                });
-
-                await generateTTSFromServer();
-              }
-
-              // 서버에서 TTS 생성하는 함수
-              async function generateTTSFromServer() {
-                console.log('🎵 TTS 생성 시작 - 학습 화면에서 동화 조회 시 생성');
-
-                const ttsResults = await generateTTSForStory(storyData.childId, storyData.storyId);
-                console.log(`✅ 동화 ${storyData.storyId} TTS 생성 완료:`, {
-                  Joanna: ttsResults['Joanna']?.length || 0,
-                  Seoyeon: ttsResults['Seoyeon']?.length || 0,
-                });
-
-                // === 9. TTS 데이터 설정 ===
-                if (ttsResults && Object.keys(ttsResults).length > 0) {
-                  setVoiceBasedTTSMap(ttsResults);
-
-                  // 현재 선택된 음성에 맞는 TTS 정보를 ttsAudioMap에 설정
-                  const voiceMapping: { [key: string]: string } = {
-                    세연: 'Seoyeon',
-                    Joanna: 'Joanna',
-                  };
-                  const actualVoiceId = voiceMapping[ttsVoiceId];
-                  const currentVoiceTTS = ttsResults[actualVoiceId] || [];
-                  const newTtsAudioMap: { [sectionId: number]: TTSAudioInfo } = {};
-
-                  currentVoiceTTS.forEach((ttsInfo) => {
-                    if (ttsInfo && ttsInfo.sectionId) {
-                      newTtsAudioMap[ttsInfo.sectionId] = ttsInfo;
-                    }
-                  });
-
-                  setTtsAudioMap(newTtsAudioMap);
-
-                  // === 10. TTS 정보 로컬 저장 (모든 음성) ===
-                  try {
-                    // 모든 음성의 TTS 정보를 voiceId를 키로 하여 저장
-                    const allTTSInfoForStorage: {
-                      [voiceId: string]: {
-                        [sectionId: number]: { audioPath: string; ttsUrl: string };
-                      };
-                    } = {};
-
-                    // Joanna와 Seoyeon 음성 모두 저장
-                    Object.entries(ttsResults).forEach(([voiceId, ttsArray]) => {
-                      allTTSInfoForStorage[voiceId] = {};
-                      ttsArray.forEach((ttsInfo) => {
-                        if (ttsInfo && ttsInfo.sectionId) {
-                          allTTSInfoForStorage[voiceId][ttsInfo.sectionId] = {
-                            audioPath: ttsInfo.audioPath,
-                            ttsUrl: ttsInfo.ttsUrl,
-                          };
-                        }
-                      });
-                    });
-
-                    await saveStoryTTS(storyData.childId, storyData.storyId, allTTSInfoForStorage);
-                    console.log(
-                      '💾 모든 음성 TTS 정보 로컬 저장 완료:',
-                      Object.keys(allTTSInfoForStorage).length,
-                      '개 음성'
-                    );
-                  } catch (storageError) {
-                    console.warn('⚠️ TTS 정보 로컬 저장 실패:', storageError);
-                  }
-                } else {
-                  console.warn(`⚠️ ${ttsVoiceId} 음성의 TTS 정보가 없습니다.`);
-                }
-              }
-            } catch (ttsError) {
-              console.warn(`⚠️ 동화 ${storyData.storyId} TTS 처리 중 오류:`, ttsError);
-            }
-
-            // === 11. 삽화 이미지 로드 ===
-            if (storyData.childId && storyData.childId > 0) {
-              try {
-                console.log(`동화 ${storyData.storyId} 삽화 이미지 로드 시작...`);
-
-                // 삽화 동기화 (새 동화인 경우 강제 다운로드)
-                const isNewStory = params.isNewStory === 'true';
-                const storyTitleMap = { [storyData.storyId]: storyData.title };
-                await syncMissingIllustrations(
-                  [storyData.storyId],
-                  storyData.childId,
-                  undefined,
-                  isNewStory,
-                  storyTitleMap
-                );
-
-                // 삽화 목록 조회
-                const illustrations = await fetchIllustrations(storyData.childId);
-                const storyIllustrations = illustrations.filter(
-                  (illustration) => illustration.storyId === storyData.storyId
-                );
-
-                console.log(`동화 ${storyData.storyId} 삽화 정보:`, {
-                  totalIllustrations: illustrations.length,
-                  storyIllustrations: storyIllustrations.length,
-                });
-
-                if (storyIllustrations.length > 0) {
-                  // Story 객체에 삽화 정보 추가
-                  const storyWithIllustrations = {
-                    ...storyData,
-                    illustrations: storyIllustrations.map((illustration) => ({
-                      illustrationId: illustration.illustrationId,
-                      storyId: illustration.storyId,
-                      orderIndex: illustration.orderIndex,
-                      localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${storyData.title
-                        .replace(/[<>:"/\\|?*]/g, '')
-                        .replace(/\s+/g, '_')
-                        .substring(0, 50)}.jpg`,
-                      imageUrl: illustration.imageUrl,
-                      description: illustration.description,
-                      createdAt: illustration.createdAt,
-                    })),
-                  };
-
-                  // Story 객체 저장
-                  await addStoryToStorage(storyWithIllustrations);
-
-                  // currentStory에 삽화 정보 추가
-                  setCurrentStory((prevStory) => {
-                    const learningStoryWithIllustrations = {
-                      ...prevStory,
-                      illustrations: storyWithIllustrations.illustrations,
-                      content: prevStory?.content || storyData.content,
-                      title: prevStory?.title || storyData.title,
-                      contentKr: prevStory?.contentKr || storyData.contentKr,
-                      highlightedWords: prevStory?.highlightedWords || [],
-                      sections: prevStory?.sections || [],
-                      totalPages: prevStory?.sections?.length || 1,
-                      storyId: prevStory?.storyId || storyData.storyId,
-                      childId: prevStory?.childId || storyData.childId,
-                      keywords: prevStory?.keywords || storyData.keywords,
-                      savedWords: prevStory?.savedWords || [],
-                    };
-                    console.log('✅ 삽화 정보 추가 후 currentStory 업데이트:', {
-                      title: learningStoryWithIllustrations.title,
-                      contentLength: learningStoryWithIllustrations.content?.length || 0,
-                      sectionsCount: learningStoryWithIllustrations.sections?.length || 0,
-                      illustrationsCount: learningStoryWithIllustrations.illustrations?.length || 0,
-                    });
-                    return learningStoryWithIllustrations;
-                  });
-
-                  // 삽화 경로 확인 및 배경 설정
-                  const illustrationPath =
-                    await getStoryIllustrationPathFromStory(storyWithIllustrations);
-                  if (illustrationPath) {
-                    setBackgroundImage(illustrationPath);
-                    console.log(`동화 ${storyData.storyId} 로컬 삽화 배경 설정:`, illustrationPath);
-                  } else {
-                    setBackgroundImage(null);
-                    console.log(`동화 ${storyData.storyId} 삽화 이미지가 없습니다. 기본 배경 사용`);
-                  }
-                } else {
-                  setBackgroundImage(null);
-                  console.log(
-                    `동화 ${storyData.storyId}에 해당하는 삽화가 없습니다. 기본 배경 사용`
-                  );
-                }
-              } catch (illustrationError) {
-                console.error('삽화 정보 조회 실패:', illustrationError);
-                setBackgroundImage(null);
-              }
-            } else {
-              setBackgroundImage(null);
-              console.log('삽화 로드 건너뛰기 - childId가 유효하지 않음');
-            }
-
-            // === 12. 동기화 화면 타이머는 useEffect에서 설정됨 ===
-          } catch (sectionError) {
-            console.error(`동화 ${storyData.storyId} 단락 조회 실패:`, sectionError);
-
-            // === 13. Fallback: 기존 방식으로 동화 로드 ===
-            console.log('기존 방식으로 동화 로드 (프론트엔드 단락 분할)...');
-
-            const learningStory = convertStoryToLearningStoryWithPages(storyData);
-            const fallbackStory = {
-              ...learningStory,
-              sections: [],
-              highlightedWords: learningStory.highlightedWords || [],
-            };
-
-            setCurrentStory(fallbackStory);
-            setIsStoryLoaded(true);
-            setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-            setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-
-            // fallback 케이스에서도 단어 처리
-            if (learningStory.content) {
-              await processStoryWords(learningStory.content);
-            }
-
-            console.log('🎵 TTS 생성 건너뛰기 - fallback 케이스');
-
-            // 동기화 화면 타이머 설정
-            if (params.isNewStory === 'true') {
-              // 새 동화인 경우 5초 후 동기화 화면 숨김
-              setTimeout(() => setIsSyncing(false), 20000);
-            } else {
-              // 기존 동화인 경우 1초 후 동기화 화면 숨김
-              setTimeout(() => setIsSyncing(false), 2000);
-            }
-          }
-        } else {
-          // === 14. 기존 로직: 선택된 프로필의 최신 동화 사용 ===
-          const selectedProfile = await loadSelectedProfile();
-          if (!selectedProfile || !selectedProfile.childId || selectedProfile.childId <= 0) {
-            console.warn('⚠️ 선택된 프로필이 없거나 childId가 유효하지 않음:', selectedProfile);
-            return;
-          }
-
-          console.log('✅ 선택된 프로필 확인:', {
-            childId: selectedProfile.childId,
-            name: selectedProfile.name,
-          });
-
-          const stories = await loadStoriesByChildId(selectedProfile.childId);
-          if (stories.length === 0) {
-            console.log('동화가 없습니다.');
-            return;
-          }
-
-          const latestStory = stories[0];
-          console.log('최신 동화 데이터:', {
-            storyId: latestStory.storyId,
-            title: latestStory.title,
-            childId: latestStory.childId,
-          });
-
-          try {
-            // 최신 동화 단락 조회
-            const sections = await fetchStorySections(latestStory.storyId, latestStory.childId);
-            const learningStory = convertStoryToLearningStoryWithSections(latestStory, sections);
-
-            setCurrentStory(learningStory);
-            setIsStoryLoaded(true);
-            setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-            setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-
-            await getWordsForStory(latestStory.storyId, latestStory.childId);
-
-            // 최신 동화 단락의 단어들도 처리
-            if (learningStory.sections && learningStory.sections.length > 0) {
-              for (const section of learningStory.sections) {
-                if (section.paragraphText) {
-                  await processStoryWords(section.paragraphText);
-                }
-              }
-            } else if (learningStory.content) {
-              await processStoryWords(learningStory.content);
-            }
-
-            // 동기화 화면 타이머는 useEffect에서 설정됨
-          } catch (sectionError) {
-            console.error(`최신 동화 ${latestStory.storyId} 단락 조회 실패:`, sectionError);
-
-            // Fallback 방식
-            const learningStory = convertStoryToLearningStoryWithPages(latestStory);
-            const fallbackStory = {
-              ...learningStory,
-              sections: [],
-              highlightedWords: learningStory.highlightedWords || [],
-            };
-
-            setCurrentStory(fallbackStory);
-            setIsStoryLoaded(true);
-            setWordFavorites(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-            setWordClicked(new Array(learningStory.highlightedWords?.length || 0).fill(false));
-          }
-
-          // 최신 동화 삽화 로드
-          if (latestStory.childId && latestStory.childId > 0) {
-            try {
-              const isNewStory = params.isNewStory === 'true';
-              const storyTitleMap = { [latestStory.storyId]: latestStory.title };
-              await syncMissingIllustrations(
-                [latestStory.storyId],
-                latestStory.childId,
-                undefined,
-                isNewStory,
-                storyTitleMap
-              );
-              const illustrations = await fetchIllustrations(latestStory.childId);
-              const storyIllustrations = illustrations.filter(
-                (illustration) => illustration.storyId === latestStory.storyId
-              );
-
-              if (storyIllustrations.length > 0) {
-                const storyWithIllustrations = {
-                  ...latestStory,
-                  illustrations: storyIllustrations.map((illustration) => ({
-                    illustrationId: illustration.illustrationId,
-                    storyId: illustration.storyId,
-                    orderIndex: illustration.orderIndex,
-                    localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}_story${illustration.storyId}_${latestStory.title
-                      .replace(/[<>:"/\\|?*]/g, '')
-                      .replace(/\s+/g, '_')
-                      .substring(0, 50)}.jpg`,
-                    imageUrl: illustration.imageUrl,
-                    description: illustration.description,
-                    createdAt: illustration.createdAt,
-                  })),
-                };
-
-                await addStoryToStorage(storyWithIllustrations);
-
-                setCurrentStory((prevStory) => {
-                  const learningStoryWithIllustrations = {
-                    ...prevStory,
-                    illustrations: storyWithIllustrations.illustrations,
-                    content: prevStory?.content || latestStory.content,
-                    title: prevStory?.title || latestStory.title,
-                    contentKr: prevStory?.contentKr || latestStory.contentKr,
-                    highlightedWords: prevStory?.highlightedWords || [],
-                    sections: prevStory?.sections || [],
-                    totalPages: prevStory?.sections?.length || 1,
-                    storyId: prevStory?.storyId || latestStory.storyId,
-                    childId: prevStory?.childId || latestStory.childId,
-                    keywords: prevStory?.keywords || latestStory.keywords,
-                    savedWords: prevStory?.savedWords || [],
-                  };
-                  return learningStoryWithIllustrations;
-                });
-
-                const illustrationPath =
-                  await getStoryIllustrationPathFromStory(storyWithIllustrations);
-                if (illustrationPath) {
-                  setBackgroundImage(illustrationPath);
-                } else {
-                  setBackgroundImage(null);
-                }
-              } else {
-                setBackgroundImage(null);
-              }
-            } catch (illustrationError) {
-              console.error('최신 동화 삽화 정보 조회 실패:', illustrationError);
-              setBackgroundImage(null);
-            }
-          }
-        }
-
-        console.log('🎯 동화 초기화 완료');
-      } catch (error) {
-        console.error('동화 초기화 실패:', error);
-      }
-    };
 
     initializeStoryAndTTS();
   }, []); // 빈 의존성 배열 - 마운트 시 한 번만 실행

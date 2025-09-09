@@ -52,46 +52,18 @@ export default function ProfileEditScreen() {
   // 프로필 정보 파싱 및 초기화
   const [profile, setProfile] = useState<ChildProfile | null>(null);
 
-  useEffect(() => {
-    if (profileParam) {
-      try {
-        const parsedProfile: ChildProfile = JSON.parse(profileParam);
-        setProfile(parsedProfile);
-        setName(parsedProfile.name || '');
-        setAge(parsedProfile.age?.toString() || '');
-        setLearningLevel(parsedProfile.learningLevel || '');
-        // 프로필 이미지 설정
-        if (parsedProfile.profileImage) {
-          setSelectedImage(parsedProfile.profileImage);
-        }
-      } catch (error) {
-        console.error('프로필 정보 파싱 실패:', error);
-        Alert.alert('오류', '프로필 정보를 불러오는데 실패했습니다.');
-        router.back();
-      }
-    }
-  }, [profileParam]);
-
-  // 화면 방향을 가로 모드로 고정
-  useEffect(() => {
-    const lockOrientation = async () => {
-      try {
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-      } catch (error) {
-        console.error('화면 방향 잠금 실패:', error);
-      }
-    };
-
-    lockOrientation();
-  }, []);
-
-  // 다른 이미지로 변경하는 함수
+  /**
+   * 다른 이미지로 변경하는 함수
+   */
   const handleChangeImage = () => {
     const randomImage = getRandomAnimalImage();
     setSelectedImage(randomImage);
   };
 
-  // 수정 완료 처리
+  /**
+   * 수정 완료 처리 함수
+   * 입력값 검증 후 서버에 프로필 수정 요청
+   */
   const handleSave = async () => {
     // 입력값 검증
     if (!name.trim()) {
@@ -170,11 +142,48 @@ export default function ProfileEditScreen() {
     }
   };
 
-  // 뒤로가기 처리
+  /**
+   * 뒤로가기 처리 함수
+   */
   const handleBack = () => {
     // router.back() 사용하여 네비게이션 스택 유지
     router.back();
   };
+
+  // ===== 실행 부분 =====
+  // 프로필 정보 파싱 및 초기화
+  useEffect(() => {
+    if (profileParam) {
+      try {
+        const parsedProfile: ChildProfile = JSON.parse(profileParam);
+        setProfile(parsedProfile);
+        setName(parsedProfile.name || '');
+        setAge(parsedProfile.age?.toString() || '');
+        setLearningLevel(parsedProfile.learningLevel || '');
+        // 프로필 이미지 설정
+        if (parsedProfile.profileImage) {
+          setSelectedImage(parsedProfile.profileImage);
+        }
+      } catch (error) {
+        console.error('프로필 정보 파싱 실패:', error);
+        Alert.alert('오류', '프로필 정보를 불러오는데 실패했습니다.');
+        router.back();
+      }
+    }
+  }, [profileParam]);
+
+  // 화면 방향을 가로 모드로 고정
+  useEffect(() => {
+    const lockOrientation = async () => {
+      try {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      } catch (error) {
+        console.error('화면 방향 잠금 실패:', error);
+      }
+    };
+
+    lockOrientation();
+  }, []);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: finalBackgroundColor }]}>
@@ -197,8 +206,8 @@ export default function ProfileEditScreen() {
           <View style={styles.imageContainer}>
             <ThemedText style={styles.inputLabel}>프로필 이미지</ThemedText>
             <View style={styles.imagePreviewContainer}>
-              <Image 
-                source={loadImage(selectedImage)} 
+              <Image
+                source={loadImage(selectedImage)}
                 style={styles.profileImagePreview}
                 onError={(error) => console.log('이미지 로딩 에러:', error)}
                 onLoad={() => console.log('이미지 로딩 성공:', selectedImage)}

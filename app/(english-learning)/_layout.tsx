@@ -7,13 +7,27 @@ import { useEffect } from 'react';
 import * as NavigationBar from 'expo-navigation-bar';
 
 export default function EnglishLearningLayout() {
-  useEffect(() => {
-    // 네비게이션 바 숨기기
-    NavigationBar.setVisibilityAsync('hidden');
+  // ===== 함수 정의 부분 =====
 
-    return () => {
-      NavigationBar.setVisibilityAsync('visible');
-    };
+  /**
+   * 네비게이션 바 숨기기 함수
+   */
+  const hideNavigationBar = () => {
+    NavigationBar.setVisibilityAsync('hidden');
+  };
+
+  /**
+   * 네비게이션 바 복원 함수
+   */
+  const restoreNavigationBar = () => {
+    NavigationBar.setVisibilityAsync('visible');
+  };
+
+  // ===== 실행 부분 =====
+
+  useEffect(() => {
+    hideNavigationBar();
+    return restoreNavigationBar;
   }, []);
 
   return (

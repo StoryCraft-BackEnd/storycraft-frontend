@@ -76,46 +76,46 @@ export default function HomeScreen() {
   const textColor = useThemeColor('text');
   // useThemeColor('text'): 테마에 따른 텍스트 색상 반환
 
-  // 앱 초기화 - useEffect Hook 사용
-  // useEffect: 컴포넌트가 마운트되거나 의존성이 변경될 때 실행
-  // []: 빈 배열 - 컴포넌트가 처음 마운트될 때만 실행 (의존성 없음)
-  useEffect(() => {
-    // 비동기 함수 정의 (async/await 사용)
-    const initializeApp = async () => {
-      try {
-        console.log('✅ (auth)/index.tsx - 서버 연결 확인 시작');
+  // ===== 함수 정의 부분 =====
 
-        // 서버 연결 확인
-        // await: 비동기 함수의 결과를 기다림
-        const connected = await checkServerConnection();
-        // checkServerConnection(): 서버 연결 상태를 확인하는 함수 호출
-        // 결과는 boolean (true: 연결됨, false: 연결 실패)
+  /**
+   * 앱 초기화 함수
+   *
+   * @async
+   * @function initializeApp
+   * @returns {Promise<void>}
+   */
+  const initializeApp = async () => {
+    try {
+      console.log('✅ (auth)/index.tsx - 서버 연결 확인 시작');
 
-        // 상태 업데이트: 서버 연결 상태 저장
-        setIsConnected(connected);
-        // setIsConnected(): isConnected 상태를 변경하는 함수
+      // 서버 연결 확인
+      // await: 비동기 함수의 결과를 기다림
+      const connected = await checkServerConnection();
+      // checkServerConnection(): 서버 연결 상태를 확인하는 함수 호출
+      // 결과는 boolean (true: 연결됨, false: 연결 실패)
 
-        // setTimeout(): 지정된 시간 후에 함수 실행
-        // 100ms 후에 초기 로딩 화면을 닫음
-        setTimeout(() => {
-          setIsInitialLoading(false);
-          // setIsInitialLoading(false): 초기 로딩 상태를 false로 변경
-        }, 100);
-      } catch (error) {
-        // catch: 에러가 발생했을 때 실행되는 블록
-        // console.error(): 에러 로그 출력
-        console.error('앱 초기화 중 오류:', error);
-        // error: 발생한 에러 객체
+      // 상태 업데이트: 서버 연결 상태 저장
+      setIsConnected(connected);
+      // setIsConnected(): isConnected 상태를 변경하는 함수
 
-        // 에러 발생 시 상태 설정
-        setIsConnected(false); // 서버 연결 실패로 설정
-        setIsInitialLoading(false); // 로딩 화면 닫기
-      }
-    };
+      // setTimeout(): 지정된 시간 후에 함수 실행
+      // 100ms 후에 초기 로딩 화면을 닫음
+      setTimeout(() => {
+        setIsInitialLoading(false);
+        // setIsInitialLoading(false): 초기 로딩 상태를 false로 변경
+      }, 100);
+    } catch (error) {
+      // catch: 에러가 발생했을 때 실행되는 블록
+      // console.error(): 에러 로그 출력
+      console.error('앱 초기화 중 오류:', error);
+      // error: 발생한 에러 객체
 
-    // 함수 호출: initializeApp 함수 실행
-    initializeApp();
-  }, []); // 빈 의존성 배열: 컴포넌트 마운트 시 한 번만 실행
+      // 에러 발생 시 상태 설정
+      setIsConnected(false); // 서버 연결 실패로 설정
+      setIsInitialLoading(false); // 로딩 화면 닫기
+    }
+  };
 
   /**
    * 서버 연결 상태를 확인하고 결과를 표시하는 핸들러
@@ -177,7 +177,6 @@ export default function HomeScreen() {
    *
    * @function handleNotFoundPress
    */
-  // 화살표 함수 문법: const 함수명 = () => { 함수내용 }
   const handleNotFoundPress = () => {
     console.log('404 화면으로 이동합니다!');
 
@@ -191,7 +190,6 @@ export default function HomeScreen() {
    *
    * @function handleLoadingTest
    */
-  // 화살표 함수 문법: const 함수명 = () => { 함수내용 }
   const handleLoadingTest = () => {
     // 로딩 메시지 설정
     setLoadingMessage('로딩 중입니다...');
@@ -214,8 +212,6 @@ export default function HomeScreen() {
    *
    * @function handleClearTerms
    */
-  // 화살표 함수 문법: const 함수명 = () => { 함수내용 }
-  // async: 비동기 함수임을 나타냄
   const handleClearTerms = async () => {
     try {
       // 약관 동의 상태 초기화
@@ -234,6 +230,16 @@ export default function HomeScreen() {
       Alert.alert('오류', '약관 동의 초기화 중 오류가 발생했습니다.');
     }
   };
+
+  // ===== 실행 부분 =====
+
+  // 앱 초기화 - useEffect Hook 사용
+  // useEffect: 컴포넌트가 마운트되거나 의존성이 변경될 때 실행
+  // []: 빈 배열 - 컴포넌트가 처음 마운트될 때만 실행 (의존성 없음)
+  useEffect(() => {
+    // 함수 호출: initializeApp 함수 실행
+    initializeApp();
+  }, []); // 빈 의존성 배열: 컴포넌트 마운트 시 한 번만 실행
 
   // 조건부 렌더링: 초기 로딩 화면 표시
   if (isInitialLoading) {

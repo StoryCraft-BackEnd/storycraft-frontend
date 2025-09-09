@@ -50,109 +50,120 @@ export default function ProfileScreen() {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('프로필을 불러오는 중...');
 
+  /**
+   * 컴포넌트 마운트 시 시스템 UI 숨기기 함수
+   */
+  const hideSystemUIOnMount = async () => {
+    try {
+      console.log('🚀 프로필 선택 화면 마운트 시 시스템 UI 숨기기 시작');
+
+      // 강화된 네비게이션 바 숨기기 (여러 번 시도)
+      let navigationBarHidden = false;
+      for (let i = 0; i < 3; i++) {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          navigationBarHidden = true;
+          break;
+        } catch (error) {
+          console.log(`⚠️ 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
+          await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
+        }
+      }
+
+      if (!navigationBarHidden) {
+        console.log('❌ 네비게이션 바 숨기기 최종 실패');
+      }
+
+      // 상태바 숨기기
+      StatusBar.setHidden(true);
+
+      // 전체 화면 모드 설정 (Immersive Mode)
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+      // 추가 지연 후 한 번 더 시도
+      setTimeout(async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          console.log('✅ 지연 후 네비게이션 바 숨기기 재시도 완료');
+        } catch (error) {
+          console.log('❌ 지연 후 네비게이션 바 숨기기 실패:', error);
+        }
+      }, 500);
+    } catch (error) {
+      console.log('❌ 컴포넌트 마운트 시 시스템 UI 숨기기 실패:', error);
+    }
+  };
+
+  /**
+   * 포커스 시 시스템 UI 숨기기 함수
+   */
+  const hideSystemUI = async () => {
+    try {
+      // 강화된 네비게이션 바 숨기기 (여러 번 시도)
+      let navigationBarHidden = false;
+      for (let i = 0; i < 3; i++) {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          console.log(`✅ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 완료`);
+          navigationBarHidden = true;
+          break;
+        } catch (error) {
+          console.log(`⚠️ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
+          await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
+        }
+      }
+
+      if (!navigationBarHidden) {
+        console.log('❌ 포커스 시 네비게이션 바 숨기기 최종 실패');
+      }
+
+      // 상태바 숨기기
+      StatusBar.setHidden(true);
+
+      // 전체 화면 모드 설정 (Immersive Mode)
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+      // 추가 지연 후 한 번 더 시도
+      setTimeout(async () => {
+        try {
+          await NavigationBar.setVisibilityAsync('hidden');
+          console.log('✅ 포커스 시 지연 후 네비게이션 바 숨기기 재시도 완료');
+        } catch (error) {
+          console.log('❌ 포커스 시 지연 후 네비게이션 바 숨기기 실패:', error);
+        }
+      }, 500);
+    } catch (error) {
+      console.log('❌ 포커스 시 시스템 UI 숨기기 실패:', error);
+    }
+  };
+
+  /**
+   * 시스템 UI 복원 함수
+   */
+  const restoreSystemUI = async () => {
+    try {
+      await NavigationBar.setVisibilityAsync('visible');
+      StatusBar.setHidden(false);
+      // 🚨 핵심: 화면 방향 잠금 해제하지 않음 - 메인 화면에서 가로 모드 유지
+    } catch (error) {
+      console.log('❌ 시스템 UI 복원 실패:', error);
+    }
+  };
+
+  // ===== 실행 부분 =====
   // 컴포넌트 마운트 시 시스템 UI 숨기기
   React.useEffect(() => {
-    const hideSystemUIOnMount = async () => {
-      try {
-        console.log('🚀 프로필 선택 화면 마운트 시 시스템 UI 숨기기 시작');
-
-        // 강화된 네비게이션 바 숨기기 (여러 번 시도)
-        let navigationBarHidden = false;
-        for (let i = 0; i < 3; i++) {
-          try {
-            await NavigationBar.setVisibilityAsync('hidden');
-            navigationBarHidden = true;
-            break;
-          } catch (error) {
-            console.log(`⚠️ 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
-            await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
-          }
-        }
-
-        if (!navigationBarHidden) {
-          console.log('❌ 네비게이션 바 숨기기 최종 실패');
-        }
-
-        // 상태바 숨기기
-        StatusBar.setHidden(true);
-
-        // 전체 화면 모드 설정 (Immersive Mode)
-        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
-        // 추가 지연 후 한 번 더 시도
-        setTimeout(async () => {
-          try {
-            await NavigationBar.setVisibilityAsync('hidden');
-            console.log('✅ 지연 후 네비게이션 바 숨기기 재시도 완료');
-          } catch (error) {
-            console.log('❌ 지연 후 네비게이션 바 숨기기 실패:', error);
-          }
-        }, 500);
-      } catch (error) {
-        console.log('❌ 컴포넌트 마운트 시 시스템 UI 숨기기 실패:', error);
-      }
-    };
-
     hideSystemUIOnMount();
   }, []);
 
   // 화면이 포커스될 때마다 프로필 목록을 새로고침하고 시스템 UI 숨기기
   useFocusEffect(
     React.useCallback(() => {
-      const hideSystemUI = async () => {
-        try {
-          // 강화된 네비게이션 바 숨기기 (여러 번 시도)
-          let navigationBarHidden = false;
-          for (let i = 0; i < 3; i++) {
-            try {
-              await NavigationBar.setVisibilityAsync('hidden');
-              console.log(`✅ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 완료`);
-              navigationBarHidden = true;
-              break;
-            } catch (error) {
-              console.log(`⚠️ 포커스 시 네비게이션 바 숨기기 시도 ${i + 1} 실패:`, error);
-              await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms 대기
-            }
-          }
-
-          if (!navigationBarHidden) {
-            console.log('❌ 포커스 시 네비게이션 바 숨기기 최종 실패');
-          }
-
-          // 상태바 숨기기
-          StatusBar.setHidden(true);
-
-          // 전체 화면 모드 설정 (Immersive Mode)
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
-          // 추가 지연 후 한 번 더 시도
-          setTimeout(async () => {
-            try {
-              await NavigationBar.setVisibilityAsync('hidden');
-              console.log('✅ 포커스 시 지연 후 네비게이션 바 숨기기 재시도 완료');
-            } catch (error) {
-              console.log('❌ 포커스 시 지연 후 네비게이션 바 숨기기 실패:', error);
-            }
-          }, 500);
-        } catch (error) {
-          console.log('❌ 포커스 시 시스템 UI 숨기기 실패:', error);
-        }
-      };
-
       hideSystemUI();
       loadProfiles();
 
       // 화면이 포커스를 잃을 때 시스템 UI 복원 (화면 방향은 유지)
       return () => {
-        const restoreSystemUI = async () => {
-          try {
-            await NavigationBar.setVisibilityAsync('visible');
-            StatusBar.setHidden(false);
-            // 🚨 핵심: 화면 방향 잠금 해제하지 않음 - 메인 화면에서 가로 모드 유지
-          } catch (error) {
-            console.log('❌ 시스템 UI 복원 실패:', error);
-          }
-        };
         restoreSystemUI();
       };
     }, [])
@@ -195,6 +206,10 @@ export default function ProfileScreen() {
     return () => subscription.remove();
   }, [isDark, insets]);
 
+  /**
+   * 프로필 목록을 로드하는 함수
+   * 로컬 스토리지와 서버에서 프로필 데이터를 가져와 병합
+   */
   const loadProfiles = async () => {
     try {
       setIsLoading(true);
@@ -258,6 +273,10 @@ export default function ProfileScreen() {
     }
   };
 
+  /**
+   * 프로필 선택 핸들러
+   * @param profileId 선택된 프로필의 ID
+   */
   const handleProfileSelect = async (profileId: number) => {
     try {
       // 로딩 팝업 표시
@@ -289,11 +308,18 @@ export default function ProfileScreen() {
     }
   };
 
+  /**
+   * 프로필 추가 핸들러
+   */
   const handleAddProfile = () => {
     // 프로필 추가 화면으로 이동
     router.push('/(profile)/create');
   };
 
+  /**
+   * 프로필 삭제 핸들러
+   * @param profileId 삭제할 프로필의 ID
+   */
   const handleDeleteProfile = async (profileId: number) => {
     Alert.alert('프로필 삭제', '정말로 이 프로필을 삭제하시겠습니까?', [
       {
@@ -327,7 +353,10 @@ export default function ProfileScreen() {
     ]);
   };
 
-  // 프로필 수정 버튼 클릭 시
+  /**
+   * 프로필 수정 핸들러
+   * @param profile 수정할 프로필 정보
+   */
   const handleEditProfile = (profile: ChildProfile) => {
     // 프로필 수정 화면으로 이동하면서 프로필 정보 전달
     router.push({
@@ -336,7 +365,10 @@ export default function ProfileScreen() {
     });
   };
 
-  // 로그아웃 버튼 클릭 시
+  /**
+   * 로그아웃 핸들러
+   * 모든 토큰과 프로필 데이터를 삭제하고 로그인 화면으로 이동
+   */
   const handleLogout = async () => {
     console.log('🔘 로그아웃 버튼 클릭됨');
     try {
@@ -398,7 +430,11 @@ export default function ProfileScreen() {
     }
   };
 
-  // 프로필 이미지 로드 함수
+  /**
+   * 프로필 이미지 로드 함수
+   * @param profile 프로필 정보
+   * @returns 프로필 이미지 소스
+   */
   const getProfileImage = (profile: ChildProfile) => {
     // 프로필에 설정된 이미지가 있으면 해당 이미지 사용, 없으면 기본 이미지 사용
     if (profile.profileImage) {

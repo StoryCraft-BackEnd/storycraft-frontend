@@ -73,42 +73,59 @@ export default function SignupScreen() {
   const colorScheme = useColorScheme(); // 현재 테마 모드 (light/dark)
   const finalBackgroundColor = colorScheme === 'light' ? '#FFF5E6' : backgroundColor;
 
-  // 화면이 포커스될 때 네비게이션 바와 상태바 숨기기 (몰입형 경험 제공)
-  useFocusEffect(
-    React.useCallback(() => {
-      const hideSystemUI = async () => {
-        try {
-          // 네비게이션 바 숨기기 (하단 시스템 네비게이션 바)
-          await NavigationBar.setVisibilityAsync('hidden');
-          // 상태바 숨기기 (상단 시간, 배터리 등이 표시되는 영역)
-          StatusBar.setHidden(true);
-          // 전체 화면 모드 설정 (Immersive Mode - 세로 모드 고정)
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-        } catch (error) {
-          console.log('시스템 UI 숨기기 실패:', error);
-        }
-      };
+  // ===== 함수 정의 부분 =====
 
-      hideSystemUI();
+  /**
+   * 시스템 UI 숨기기 함수
+   * - 네비게이션 바, 상태바를 숨겨 몰입감 있는 사용자 경험 제공
+   * - 세로 모드로 고정하여 일관된 레이아웃 유지
+   *
+   * @async
+   * @function hideSystemUI
+   * @returns {Promise<void>}
+   */
+  const hideSystemUI = async () => {
+    try {
+      // 네비게이션 바 숨기기 (하단 시스템 네비게이션 바)
+      await NavigationBar.setVisibilityAsync('hidden');
+      // 상태바 숨기기 (상단 시간, 배터리 등이 표시되는 영역)
+      StatusBar.setHidden(true);
+      // 전체 화면 모드 설정 (Immersive Mode - 세로 모드 고정)
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    } catch (error) {
+      console.log('시스템 UI 숨기기 실패:', error);
+    }
+  };
 
-      // 화면이 포커스를 잃을 때 시스템 UI 복원 (다른 화면으로 이동 시)
-      return () => {
-        const restoreSystemUI = async () => {
-          try {
-            await NavigationBar.setVisibilityAsync('visible'); // 네비게이션 바 다시 표시
-            StatusBar.setHidden(false); // 상태바 다시 표시
-            // 화면 방향 잠금 해제 (자유로운 화면 회전 허용)
-            await ScreenOrientation.unlockAsync();
-          } catch (error) {
-            console.log('시스템 UI 복원 실패:', error);
-          }
-        };
-        restoreSystemUI();
-      };
-    }, [])
-  );
+  /**
+   * 시스템 UI 복원 함수
+   * - 다른 화면으로 이동할 때 시스템 UI를 다시 표시
+   * - 화면 방향 잠금 해제
+   *
+   * @async
+   * @function restoreSystemUI
+   * @returns {Promise<void>}
+   */
+  const restoreSystemUI = async () => {
+    try {
+      await NavigationBar.setVisibilityAsync('visible'); // 네비게이션 바 다시 표시
+      StatusBar.setHidden(false); // 상태바 다시 표시
+      // 화면 방향 잠금 해제 (자유로운 화면 회전 허용)
+      await ScreenOrientation.unlockAsync();
+    } catch (error) {
+      console.log('시스템 UI 복원 실패:', error);
+    }
+  };
 
-  // 회원가입 처리 함수 (5단계 입력 완료 후 최종 회원가입 실행)
+  /**
+   * 회원가입 처리 함수
+   * - 5단계 입력 완료 후 최종 회원가입 실행
+   * - 사용자 입력 데이터를 서버에 전송하여 계정 생성
+   *
+   * @async
+   * @function handleSignup
+   * @returns {Promise<void>}
+   */
   const handleSignup = async () => {
     // 이미 로딩 중이면 중복 요청 방지 (사용자가 여러 번 버튼을 누르는 것 방지)
     if (isLoading) return;
@@ -157,7 +174,15 @@ export default function SignupScreen() {
     }
   };
 
-  // 이메일 중복 확인 함수 (2단계에서 이메일 사용 가능 여부 확인)
+  /**
+   * 이메일 중복 확인 함수
+   * - 2단계에서 이메일 사용 가능 여부 확인
+   * - 서버에 이메일 중복 확인 요청을 보내고 결과에 따라 상태 업데이트
+   *
+   * @async
+   * @function handleEmailCheck
+   * @returns {Promise<void>}
+   */
   const handleEmailCheck = async () => {
     // 이메일 입력 검증 (기본적인 이메일 형식 확인)
     if (!email || !email.includes('@')) {
@@ -200,7 +225,15 @@ export default function SignupScreen() {
     }
   };
 
-  // 닉네임 중복 확인 함수 (4단계에서 닉네임 사용 가능 여부 확인)
+  /**
+   * 닉네임 중복 확인 함수
+   * - 4단계에서 닉네임 사용 가능 여부 확인
+   * - 서버에 닉네임 중복 확인 요청을 보내고 결과에 따라 상태 업데이트
+   *
+   * @async
+   * @function handleNicknameCheck
+   * @returns {Promise<void>}
+   */
   const handleNicknameCheck = async () => {
     // 닉네임 입력 검증 (최소 2자 이상 입력 확인)
     if (!nickname || nickname.length < 2) {
@@ -243,7 +276,13 @@ export default function SignupScreen() {
     }
   };
 
-  // 단계별 유효성 검사 및 다음 단계 이동 함수 (각 단계별 입력 검증 후 다음 단계로 진행)
+  /**
+   * 단계별 유효성 검사 및 다음 단계 이동 함수
+   * - 각 단계별 입력 검증 후 다음 단계로 진행
+   * - 5단계에서는 최종 회원가입 실행
+   *
+   * @function handleNext
+   */
   const handleNext = () => {
     if (step === 1) {
       // 1단계: 이름 입력 검증
@@ -295,12 +334,24 @@ export default function SignupScreen() {
     setStep((prev) => prev + 1);
   };
 
-  // 이전 단계로 이동 함수 (1단계에서는 이전 버튼이 표시되지 않음)
+  /**
+   * 이전 단계로 이동 함수
+   * - 1단계에서는 이전 버튼이 표시되지 않음
+   *
+   * @function handlePrev
+   */
   const handlePrev = () => {
     if (step > 1) setStep((prev) => prev - 1);
   };
 
-  // 단계별 입력 UI 렌더링 함수 (현재 단계에 따라 다른 입력 폼 표시)
+  /**
+   * 단계별 입력 UI 렌더링 함수
+   * - 현재 단계에 따라 다른 입력 폼 표시
+   * - 5단계 회원가입 프로세스의 각 단계별 UI 구성
+   *
+   * @function renderStep
+   * @returns {JSX.Element | null} - 현재 단계에 해당하는 UI 컴포넌트
+   */
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -442,6 +493,20 @@ export default function SignupScreen() {
         return null;
     }
   };
+
+  // ===== 실행 부분 =====
+
+  // 화면이 포커스될 때 네비게이션 바와 상태바 숨기기 (몰입형 경험 제공)
+  useFocusEffect(
+    React.useCallback(() => {
+      hideSystemUI();
+
+      // 화면이 포커스를 잃을 때 시스템 UI 복원 (다른 화면으로 이동 시)
+      return () => {
+        restoreSystemUI();
+      };
+    }, [])
+  );
 
   return (
     <ThemedView

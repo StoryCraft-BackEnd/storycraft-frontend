@@ -38,20 +38,19 @@ export default function CreateProfileScreen() {
   // 화이트모드에서만 크림베이지 색상 적용
   const finalBackgroundColor = colorScheme === 'light' ? '#FFF8F0' : backgroundColor;
 
-  // 컴포넌트 마운트 시 랜덤 이미지 선택
-  useEffect(() => {
-    const randomImage = getRandomAnimalImage();
-    setSelectedImage(randomImage);
-    console.log('초기 선택된 이미지:', randomImage);
-  }, []);
-
-  // 다른 이미지로 변경하는 함수
+  /**
+   * 다른 이미지로 변경하는 함수
+   */
   const handleChangeImage = () => {
     const randomImage = getRandomAnimalImage();
     setSelectedImage(randomImage);
     console.log('이미지 변경됨:', randomImage);
   };
 
+  /**
+   * 프로필 생성 핸들러
+   * 입력값 검증 후 서버에 프로필 생성 요청
+   */
   const handleCreateProfile = async () => {
     // 입력값 검증
     if (!name.trim()) {
@@ -112,6 +111,14 @@ export default function CreateProfileScreen() {
     }
   };
 
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 랜덤 이미지 선택
+  useEffect(() => {
+    const randomImage = getRandomAnimalImage();
+    setSelectedImage(randomImage);
+    console.log('초기 선택된 이미지:', randomImage);
+  }, []);
+
   return (
     <ThemedView
       style={[
@@ -139,8 +146,8 @@ export default function CreateProfileScreen() {
           <View style={styles.imageContainer}>
             <ThemedText style={styles.inputLabel}>프로필 이미지</ThemedText>
             <View style={styles.imagePreviewContainer}>
-              <Image 
-                source={loadImage(selectedImage)} 
+              <Image
+                source={loadImage(selectedImage)}
                 style={styles.profileImagePreview}
                 onError={(error) => console.log('이미지 로딩 에러:', error)}
                 onLoad={() => console.log('이미지 로딩 성공:', selectedImage)}

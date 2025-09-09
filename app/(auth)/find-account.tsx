@@ -82,47 +82,60 @@ export default function FindAccountScreen() {
   const colorScheme = useColorScheme(); // 현재 다크/라이트 모드 감지
   const finalBackgroundColor = colorScheme === 'light' ? '#FFF5E6' : backgroundColor;
 
+  // ===== 함수 정의 부분 =====
+
+  /**
+   * 시스템 UI 숨기기 함수
+   * - 네비게이션 바, 상태바를 숨겨 몰입감 있는 사용자 경험 제공
+   * - 세로 모드로 고정하여 일관된 레이아웃 유지
+   *
+   * @async
+   * @function hideSystemUI
+   * @returns {Promise<void>}
+   */
+  const hideSystemUI = async () => {
+    try {
+      // 네비게이션 바 숨기기 (Android 하단 네비게이션 바)
+      await NavigationBar.setVisibilityAsync('hidden');
+      // 상태바 숨기기 (상단 시간, 배터리 등 표시 영역)
+      StatusBar.setHidden(true);
+      // 전체 화면 모드 설정 (Immersive Mode) - 세로 모드로 고정
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    } catch (error) {
+      console.log('시스템 UI 숨기기 실패:', error);
+    }
+  };
+
+  /**
+   * 시스템 UI 복원 함수
+   * - 다른 화면으로 이동할 때 시스템 UI를 다시 표시
+   * - 화면 방향 잠금 해제
+   *
+   * @async
+   * @function restoreSystemUI
+   * @returns {Promise<void>}
+   */
+  const restoreSystemUI = async () => {
+    try {
+      await NavigationBar.setVisibilityAsync('visible'); // 네비게이션 바 다시 표시
+      StatusBar.setHidden(false); // 상태바 다시 표시
+      // 화면 방향 잠금 해제 (자유로운 회전 허용)
+      await ScreenOrientation.unlockAsync();
+    } catch (error) {
+      console.log('시스템 UI 복원 실패:', error);
+    }
+  };
+
+  // ===== 실행 부분 =====
+
   // === 시스템 UI 제어 ===
   // 화면이 포커스될 때 네비게이션 바와 상태바 숨기기 (전체화면 모드)
   useFocusEffect(
     React.useCallback(() => {
-      /**
-       * 시스템 UI 숨기기 함수
-       * - 네비게이션 바, 상태바를 숨겨 몰입감 있는 사용자 경험 제공
-       * - 세로 모드로 고정하여 일관된 레이아웃 유지
-       */
-      const hideSystemUI = async () => {
-        try {
-          // 네비게이션 바 숨기기 (Android 하단 네비게이션 바)
-          await NavigationBar.setVisibilityAsync('hidden');
-          // 상태바 숨기기 (상단 시간, 배터리 등 표시 영역)
-          StatusBar.setHidden(true);
-          // 전체 화면 모드 설정 (Immersive Mode) - 세로 모드로 고정
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-        } catch (error) {
-          console.log('시스템 UI 숨기기 실패:', error);
-        }
-      };
-
       hideSystemUI();
 
       // 화면이 포커스를 잃을 때 시스템 UI 복원 (cleanup 함수)
       return () => {
-        /**
-         * 시스템 UI 복원 함수
-         * - 다른 화면으로 이동할 때 시스템 UI를 다시 표시
-         * - 화면 방향 잠금 해제
-         */
-        const restoreSystemUI = async () => {
-          try {
-            await NavigationBar.setVisibilityAsync('visible'); // 네비게이션 바 다시 표시
-            StatusBar.setHidden(false); // 상태바 다시 표시
-            // 화면 방향 잠금 해제 (자유로운 회전 허용)
-            await ScreenOrientation.unlockAsync();
-          } catch (error) {
-            console.log('시스템 UI 복원 실패:', error);
-          }
-        };
         restoreSystemUI();
       };
     }, []) // 빈 의존성 배열: 컴포넌트 마운트/언마운트 시에만 실행
