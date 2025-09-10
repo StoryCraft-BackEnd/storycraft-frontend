@@ -59,7 +59,7 @@ const TABS = [
  * 사용자의 동화 목록을 탭별로 필터링하여 표시하고, 동화 관리 기능을 제공합니다.
  */
 export default function StoryListScreen() {
-  // 상태 관리
+  // ===== 상태 변수 정의 =====
   // 활성 탭 상태 (현재 선택된 탭)
   const [activeTab, setActiveTab] = useState('all');
   // 동화 목록 상태 (API에서 받아온 동화 데이터)
@@ -73,6 +73,7 @@ export default function StoryListScreen() {
   // 삭제할 동화 정보 상태 (삭제 확인 팝업에서 사용)
   const [storyToDelete, setStoryToDelete] = useState<{ id: number; title: string } | null>(null);
 
+  // ===== 함수 정의 부분 =====
   /**
    * 동화 목록 로드 함수 (초기 로드용)
    *
@@ -172,46 +173,6 @@ export default function StoryListScreen() {
       console.error('동화 목록 새로고침 실패:', error);
     }
   }, []);
-
-  // === 화면 포커스 및 데이터 동기화 ===
-
-  /**
-   * 화면이 포커스될 때마다 데이터 새로 로드
-   *
-   * 목적:
-   * - 다른 화면에서 북마크/좋아요를 변경한 후 돌아왔을 때 최신 상태 반영
-   * - 서버에서 동화 내용이 업데이트되었을 때 동기화
-   * - 북마크/좋아요 상태가 초기화되는 문제 해결
-   *
-   * 동작:
-   * 1. 화면이 포커스될 때마다 자동 실행
-   * 2. selectedProfile이 설정된 후에만 실행
-   * 3. 스마트 병합으로 북마크/좋아요 상태 보존
-   * 4. 로딩 상태 없이 부드럽게 업데이트
-   */
-  useFocusEffect(
-    React.useCallback(() => {
-      // 이미 selectedProfile이 설정되어 있고, stories가 로드된 경우에만 새로고침
-      if (selectedProfile && stories.length > 0) {
-        console.log('마이페이지 동화 목록 탭 포커스됨 - 데이터 새로고침');
-        refreshStories(); // 로딩 상태 없는 새로고침 함수 사용
-      }
-    }, [selectedProfile, refreshStories, stories.length])
-  );
-
-  /**
-   * 컴포넌트 마운트 시 데이터 로드
-   *
-   * 목적:
-   * - 화면이 처음 로드될 때 기본 데이터 표시
-   * - useFocusEffect와 함께 사용하여 완벽한 데이터 동기화
-   */
-  useEffect(() => {
-    // 컴포넌트 마운트 시 한 번만 실행
-    loadStories();
-  }, []); // 빈 의존성 배열로 마운트 시 한 번만 실행
-
-  // === 북마크/좋아요 토글 함수들 ===
 
   /**
    * 동화 북마크 토글 함수
@@ -337,7 +298,7 @@ export default function StoryListScreen() {
   /**
    * 탭에 따른 필터링된 동화 목록 반환 함수
    * 현재 선택된 탭에 따라 동화 목록을 필터링합니다.
-   * @returns {Story[]} 필터링된 동화 목록
+   * @returns 필터링된 동화 목록
    */
   const getFilteredStories = () => {
     switch (activeTab) {
@@ -372,6 +333,39 @@ export default function StoryListScreen() {
         return stories.length;
     }
   };
+
+  // ===== 실행 부분 =====
+  // === 화면 포커스 및 데이터 동기화 ===
+
+  /**
+   * 화면이 포커스될 때마다 데이터 새로 로드
+   *
+   * 목적:
+   * - 다른 화면에서 북마크/좋아요를 변경한 후 돌아왔을 때 최신 상태 반영
+   * - 서버에서 동화 내용이 업데이트되었을 때 동기화
+   * - 북마크/좋아요 상태가 초기화되는 문제 해결
+   *
+   * 동작:
+   * 1. 화면이 포커스될 때마다 자동 실행
+   * 2. selectedProfile이 설정된 후에만 실행
+   * 3. 스마트 병합으로 북마크/좋아요 상태 보존
+   * 4. 로딩 상태 없이 부드럽게 업데이트
+   */
+  useFocusEffect(
+    React.useCallback(() => {
+      // 이미 selectedProfile이 설정되어 있고, stories가 로드된 경우에만 새로고침
+      if (selectedProfile && stories.length > 0) {
+        console.log('마이페이지 동화 목록 탭 포커스됨 - 데이터 새로고침');
+        refreshStories(); // 로딩 상태 없는 새로고침 함수 사용
+      }
+    }, [selectedProfile, refreshStories, stories.length])
+  );
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    // 컴포넌트 마운트 시 한 번만 실행
+    loadStories();
+  }, []); // 빈 의존성 배열로 마운트 시 한 번만 실행
 
   // 현재 탭에 맞는 필터링된 동화 목록
   const filteredStories = getFilteredStories();

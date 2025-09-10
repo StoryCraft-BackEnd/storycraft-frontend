@@ -7,7 +7,15 @@
 // React: React 라이브러리의 기본 기능들
 import React, { useState, useEffect } from 'react';
 // React Native: 네이티브 UI 컴포넌트들
-import { View, Text, TouchableOpacity, ImageBackground, FlatList, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ImageBackground,
+  FlatList,
+  Image,
+  ImageSourcePropType,
+} from 'react-native';
 // Expo Router: 화면 간 이동(네비게이션) 관련
 import { router } from 'expo-router';
 // 아이콘 라이브러리
@@ -117,6 +125,7 @@ const getBadgeImage = (badgeCode: string) => {
  * 사용자가 획득한 배지와 미획득 배지를 탭으로 필터링하여 볼 수 있습니다.
  */
 export default function BadgesScreen() {
+  // ===== 상태 변수 정의 =====
   // 현재 활성화된 탭 상태 (all/earned/unearned)
   const [activeTab, setActiveTab] = useState('all');
   // 배지 목록 상태 (획득 여부 포함)
@@ -126,12 +135,11 @@ export default function BadgesScreen() {
   // 에러 상태 (배지 로딩 실패 시 에러 메시지)
   const [error, setError] = useState<string | null>(null);
 
-  // 컴포넌트 마운트 시 배지 데이터 로드 (화면 진입 시 한 번만 실행)
-  useEffect(() => {
-    loadBadges();
-  }, []);
-
-  // 배지 데이터 로드 함수 (API에서 배지 목록과 사용자 획득 현황을 가져와서 결합)
+  // ===== 함수 정의 부분 =====
+  /**
+   * 배지 데이터 로드 함수
+   * API에서 배지 목록과 사용자 획득 현황을 가져와서 결합
+   */
   const loadBadges = async () => {
     try {
       setLoading(true); // 로딩 상태 시작
@@ -198,7 +206,11 @@ export default function BadgesScreen() {
     }
   };
 
-  // 탭에 따른 필터링된 배지 반환 함수 (현재 선택된 탭에 따라 배지 목록 필터링)
+  /**
+   * 탭에 따른 필터링된 배지 반환 함수
+   * 현재 선택된 탭에 따라 배지 목록 필터링
+   * @returns 필터링된 배지 목록
+   */
   const getFilteredBadges = () => {
     switch (activeTab) {
       case 'earned':
@@ -213,7 +225,12 @@ export default function BadgesScreen() {
     }
   };
 
-  // 탭별 개수 계산 함수 (각 탭에 표시될 배지 개수 계산)
+  /**
+   * 탭별 개수 계산 함수
+   * 각 탭에 표시될 배지 개수 계산
+   * @param tabKey 탭 키 ('all', 'earned', 'unearned')
+   * @returns 해당 탭의 배지 개수
+   */
   const getTabCount = (tabKey: string) => {
     switch (tabKey) {
       case 'earned':
@@ -227,6 +244,12 @@ export default function BadgesScreen() {
         return badges.length;
     }
   };
+
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 배지 데이터 로드 (화면 진입 시 한 번만 실행)
+  useEffect(() => {
+    loadBadges();
+  }, []);
 
   // 현재 탭에 필터링된 배지 목록
   const filteredBadges = getFilteredBadges();

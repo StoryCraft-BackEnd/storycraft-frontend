@@ -34,7 +34,7 @@ import { LoadingScreen } from '../../../../components/ui/LoadingScreen';
  * 선택된 자녀의 학습 통계를 조회하고 카드 형태로 표시합니다.
  */
 export default function MyPageStatsScreen() {
-  // 상태 관리
+  // ===== 상태 변수 정의 =====
   // 학습 통계 데이터 상태 (API에서 받아온 통계 정보)
   const [statistics, setStatistics] = useState<ChildStatistics | null>(null);
   // 로딩 상태 (API 호출 중 여부)
@@ -42,6 +42,7 @@ export default function MyPageStatsScreen() {
   // 오류 상태 (API 호출 실패 시 오류 메시지)
   const [error, setError] = useState<string | null>(null);
 
+  // ===== 함수 정의 부분 =====
   /**
    * 학습 통계 조회 함수
    * 선택된 프로필의 자녀 ID를 사용하여 학습 통계를 API에서 가져옵니다.
@@ -75,6 +76,7 @@ export default function MyPageStatsScreen() {
     }
   };
 
+  // ===== 실행 부분 =====
   // 컴포넌트 마운트 시 학습 통계 조회 (화면 진입 시 한 번만 실행)
   useEffect(() => {
     fetchStatistics();

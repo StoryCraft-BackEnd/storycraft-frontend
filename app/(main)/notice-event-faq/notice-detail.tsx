@@ -32,6 +32,7 @@ import { getNoticeDetail, type Notice } from '@/shared/api';
  * URL 파라미터로 받은 공지사항 ID를 사용하여 공지사항 상세 정보를 조회하고 표시합니다.
  */
 const NoticeDetailScreen = () => {
+  // ===== 상태 변수 정의 =====
   // URL 파라미터에서 공지사항 ID 추출
   const { id } = useLocalSearchParams<{ id: string }>();
   // 공지사항 정보 상태 (API에서 받아온 공지사항 데이터)
@@ -39,25 +40,27 @@ const NoticeDetailScreen = () => {
   // 로딩 상태 (API 호출 중 여부)
   const [loading, setLoading] = useState(true);
 
+  // ===== 함수 정의 부분 =====
+  /**
+   * 공지사항 상세 정보 조회 함수
+   * API에서 공지사항 상세 정보를 가져와서 상태에 저장합니다.
+   */
+  const loadNoticeDetail = async () => {
+    try {
+      setLoading(true); // 로딩 상태 시작
+      const response = await getNoticeDetail(parseInt(id)); // API 호출로 공지사항 상세 정보 조회
+      setNotice(response.data); // 받아온 데이터를 상태에 저장
+    } catch (error) {
+      console.error('공지사항 상세 조회 실패:', error);
+      Alert.alert('오류', '공지사항을 불러오는데 실패했습니다.'); // 사용자에게 오류 알림
+    } finally {
+      setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
+    }
+  };
+
+  // ===== 실행 부분 =====
   // 컴포넌트 마운트 시 공지사항 상세 정보 조회 (공지사항 ID가 있을 때만 실행)
   useEffect(() => {
-    /**
-     * 공지사항 상세 정보 조회 함수
-     * API에서 공지사항 상세 정보를 가져와서 상태에 저장합니다.
-     */
-    const loadNoticeDetail = async () => {
-      try {
-        setLoading(true); // 로딩 상태 시작
-        const response = await getNoticeDetail(parseInt(id)); // API 호출로 공지사항 상세 정보 조회
-        setNotice(response.data); // 받아온 데이터를 상태에 저장
-      } catch (error) {
-        console.error('공지사항 상세 조회 실패:', error);
-        Alert.alert('오류', '공지사항을 불러오는데 실패했습니다.'); // 사용자에게 오류 알림
-      } finally {
-        setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
-      }
-    };
-
     if (id) {
       loadNoticeDetail(); // 공지사항 ID가 있을 때만 함수 실행
     }

@@ -40,7 +40,7 @@ import { saveProfileImage, loadProfileImage } from '../../../../features/profile
  * 사용자의 프로필 정보를 표시하고 수정할 수 있는 기능을 제공합니다.
  */
 export default function MyInfoScreen() {
-  // 상태 관리
+  // ===== 상태 변수 정의 =====
   // 사용자 정보 상태 (API에서 받아온 사용자 데이터)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   // 로딩 상태 (API 호출 중 여부)
@@ -54,11 +54,7 @@ export default function MyInfoScreen() {
   // 프로필 이미지 선택 모달 표시 상태
   const [showImageSelector, setShowImageSelector] = useState(false);
 
-  // 컴포넌트 마운트 시 사용자 정보 조회 (화면 진입 시 한 번만 실행)
-  useEffect(() => {
-    fetchUserInfo();
-  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시 한 번만 실행
-
+  // ===== 함수 정의 부분 =====
   /**
    * 사용자 정보 조회 함수
    * API에서 사용자 정보를 가져오고, 로컬 저장소에서 프로필 이미지를 불러와서 적용합니다.
@@ -157,6 +153,12 @@ export default function MyInfoScreen() {
       setEditing(true); // 편집 모드 활성화
     }
   };
+
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 사용자 정보 조회 (화면 진입 시 한 번만 실행)
+  useEffect(() => {
+    fetchUserInfo();
+  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시 한 번만 실행
 
   // 로딩 상태일 때 표시되는 화면 (API 호출 중)
   if (loading) {

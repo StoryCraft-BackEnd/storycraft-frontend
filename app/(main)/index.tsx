@@ -68,6 +68,7 @@ import { rewardsApi } from '@/shared/api/rewardsApi';
 const defaultStoryImages = [story1, story2, story3, story4, story5, story6, story7, story8];
 
 export default function MainScreen() {
+  // ===== 상태 변수 정의 =====
   const [backgroundImage] = useState(nightBg);
   const [selectedProfile, setSelectedProfile] = useState<ChildProfile | null>(null);
   const [userStories, setUserStories] = useState<Story[]>([]);
@@ -85,7 +86,10 @@ export default function MainScreen() {
   // 프로필 이미지를 위한 state 추가
   const [profileImageId, setProfileImageId] = useState<string>('default_profile');
 
-  // 프로필 이미지 로드 함수
+  // ===== 함수 정의 부분 =====
+  /**
+   * 프로필 이미지를 로컬 스토리지에서 로드하는 함수
+   */
   const loadProfileImageFromStorage = async () => {
     try {
       const imageId = await loadProfileImage();
@@ -98,7 +102,10 @@ export default function MainScreen() {
     }
   };
 
-  // 보상 현황 조회 함수
+  /**
+   * 보상 현황을 조회하는 함수
+   * @param childId 자녀 ID
+   */
   const fetchRewardProfile = async (childId: number) => {
     try {
       console.log('💰 보상 현황 조회 시작 - childId:', childId);
@@ -118,210 +125,11 @@ export default function MainScreen() {
     }
   };
 
-  useEffect(() => {
-    // 화면을 가로 모드로 고정
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
-    // 시스템 UI 숨기기
-    setStatusBarHidden(true);
-    NavigationBar.setVisibilityAsync('hidden');
-
-    // 뒤로가기 버튼 비활성화
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // 뒤로가기 버튼을 눌렀을 때 아무것도 하지 않음 (true 반환으로 기본 동작 방지)
-      return true;
-    });
-
-    // 사용자 정보 및 프로필 불러오기
-    const loadUserData = async () => {
-      try {
-        // 현재 로그인한 사용자 정보 가져오기
-        const userInfo = await getMyInfo();
-        console.log('✅ 사용자 정보 로드 완료:', {
-          userId: userInfo.id,
-          nickname: userInfo.nickname,
-        });
-
-        // 선택된 프로필 불러오기
-        const profile = await loadSelectedProfile();
-        setSelectedProfile(profile);
-
-        // 프로필 이미지 로드
-        await loadProfileImageFromStorage();
-
-        // 프로필이 있으면 초기 로딩 시작
-        if (profile) {
-          // 학습시간 측정 시작
-          await startLearningTimeTracking(profile.childId);
-          console.log('⏰ 학습시간 측정 시작:', profile.childId);
-
-          // 보상 현황 조회 (배지 개수, 포인트)
-          console.log('💰 보상 현황 조회 시작');
-          await fetchRewardProfile(profile.childId);
-
-          // 레벨업 조건 판단 API 호출 (앱 시작 시 최초 1회)
-          try {
-            console.log('🎯 레벨업 조건 판단 API 호출 시작');
-            const levelUpResponse = await rewardsApi.checkLevelUp(profile.childId);
-            console.log('✅ 레벨업 조건 판단 API 성공:', levelUpResponse);
-
-            if (levelUpResponse.levelUp) {
-              console.log('🎉 레벨업 발생:', {
-                newLevel: levelUpResponse.newLevel,
-              });
-            }
-          } catch (error) {
-            console.error('❌ 레벨업 조건 판단 API 실패:', error);
-          }
-
-          await loadStories(profile.childId, true);
-        } else {
-          // 프로필이 없으면 프로필 선택 화면으로 이동
-          console.log('선택된 프로필이 없음 - 프로필 선택 화면으로 이동');
-          router.replace('/(profile)');
-        }
-      } catch (error) {
-        console.error('사용자 데이터 로드 실패:', error);
-
-        // 에러 타입별로 다른 처리
-        if (error instanceof Error) {
-          if (
-            error.message.includes('로그인이 필요합니다') ||
-            error.message.includes('인증이 만료')
-          ) {
-            console.log('🔐 인증 문제 - 로그인 화면으로 이동');
-            router.replace('/(auth)');
-            return;
-          } else if (error.message.includes('서버 오류')) {
-            console.log('🌐 서버 오류 - 프로필 선택 화면으로 이동');
-            // 서버 오류 시에도 프로필 선택 화면으로 이동 시도
-          }
-        }
-
-        // 기본적으로 프로필 선택 화면으로 이동
-        console.log('🔄 프로필 선택 화면으로 이동');
-        router.replace('/(profile)');
-      }
-    };
-    loadUserData();
-
-    // 시간대별 배경 이미지 설정 (추후 개발 예정)
-    // const updateBackgroundImage = () => {
-    //   const now = new Date();
-    //   const hour = now.getHours();
-
-    //   if (hour >= 5 && hour < 17) {
-    //     setBackgroundImage(morningBg);
-    //   } else if (hour >= 17 && hour < 19) {
-    //     setBackgroundImage(sunsetBg);
-    //   } else {
-    //     setBackgroundImage(nightBg);
-    //   }
-    // };
-
-    // updateBackgroundImage();
-
-    return () => {
-      // 화면을 세로 모드로 복원
-      ScreenOrientation.unlockAsync();
-      // 🚨 핵심: 상태바는 숨김 상태 유지 (가로 모드에서 상태바 숨김)
-      // setStatusBarHidden(false); // 제거 - 상태바 숨김 유지
-      NavigationBar.setVisibilityAsync('visible');
-      // 뒤로가기 핸들러 제거
-      backHandler.remove();
-      // 학습시간 측정 중단
-      stopLearningTimeTracking();
-    };
-  }, []);
-
-  // 화면이 포커스될 때마다 프로필 및 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
-  useFocusEffect(
-    React.useCallback(() => {
-      let isMounted = true;
-
-      // 🔒 포커스 시 상태바 계속 숨김 유지
-      setStatusBarHidden(true);
-
-      const refreshData = async () => {
-        try {
-          // 프로필 정보 새로고침 (마이페이지에서 프로필 변경 시 대응)
-          console.log('🔄 메인 화면 포커스 - 프로필 정보 새로고침 시작');
-          const updatedProfile = await loadSelectedProfile();
-
-          if (updatedProfile && isMounted) {
-            // 프로필이 변경되었는지 확인 (childId 또는 프로필 이미지 변경)
-            const currentProfileImage = await loadProfileImage();
-            const isProfileChanged =
-              !selectedProfile ||
-              selectedProfile.childId !== updatedProfile.childId ||
-              profileImageId !== currentProfileImage;
-
-            if (isProfileChanged) {
-              console.log('🔄 프로필 변경 감지 - 새로운 프로필로 업데이트');
-              console.log('🔍 변경 사항:', {
-                childIdChanged:
-                  !selectedProfile || selectedProfile.childId !== updatedProfile.childId,
-                imageChanged: profileImageId !== currentProfileImage,
-                oldImage: profileImageId,
-                newImage: currentProfileImage,
-              });
-
-              setSelectedProfile(updatedProfile);
-
-              // 새로운 프로필로 학습시간 측정 재시작
-              await startLearningTimeTracking(updatedProfile.childId);
-              console.log('⏰ 새로운 프로필로 학습시간 측정 재시작:', updatedProfile.childId);
-
-              // 새로운 프로필의 보상 현황 조회
-              await fetchRewardProfile(updatedProfile.childId);
-
-              // 새로운 프로필의 동화 목록 로드
-              await loadStories(updatedProfile.childId, false);
-
-              // 새로운 프로필의 이미지 로드
-              await loadProfileImageFromStorage();
-
-              return; // 프로필이 변경되었으면 여기서 종료
-            }
-          }
-
-          // 기존 프로필이 유지되는 경우 기존 로직 실행
-          if (selectedProfile && isMounted && !isInitialLoading) {
-            // 캐시 유효성 검사
-            const isCacheValid = await isStoriesCacheValid(selectedProfile.childId);
-
-            if (isCacheValid && illustrationsReady && userStories.length > 0) {
-              console.log('메인 화면 포커스 - 캐시 유효, 새로고침 건너뛰기');
-              return;
-            }
-
-            console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
-
-            // 보상 현황 새로고침
-            await fetchRewardProfile(selectedProfile.childId);
-
-            // 동화 목록 새로고침
-            await loadStories(selectedProfile.childId, false);
-
-            // 프로필 이미지 새로고침
-            await loadProfileImageFromStorage();
-          }
-        } catch (error) {
-          console.error('❌ 메인 화면 포커스 시 데이터 새로고침 실패:', error);
-        }
-      };
-
-      refreshData();
-
-      return () => {
-        isMounted = false;
-        // 🚨 핵심: 포커스 해제 시에도 상태바 숨김 유지
-        setStatusBarHidden(true);
-      };
-    }, [selectedProfile, isInitialLoading, illustrationsReady, userStories.length])
-  );
-
-  // 동화 목록 및 삽화 로드
+  /**
+   * 동화 목록 및 삽화를 로드하는 함수
+   * @param childId 자녀 ID
+   * @param isInitialLoad 초기 로딩 여부
+   */
   const loadStories = async (childId: number, isInitialLoad: boolean = false) => {
     try {
       console.log(`프로필 ${childId}의 동화 목록 로드 시작...`);
@@ -515,6 +323,217 @@ export default function MainScreen() {
       }
     }
   };
+
+  /**
+   * 사용자 정보 및 프로필을 불러오는 함수
+   */
+  const loadUserData = async () => {
+    try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const userInfo = await getMyInfo();
+      console.log('✅ 사용자 정보 로드 완료:', {
+        userId: userInfo.id,
+        nickname: userInfo.nickname,
+      });
+
+      // 선택된 프로필 불러오기
+      const profile = await loadSelectedProfile();
+      setSelectedProfile(profile);
+
+      // 프로필 이미지 로드
+      await loadProfileImageFromStorage();
+
+      // 프로필이 있으면 초기 로딩 시작
+      if (profile) {
+        // 학습시간 측정 시작
+        await startLearningTimeTracking(profile.childId);
+        console.log('⏰ 학습시간 측정 시작:', profile.childId);
+
+        // 보상 현황 조회 (배지 개수, 포인트)
+        console.log('💰 보상 현황 조회 시작');
+        await fetchRewardProfile(profile.childId);
+
+        // 레벨업 조건 판단 API 호출 (앱 시작 시 최초 1회)
+        try {
+          console.log('🎯 레벨업 조건 판단 API 호출 시작');
+          const levelUpResponse = await rewardsApi.checkLevelUp(profile.childId);
+          console.log('✅ 레벨업 조건 판단 API 성공:', levelUpResponse);
+
+          if (levelUpResponse.levelUp) {
+            console.log('🎉 레벨업 발생:', {
+              newLevel: levelUpResponse.newLevel,
+            });
+          }
+        } catch (error) {
+          console.error('❌ 레벨업 조건 판단 API 실패:', error);
+        }
+
+        await loadStories(profile.childId, true);
+      } else {
+        // 프로필이 없으면 프로필 선택 화면으로 이동
+        console.log('선택된 프로필이 없음 - 프로필 선택 화면으로 이동');
+        router.replace('/(profile)');
+      }
+    } catch (error) {
+      console.error('사용자 데이터 로드 실패:', error);
+
+      // 에러 타입별로 다른 처리
+      if (error instanceof Error) {
+        if (
+          error.message.includes('로그인이 필요합니다') ||
+          error.message.includes('인증이 만료')
+        ) {
+          console.log('🔐 인증 문제 - 로그인 화면으로 이동');
+          router.replace('/(auth)');
+          return;
+        } else if (error.message.includes('서버 오류')) {
+          console.log('🌐 서버 오류 - 프로필 선택 화면으로 이동');
+          // 서버 오류 시에도 프로필 선택 화면으로 이동 시도
+        }
+      }
+
+      // 기본적으로 프로필 선택 화면으로 이동
+      console.log('🔄 프로필 선택 화면으로 이동');
+      router.replace('/(profile)');
+    }
+  };
+
+  // ===== 실행 부분 =====
+  useEffect(() => {
+    // 화면을 가로 모드로 고정
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+    // 시스템 UI 숨기기
+    setStatusBarHidden(true);
+    NavigationBar.setVisibilityAsync('hidden');
+
+    // 뒤로가기 버튼 비활성화
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // 뒤로가기 버튼을 눌렀을 때 아무것도 하지 않음 (true 반환으로 기본 동작 방지)
+      return true;
+    });
+
+    // 사용자 정보 및 프로필 불러오기
+    loadUserData();
+
+    // 시간대별 배경 이미지 설정 (추후 개발 예정)
+    // const updateBackgroundImage = () => {
+    //   const now = new Date();
+    //   const hour = now.getHours();
+
+    //   if (hour >= 5 && hour < 17) {
+    //     setBackgroundImage(morningBg);
+    //   } else if (hour >= 17 && hour < 19) {
+    //     setBackgroundImage(sunsetBg);
+    //   } else {
+    //     setBackgroundImage(nightBg);
+    //   }
+    // };
+
+    // updateBackgroundImage();
+
+    return () => {
+      // 화면을 세로 모드로 복원
+      ScreenOrientation.unlockAsync();
+      // 🚨 핵심: 상태바는 숨김 상태 유지 (가로 모드에서 상태바 숨김)
+      // setStatusBarHidden(false); // 제거 - 상태바 숨김 유지
+      NavigationBar.setVisibilityAsync('visible');
+      // 뒤로가기 핸들러 제거
+      backHandler.remove();
+      // 학습시간 측정 중단
+      stopLearningTimeTracking();
+    };
+  }, []);
+
+  /**
+   * 화면 포커스 시 데이터를 새로고침하는 함수
+   * @param isMounted 컴포넌트 마운트 상태
+   */
+  const refreshData = async (isMounted: boolean) => {
+    try {
+      // 프로필 정보 새로고침 (마이페이지에서 프로필 변경 시 대응)
+      console.log('🔄 메인 화면 포커스 - 프로필 정보 새로고침 시작');
+      const updatedProfile = await loadSelectedProfile();
+
+      if (updatedProfile && isMounted) {
+        // 프로필이 변경되었는지 확인 (childId 또는 프로필 이미지 변경)
+        const currentProfileImage = await loadProfileImage();
+        const isProfileChanged =
+          !selectedProfile ||
+          selectedProfile.childId !== updatedProfile.childId ||
+          profileImageId !== currentProfileImage;
+
+        if (isProfileChanged) {
+          console.log('🔄 프로필 변경 감지 - 새로운 프로필로 업데이트');
+          console.log('🔍 변경 사항:', {
+            childIdChanged: !selectedProfile || selectedProfile.childId !== updatedProfile.childId,
+            imageChanged: profileImageId !== currentProfileImage,
+            oldImage: profileImageId,
+            newImage: currentProfileImage,
+          });
+
+          setSelectedProfile(updatedProfile);
+
+          // 새로운 프로필로 학습시간 측정 재시작
+          await startLearningTimeTracking(updatedProfile.childId);
+          console.log('⏰ 새로운 프로필로 학습시간 측정 재시작:', updatedProfile.childId);
+
+          // 새로운 프로필의 보상 현황 조회
+          await fetchRewardProfile(updatedProfile.childId);
+
+          // 새로운 프로필의 동화 목록 로드
+          await loadStories(updatedProfile.childId, false);
+
+          // 새로운 프로필의 이미지 로드
+          await loadProfileImageFromStorage();
+
+          return; // 프로필이 변경되었으면 여기서 종료
+        }
+      }
+
+      // 기존 프로필이 유지되는 경우 기존 로직 실행
+      if (selectedProfile && isMounted && !isInitialLoading) {
+        // 캐시 유효성 검사
+        const isCacheValid = await isStoriesCacheValid(selectedProfile.childId);
+
+        if (isCacheValid && illustrationsReady && userStories.length > 0) {
+          console.log('메인 화면 포커스 - 캐시 유효, 새로고침 건너뛰기');
+          return;
+        }
+
+        console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
+
+        // 보상 현황 새로고침
+        await fetchRewardProfile(selectedProfile.childId);
+
+        // 동화 목록 새로고침
+        await loadStories(selectedProfile.childId, false);
+
+        // 프로필 이미지 새로고침
+        await loadProfileImageFromStorage();
+      }
+    } catch (error) {
+      console.error('❌ 메인 화면 포커스 시 데이터 새로고침 실패:', error);
+    }
+  };
+
+  // 화면이 포커스될 때마다 프로필 및 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
+
+      // 🔒 포커스 시 상태바 계속 숨김 유지
+      setStatusBarHidden(true);
+
+      refreshData(isMounted);
+
+      return () => {
+        isMounted = false;
+        // 🚨 핵심: 포커스 해제 시에도 상태바 숨김 유지
+        setStatusBarHidden(true);
+      };
+    }, [selectedProfile, isInitialLoading, illustrationsReady, userStories.length])
+  );
 
   return (
     <ImageBackground

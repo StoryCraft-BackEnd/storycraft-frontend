@@ -30,7 +30,7 @@ import { router } from 'expo-router';
  * 사용자의 프로필 정보를 조회하고 표시합니다.
  */
 const ProfileEditScreen = () => {
-  // 상태 관리
+  // ===== 상태 변수 정의 =====
   // 사용자 정보 상태 (API에서 받아온 사용자 데이터)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   // 로딩 상태 (API 호출 중 여부)
@@ -38,29 +38,32 @@ const ProfileEditScreen = () => {
   // 오류 상태 (API 호출 실패 시 오류 메시지)
   const [error, setError] = useState<string | null>(null);
 
+  // ===== 함수 정의 부분 =====
+  /**
+   * 사용자 정보 조회 함수
+   * API에서 사용자 정보를 가져와서 상태에 저장합니다.
+   */
+  const fetchUserInfo = async () => {
+    setLoading(true); // 로딩 상태 시작
+    setError(null); // 이전 오류 상태 초기화
+    try {
+      const data = await getMyInfo(); // API 호출로 사용자 정보 조회
+      setUserInfo(data); // 받아온 데이터를 상태에 저장
+    } catch (err: unknown) {
+      // 오류 타입에 따라 적절한 메시지 설정
+      let message = '정보를 불러오지 못했습니다.'; // 기본 오류 메시지
+      if (err instanceof Error)
+        message = err.message; // Error 객체인 경우
+      else if (typeof err === 'string') message = err; // 문자열인 경우
+      setError(message); // 오류 상태 설정
+    } finally {
+      setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
+    }
+  };
+
+  // ===== 실행 부분 =====
   // 컴포넌트 마운트 시 사용자 정보 조회 (화면 진입 시 한 번만 실행)
   useEffect(() => {
-    /**
-     * 사용자 정보 조회 함수
-     * API에서 사용자 정보를 가져와서 상태에 저장합니다.
-     */
-    const fetchUserInfo = async () => {
-      setLoading(true); // 로딩 상태 시작
-      setError(null); // 이전 오류 상태 초기화
-      try {
-        const data = await getMyInfo(); // API 호출로 사용자 정보 조회
-        setUserInfo(data); // 받아온 데이터를 상태에 저장
-      } catch (err: unknown) {
-        // 오류 타입에 따라 적절한 메시지 설정
-        let message = '정보를 불러오지 못했습니다.'; // 기본 오류 메시지
-        if (err instanceof Error)
-          message = err.message; // Error 객체인 경우
-        else if (typeof err === 'string') message = err; // 문자열인 경우
-        setError(message); // 오류 상태 설정
-      } finally {
-        setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
-      }
-    };
     fetchUserInfo(); // 함수 실행
   }, []); // 빈 의존성 배열로 컴포넌트 마운트 시 한 번만 실행
 

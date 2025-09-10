@@ -51,7 +51,7 @@ const DIFFICULTY_FILTERS = [
  * - 반응형 디자인 적용
  */
 export default function EnglishQuizScreen() {
-  // === 상태 관리 ===
+  // ===== 상태 변수 정의 =====
   const [quizzes, setQuizzes] = useState<Quiz[]>([]); // 북마크된 퀴즈 목록
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]); // 필터링된 퀴즈 목록
   const [searchQuery, setSearchQuery] = useState(''); // 검색어
@@ -62,25 +62,11 @@ export default function EnglishQuizScreen() {
   const [quizModalVisible, setQuizModalVisible] = useState(false); // 퀴즈 모달 표시 여부
   const [currentQuiz, setCurrentQuiz] = useState<any>(null); // 현재 선택된 퀴즈
 
-  // 컴포넌트 마운트 시 북마크된 퀴즈 로드
-  useEffect(() => {
-    fetchBookmarkedQuizzes();
-  }, []);
-
-  // 화면이 포커스될 때마다 북마크된 퀴즈 새로 로드
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('퀴즈 화면 포커스됨 - 북마크된 퀴즈 새로 로드');
-      fetchBookmarkedQuizzes();
-    }, [])
-  );
-
-  // 검색어나 필터 변경 시 퀴즈 목록 업데이트
-  useEffect(() => {
-    filterQuizzes();
-  }, [searchQuery, activeTypeFilter, activeDifficultyFilter, quizzes]);
-
-  // === 북마크된 퀴즈 로드 ===
+  // ===== 함수 정의 부분 =====
+  /**
+   * 북마크된 퀴즈 로드 함수
+   * 로컬 저장소에서 북마크된 퀴즈 목록을 가져와서 상태에 저장합니다.
+   */
   const fetchBookmarkedQuizzes = async () => {
     setIsLoading(true);
     try {
@@ -95,10 +81,9 @@ export default function EnglishQuizScreen() {
     }
   };
 
-  // === 필터링 함수 ===
   /**
    * 퀴즈 필터링 함수
-   * - 검색어, 타입, 난이도 필터를 적용하여 퀴즈 목록을 필터링
+   * 검색어, 타입, 난이도 필터를 적용하여 퀴즈 목록을 필터링
    */
   const filterQuizzes = () => {
     let filtered = quizzes;
@@ -113,10 +98,10 @@ export default function EnglishQuizScreen() {
     setFilteredQuizzes(filtered);
   };
 
-  // === 퀴즈 관리 함수 ===
   /**
    * 북마크 제거 함수
-   * - 퀴즈를 북마크에서 제거
+   * 퀴즈를 북마크에서 제거
+   * @param quizId 제거할 퀴즈의 ID
    */
   const removeBookmarkFromQuiz = async (quizId: number) => {
     // quizId가 유효하지 않으면 처리하지 않음
@@ -139,7 +124,8 @@ export default function EnglishQuizScreen() {
 
   /**
    * 퀴즈 시작 함수
-   * - 퀴즈 모달 표시
+   * 퀴즈 모달을 표시하고 퀴즈를 시작합니다.
+   * @param quiz 시작할 퀴즈 객체
    */
   const startQuiz = (quiz: Quiz) => {
     // quizId가 없으면 퀴즈를 시작하지 않음
@@ -163,18 +149,21 @@ export default function EnglishQuizScreen() {
 
   /**
    * 퀴즈 완료 처리 함수
-   * - 퀴즈 결과를 처리
+   * 퀴즈 결과를 처리합니다.
+   * @param selectedAnswer 선택된 답변
    */
   const handleQuizComplete = (selectedAnswer: string) => {
     // 퀴즈 완료 후 결과 표시 (필요시 점수 저장 로직 추가)
     console.log(`퀴즈 완료! 선택된 답: ${selectedAnswer}`);
   };
 
-  // === 렌더링 함수 ===
   /**
    * 퀴즈 카드 렌더링 함수
-   * - 퀴즈 정보를 카드 형태로 표시
-   * - 반응형 디자인 적용
+   * 퀴즈 정보를 카드 형태로 표시
+   * 반응형 디자인 적용
+   * @param param0 FlatList의 renderItem 파라미터
+   * @param param0.item 렌더링할 퀴즈 객체
+   * @returns 퀴즈 카드 JSX 요소
    */
   const renderQuizCard = ({ item }: { item: Quiz }) => {
     // quizId가 없으면 렌더링하지 않음
@@ -249,7 +238,25 @@ export default function EnglishQuizScreen() {
     );
   };
 
-  // === 메인 렌더링 ===
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 북마크된 퀴즈 로드
+  useEffect(() => {
+    fetchBookmarkedQuizzes();
+  }, []);
+
+  // 화면이 포커스될 때마다 북마크된 퀴즈 새로 로드
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('퀴즈 화면 포커스됨 - 북마크된 퀴즈 새로 로드');
+      fetchBookmarkedQuizzes();
+    }, [])
+  );
+
+  // 검색어나 필터 변경 시 퀴즈 목록 업데이트
+  useEffect(() => {
+    filterQuizzes();
+  }, [searchQuery, activeTypeFilter, activeDifficultyFilter, quizzes]);
+
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
       {/* 뒤로가기 버튼 - 반응형 위치 */}
@@ -386,7 +393,7 @@ export default function EnglishQuizScreen() {
         <QuizModal
           visible={quizModalVisible}
           onClose={() => setQuizModalVisible(false)}
-          quiz={currentQuiz}
+          quiz={currentQuiz as any}
           onSubmit={handleQuizComplete}
         />
       )}

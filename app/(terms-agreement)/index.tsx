@@ -19,10 +19,7 @@ import {
 } from '@/shared/utils/termsUtils';
 
 const TermsAgreementScreen = () => {
-  console.log('🎯 TermsAgreementScreen 컴포넌트 마운트');
-  console.log('🔍 약관 동의 화면이 렌더링되었습니다');
-  console.log('🔍 현재 경로: /(terms-agreement)');
-
+  // ===== 상태 변수 정의 =====
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
@@ -34,13 +31,20 @@ const TermsAgreementScreen = () => {
 
   const [allAgreed, setAllAgreed] = useState(false);
 
-  // 전체 동의 상태 업데이트
+  // ===== 함수 정의 부분 =====
+  /**
+   * 전체 동의 상태 업데이트 함수
+   * @param newAgreements 새로운 동의 상태 객체
+   */
   const updateAllAgreed = (newAgreements: typeof agreements) => {
     const allChecked = Object.values(newAgreements).every((value) => value);
     setAllAgreed(allChecked);
   };
 
-  // 개별 약관 동의 토글
+  /**
+   * 개별 약관 동의 토글 함수
+   * @param key 동의할 약관의 키
+   */
   const toggleAgreement = (key: keyof typeof agreements) => {
     const newAgreements = {
       ...agreements,
@@ -50,7 +54,10 @@ const TermsAgreementScreen = () => {
     updateAllAgreed(newAgreements);
   };
 
-  // 전체 동의 토글
+  /**
+   * 전체 동의 토글 함수
+   * 모든 약관을 동일한 상태로 설정
+   */
   const toggleAllAgreed = () => {
     const newValue = !allAgreed;
     setAllAgreed(newValue);
@@ -61,7 +68,10 @@ const TermsAgreementScreen = () => {
     });
   };
 
-  // 약관 동의 처리
+  /**
+   * 약관 동의 처리 함수
+   * 필수 약관 동의 확인 후 저장하고 로그인 화면으로 이동
+   */
   const handleAgreement = async () => {
     console.log('🔍 약관 동의 처리 시작...');
     console.log('📋 동의 상태:', agreements);
@@ -91,7 +101,10 @@ const TermsAgreementScreen = () => {
     }
   };
 
-  // 약관 링크 열기
+  /**
+   * 약관 링크 열기 함수
+   * @param type 약관 타입 ('terms' | 'privacy')
+   */
   const openTermsLink = (type: 'terms' | 'privacy') => {
     const urls = {
       terms: 'https://storycraft.com/terms',
@@ -103,6 +116,10 @@ const TermsAgreementScreen = () => {
     });
   };
 
+  /**
+   * 체크박스 컴포넌트
+   * 약관 동의 체크박스를 렌더링하는 재사용 가능한 컴포넌트
+   */
   const Checkbox = ({
     checked,
     onPress,

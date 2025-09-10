@@ -41,13 +41,18 @@ const PAYMENT_HISTORY = [
 const NEXT_PAYMENT_DATE = '2024-02-15';
 
 export default function SubscriptionScreen() {
+  // ===== 상태 변수 정의 =====
   // 디폴트: 무료 플랜
   const [currentPlan, setCurrentPlan] = useState('basic');
   const [showAllHistory, setShowAllHistory] = useState(false);
 
+  // ===== 함수 정의 부분 =====
+  // 현재 플랜 객체 찾기
   const planObj = PLANS.find((p) => p.key === currentPlan);
+  // 기본 플랜 여부 확인
   const isBasic = currentPlan === 'basic';
 
+  // ===== 실행 부분 =====
   return (
     <ImageBackground source={nightBg} style={styles.bg} resizeMode="cover">
       <BackButton />

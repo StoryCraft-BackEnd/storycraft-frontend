@@ -48,6 +48,7 @@ import PolicyModal from '../../../components/ui/PolicyModal';
  * 사용자의 다양한 설정을 관리할 수 있는 화면입니다.
  */
 const SettingsScreen = () => {
+  // ===== 상태 변수 정의 =====
   // 푸시 알림 활성화 상태 (토글 스위치용)
   const [pushEnabled, setPushEnabled] = useState(false);
   // 사용자 정보 (이메일 등 계정 정보 표시용)
@@ -57,30 +58,26 @@ const SettingsScreen = () => {
   // 정책 모달 타입 ('privacy': 개인정보처리방침, 'terms': 이용약관)
   const [policyType, setPolicyType] = useState<'privacy' | 'terms'>('privacy');
 
-  // 컴포넌트 마운트 시 초기 데이터 로드 (푸시 알림 설정, 사용자 정보)
-  useEffect(() => {
-    /**
-     * 초기 데이터 로드 함수
-     * 푸시 알림 설정과 사용자 정보를 병렬로 로드합니다.
-     */
-    const fetchData = async () => {
-      try {
-        // 푸시 알림 설정과 사용자 정보를 동시에 로드
-        const [pushSettings, userData] = await Promise.all([loadPushEnabled(), getMyInfo()]);
-        setPushEnabled(pushSettings); // 푸시 알림 설정 상태 업데이트
-        setUserInfo(userData); // 사용자 정보 상태 업데이트
-      } catch (error) {
-        console.error('설정 데이터 로드 실패:', error);
-      }
-    };
-
-    fetchData(); // 컴포넌트 마운트 시 실행
-  }, []); // 의존성 배열이 비어있어 한 번만 실행
+  // ===== 함수 정의 부분 =====
+  /**
+   * 초기 데이터 로드 함수
+   * 푸시 알림 설정과 사용자 정보를 병렬로 로드합니다.
+   */
+  const fetchData = async () => {
+    try {
+      // 푸시 알림 설정과 사용자 정보를 동시에 로드
+      const [pushSettings, userData] = await Promise.all([loadPushEnabled(), getMyInfo()]);
+      setPushEnabled(pushSettings); // 푸시 알림 설정 상태 업데이트
+      setUserInfo(userData); // 사용자 정보 상태 업데이트
+    } catch (error) {
+      console.error('설정 데이터 로드 실패:', error);
+    }
+  };
 
   /**
    * 푸시 알림 토글 처리 함수
    * 알림을 켜려고 할 때 권한을 확인하고, 권한이 없으면 설정 앱으로 이동할 수 있도록 안내합니다.
-   * @param value - 푸시 알림 활성화 여부
+   * @param value 푸시 알림 활성화 여부
    */
   const handlePushToggle = async (value: boolean) => {
     if (value) {
@@ -144,7 +141,7 @@ const SettingsScreen = () => {
   /**
    * 정책 모달 열기 함수
    * 개인정보처리방침 또는 이용약관 모달을 엽니다.
-   * @param type - 정책 타입 ('privacy': 개인정보처리방침, 'terms': 이용약관)
+   * @param type 정책 타입 ('privacy': 개인정보처리방침, 'terms': 이용약관)
    */
   const handlePolicyPress = (type: 'privacy' | 'terms') => {
     setPolicyType(type); // 정책 타입 설정
@@ -158,6 +155,12 @@ const SettingsScreen = () => {
   const handleClosePolicyModal = () => {
     setPolicyModalVisible(false); // 모달 숨김
   };
+
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 초기 데이터 로드 (푸시 알림 설정, 사용자 정보)
+  useEffect(() => {
+    fetchData(); // 컴포넌트 마운트 시 실행
+  }, []); // 의존성 배열이 비어있어 한 번만 실행
 
   // 메인 화면 렌더링
   return (

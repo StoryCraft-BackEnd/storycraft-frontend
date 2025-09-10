@@ -33,6 +33,7 @@ import { getEventDetail, type Event } from '@/shared/api';
  * URL 파라미터로 받은 이벤트 ID를 사용하여 이벤트 상세 정보를 조회하고 표시합니다.
  */
 const EventDetailScreen = () => {
+  // ===== 상태 변수 정의 =====
   // URL 파라미터에서 이벤트 ID 추출
   const { id } = useLocalSearchParams<{ id: string }>();
   // 이벤트 정보 상태 (API에서 받아온 이벤트 데이터)
@@ -40,37 +41,31 @@ const EventDetailScreen = () => {
   // 로딩 상태 (API 호출 중 여부)
   const [loading, setLoading] = useState(true);
 
-  // 컴포넌트 마운트 시 이벤트 상세 정보 조회 (이벤트 ID가 있을 때만 실행)
-  useEffect(() => {
-    /**
-     * 이벤트 상세 정보 조회 함수
-     * API에서 이벤트 상세 정보를 가져와서 상태에 저장합니다.
-     * 서버 응답을 클라이언트 타입에 맞게 변환합니다.
-     */
-    const loadEventDetail = async () => {
-      try {
-        setLoading(true); // 로딩 상태 시작
-        const response = await getEventDetail(parseInt(id)); // API 호출로 이벤트 상세 정보 조회
+  // ===== 함수 정의 부분 =====
+  /**
+   * 이벤트 상세 정보 조회 함수
+   * API에서 이벤트 상세 정보를 가져와서 상태에 저장합니다.
+   * 서버 응답을 클라이언트 타입에 맞게 변환합니다.
+   */
+  const loadEventDetail = async () => {
+    try {
+      setLoading(true); // 로딩 상태 시작
+      const response = await getEventDetail(parseInt(id)); // API 호출로 이벤트 상세 정보 조회
 
-        // 서버 응답을 클라이언트 타입에 맞게 변환
-        const eventData = {
-          ...response.data,
-          isOngoing: (response.data as any).ongoing || false, // ongoing -> isOngoing으로 변환
-        };
+      // 서버 응답을 클라이언트 타입에 맞게 변환
+      const eventData = {
+        ...response.data,
+        isOngoing: (response.data as any).ongoing || false, // ongoing -> isOngoing으로 변환
+      };
 
-        setEvent(eventData); // 변환된 데이터를 상태에 저장
-      } catch (error) {
-        console.error('이벤트 상세 조회 실패:', error);
-        Alert.alert('오류', '이벤트를 불러오는데 실패했습니다.'); // 사용자에게 오류 알림
-      } finally {
-        setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
-      }
-    };
-
-    if (id) {
-      loadEventDetail(); // 이벤트 ID가 있을 때만 함수 실행
+      setEvent(eventData); // 변환된 데이터를 상태에 저장
+    } catch (error) {
+      console.error('이벤트 상세 조회 실패:', error);
+      Alert.alert('오류', '이벤트를 불러오는데 실패했습니다.'); // 사용자에게 오류 알림
+    } finally {
+      setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
     }
-  }, [id]); // id가 변경될 때마다 실행
+  };
 
   /**
    * 이벤트 참여 핸들러 함수
@@ -81,6 +76,14 @@ const EventDetailScreen = () => {
       Alert.alert('이벤트 참여', '이벤트에 참여하시겠습니까?'); // 참여 확인 알림
     }
   };
+
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 이벤트 상세 정보 조회 (이벤트 ID가 있을 때만 실행)
+  useEffect(() => {
+    if (id) {
+      loadEventDetail(); // 이벤트 ID가 있을 때만 함수 실행
+    }
+  }, [id]); // id가 변경될 때마다 실행
 
   // 로딩 상태일 때 표시되는 화면 (API 호출 중)
   if (loading) {

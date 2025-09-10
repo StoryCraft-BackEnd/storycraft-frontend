@@ -62,30 +62,21 @@ const DIFFICULTY_FILTERS = [
  * - 반응형 디자인 적용
  */
 export default function EnglishDictionaryScreen() {
-  // === 상태 관리 ===
+  // ===== 상태 변수 정의 =====
   const [words, setWords] = useState<Word[]>([]); // 전체 단어 목록 (즐겨찾기 단어만)
   const [filteredWords, setFilteredWords] = useState<Word[]>([]); // 필터링된 단어 목록
   const [searchQuery, setSearchQuery] = useState(''); // 검색어
   const [activeFilter, setActiveFilter] = useState('all'); // 현재 선택된 난이도 필터
   const [favoriteWords, setFavoriteWords] = useState<FavoriteWord[]>([]); // 즐겨찾기 단어 목록 (동화별 구분)
-  const [selectedProfile, setSelectedProfile] = useState<any>(null); // 현재 선택된 프로필
+  const [selectedProfile, setSelectedProfile] = useState<{ childId: number; name: string } | null>(
+    null
+  ); // 현재 선택된 프로필
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set()); // 뒤집힌 카드 ID 목록
 
-  // === useEffect 훅 ===
-  // 컴포넌트 마운트 시 즐겨찾기 단어 로드
-  useEffect(() => {
-    loadFavoriteWordsData();
-  }, []);
-
-  // 검색어나 필터 변경 시 단어 목록 업데이트
-  useEffect(() => {
-    filterWords();
-  }, [searchQuery, activeFilter, words]);
-
-  // === 데이터 로드 함수 ===
+  // ===== 함수 정의 부분 =====
   /**
-   * 즐겨찾기 단어 데이터 로드
-   * - 현재 선택된 프로필의 즐겨찾기 단어 목록을 가져옴
+   * 즐겨찾기 단어 데이터 로드 함수
+   * 현재 선택된 프로필의 즐겨찾기 단어 목록을 가져옴
    */
   const loadFavoriteWordsData = async () => {
     try {
@@ -130,10 +121,9 @@ export default function EnglishDictionaryScreen() {
     }
   };
 
-  // === 필터링 함수 ===
   /**
    * 단어 필터링 함수
-   * - 검색어와 난이도 필터를 적용하여 단어 목록을 필터링
+   * 검색어와 난이도 필터를 적용하여 단어 목록을 필터링
    */
   const filterWords = () => {
     let filtered = words;
@@ -155,12 +145,11 @@ export default function EnglishDictionaryScreen() {
     setFilteredWords(filtered);
   };
 
-  // === 즐겨찾기 관리 함수 ===
-
   /**
    * 즐겨찾기 토글 함수
-   * - 단어를 즐겨찾기에 추가하거나 제거
-   * - 프로필별로 독립적으로 관리
+   * 단어를 즐겨찾기에 추가하거나 제거
+   * 프로필별로 독립적으로 관리
+   * @param word 토글할 단어
    */
   const toggleFavorite = async (word: string) => {
     if (!selectedProfile) {
@@ -224,11 +213,11 @@ export default function EnglishDictionaryScreen() {
     }
   };
 
-  // === 카드 인터랙션 함수 ===
   /**
    * 카드 뒤집기 함수
-   * - 카드 ID를 기반으로 뒤집힌 상태를 토글
-   * - Set을 사용하여 효율적인 상태 관리
+   * 카드 ID를 기반으로 뒤집힌 상태를 토글
+   * Set을 사용하여 효율적인 상태 관리
+   * @param wordId 뒤집을 카드의 ID
    */
   const flipCard = (wordId: string) => {
     setFlippedCards((prev) => {
@@ -244,17 +233,19 @@ export default function EnglishDictionaryScreen() {
 
   /**
    * 발음 재생 함수 (임시 구현)
-   * - 현재는 알림으로 대체, 향후 TTS API 연동 예정
+   * 현재는 알림으로 대체, 향후 TTS API 연동 예정
+   * @param word 발음을 재생할 단어
    */
   const playPronunciation = (word: Word) => {
     Alert.alert('발음 재생', `${word.english}의 발음을 재생합니다.`);
     // TODO: 실제 TTS API 연동
   };
 
-  // === 유틸리티 함수 ===
   /**
    * 난이도별 색상 반환 함수
-   * - 쉬움: 초록, 보통: 주황, 어려움: 빨강
+   * 쉬움: 초록, 보통: 주황, 어려움: 빨강
+   * @param difficulty 난이도 ('easy', 'normal', 'hard')
+   * @returns 해당 난이도의 색상
    */
   const getDifficultyColor = (difficulty: string) => {
     const filter = DIFFICULTY_FILTERS.find((f) => f.key === difficulty);
@@ -263,18 +254,21 @@ export default function EnglishDictionaryScreen() {
 
   /**
    * 난이도별 한글 라벨 반환 함수
-   * - 쉬움, 보통, 어려움으로 표시
+   * 쉬움, 보통, 어려움으로 표시
+   * @param difficulty 난이도 ('easy', 'normal', 'hard')
+   * @returns 해당 난이도의 한글 라벨
    */
   const getDifficultyLabel = (difficulty: string) => {
     const filter = DIFFICULTY_FILTERS.find((f) => f.key === difficulty);
     return filter?.label || '보통';
   };
 
-  // === 렌더링 함수 ===
   /**
    * 단어 카드 렌더링 함수
-   * - 카드의 뒤집힌 상태에 따라 다른 UI 렌더링
-   * - 반응형 디자인 적용
+   * 카드의 뒤집힌 상태에 따라 다른 UI 렌더링
+   * 반응형 디자인 적용
+   * @param item 렌더링할 단어 객체
+   * @returns 단어 카드 JSX 요소
    */
   const renderWordCard = ({ item }: { item: Word }) => {
     const isFlipped = flippedCards.has(item.id); // 카드 뒤집힌 상태 확인
@@ -378,7 +372,17 @@ export default function EnglishDictionaryScreen() {
     );
   };
 
-  // === 메인 렌더링 ===
+  // ===== 실행 부분 =====
+  // 컴포넌트 마운트 시 즐겨찾기 단어 로드
+  useEffect(() => {
+    loadFavoriteWordsData();
+  }, []);
+
+  // 검색어나 필터 변경 시 단어 목록 업데이트
+  useEffect(() => {
+    filterWords();
+  }, [searchQuery, activeFilter, words]);
+
   return (
     <ImageBackground source={backgroundImage} style={styles.backgroundImage} resizeMode="cover">
       {/* 뒤로가기 버튼 - 반응형 위치 */}

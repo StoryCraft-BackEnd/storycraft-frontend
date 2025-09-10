@@ -7,12 +7,28 @@ import { useEffect } from 'react';
 import * as NavigationBar from 'expo-navigation-bar';
 
 export default function MainLayout() {
+  // ===== 함수 정의 부분 =====
+  /**
+   * 네비게이션 바를 숨기는 함수
+   */
+  const hideNavigationBar = () => {
+    NavigationBar.setVisibilityAsync('hidden');
+  };
+
+  /**
+   * 네비게이션 바를 표시하는 함수
+   */
+  const showNavigationBar = () => {
+    NavigationBar.setVisibilityAsync('visible');
+  };
+
+  // ===== 실행 부분 =====
   useEffect(() => {
     // 네비게이션 바 숨기기
-    NavigationBar.setVisibilityAsync('hidden');
+    hideNavigationBar();
 
     return () => {
-      NavigationBar.setVisibilityAsync('visible');
+      showNavigationBar();
     };
   }, []);
 

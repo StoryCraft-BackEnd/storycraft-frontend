@@ -13,7 +13,6 @@ import {
   Text, // 텍스트 표시 컴포넌트
   TouchableOpacity, // 터치 가능한 버튼 컴포넌트
   SafeAreaView, // 안전 영역을 고려한 컨테이너
-  ScrollView, // 스크롤 가능한 컨테이너
   ImageBackground, // 배경 이미지가 있는 컨테이너
   FlatList, // 리스트 렌더링 컴포넌트
   Alert, // 알림 팝업 표시용
@@ -65,7 +64,7 @@ const DUMMY_FAQS = [
  * 탭별로 다른 데이터를 표시하고, 각 항목의 상세 보기 기능을 제공합니다.
  */
 const NoticeEventFAQScreen = () => {
-  // 상태 관리
+  // ===== 상태 변수 정의 =====
   // 활성 탭 상태 (현재 선택된 탭)
   const [activeTab, setActiveTab] = useState('notice');
   // 공지사항 목록 상태 (API에서 받아온 공지사항 데이터)
@@ -77,8 +76,7 @@ const NoticeEventFAQScreen = () => {
   // 로딩 상태 (API 호출 중 여부)
   const [loading, setLoading] = useState(false);
 
-  // === API 데이터 로드 함수들 ===
-
+  // ===== 함수 정의 부분 =====
   /**
    * 공지사항 로드 함수
    * API에서 공지사항 목록을 가져와서 상태에 저장합니다.
@@ -129,16 +127,6 @@ const NoticeEventFAQScreen = () => {
       setLoading(false); // 로딩 상태 종료 (성공/실패 관계없이)
     }
   };
-
-  // 탭 변경 시 해당 탭의 데이터 로드 (탭이 변경될 때마다 실행)
-  useEffect(() => {
-    if (activeTab === 'notice') {
-      loadNotices(); // 공지사항 탭일 때 공지사항 데이터 로드
-    } else if (activeTab === 'event') {
-      loadEvents(); // 이벤트 탭일 때 이벤트 데이터 로드
-    }
-    // FAQ 탭은 더미 데이터를 사용하므로 별도 로드 불필요
-  }, [activeTab]); // activeTab이 변경될 때마다 실행
 
   /**
    * 현재 활성 탭에 맞는 데이터 반환 함수
@@ -225,20 +213,21 @@ const NoticeEventFAQScreen = () => {
       );
     } else {
       // FAQ 탭일 때 FAQ 카드 렌더링
+      const faq = item as (typeof DUMMY_FAQS)[0];
       return (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.title}>{item.question}</Text> {/* FAQ 질문 */}
+            <Text style={styles.title}>{faq.question}</Text> {/* FAQ 질문 */}
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{item.category}</Text> {/* FAQ 카테고리 */}
+              <Text style={styles.categoryText}>{faq.category}</Text> {/* FAQ 카테고리 */}
             </View>
           </View>
           <Text style={styles.content} numberOfLines={3}>
-            {item.answer} {/* FAQ 답변 (최대 3줄) */}
+            {faq.answer} {/* FAQ 답변 (최대 3줄) */}
           </Text>
           <TouchableOpacity
             style={styles.readMoreBtn}
-            onPress={() => Alert.alert('FAQ', item.answer)} // FAQ 답변을 알림으로 표시
+            onPress={() => Alert.alert('FAQ', faq.answer)} // FAQ 답변을 알림으로 표시
           >
             <Text style={styles.readMoreText}>자세히 보기</Text>
           </TouchableOpacity>
@@ -246,6 +235,17 @@ const NoticeEventFAQScreen = () => {
       );
     }
   };
+
+  // ===== 실행 부분 =====
+  // 탭 변경 시 해당 탭의 데이터 로드 (탭이 변경될 때마다 실행)
+  useEffect(() => {
+    if (activeTab === 'notice') {
+      loadNotices(); // 공지사항 탭일 때 공지사항 데이터 로드
+    } else if (activeTab === 'event') {
+      loadEvents(); // 이벤트 탭일 때 이벤트 데이터 로드
+    }
+    // FAQ 탭은 더미 데이터를 사용하므로 별도 로드 불필요
+  }, [activeTab]); // activeTab이 변경될 때마다 실행
 
   // 메인 화면 렌더링
   return (

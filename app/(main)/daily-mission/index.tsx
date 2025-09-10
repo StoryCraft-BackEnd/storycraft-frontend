@@ -110,10 +110,10 @@ interface UserStats {
 }
 
 export default function DailyMissionScreen() {
+  // ===== 상태 변수 정의 =====
   // 선택된 프로필 상태 (현재 사용 중인 프로필의 ID)
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
 
-  // 상태 관리
   // 사용자 통계 상태 (포인트, 레벨, 성취도 등)
   const [userStats, setUserStats] = useState<UserStats>({
     points: 0, // 보유 포인트
