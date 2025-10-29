@@ -1,0 +1,140 @@
+import { StyleSheet, Platform, Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+export { SCREEN_WIDTH };
+
+const styles = StyleSheet.create({
+  bg: { flex: 1, width: '100%', height: '100%' },
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 16 : 0,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  scrollContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+    gap: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  card: {
+    width: 250,
+    backgroundColor: 'rgba(20, 30, 60, 0.92)',
+    borderRadius: 18,
+    padding: 12,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  profileImage: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#eee',
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  profileNickname: {
+    fontSize: 12,
+    color: '#b3b3ff',
+    marginBottom: 2,
+  },
+  editBtn: {
+    marginLeft: 'auto',
+    backgroundColor: '#2d6cff',
+    borderRadius: 7,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  editBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  infoField: {
+    marginBottom: 12,
+  },
+  label: {
+    color: '#b3b3ff',
+    fontSize: 12,
+    marginBottom: 4,
+    fontWeight: 'bold',
+  },
+  input: {
+    backgroundColor: '#1a2340',
+    color: '#fff',
+    borderRadius: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: '#2d6cff',
+  },
+  pwBtn: {
+    marginTop: 10,
+    backgroundColor: 'linear-gradient(90deg, #a18fff 0%, #3b82f6 100%)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  pwBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  // 프로필 이미지 관련 스타일
+  profileImageContainer: {
+    position: 'relative',
+  },
+  editImageIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#666666',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  editImageText: {
+    fontSize: 12,
+    color: '#fff',
+  },
+});
+
+export default styles;

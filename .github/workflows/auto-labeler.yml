@@ -1,14 +1,14 @@
-name: Auto Labeler  # 워크플로우 이름
+name: Auto Labeler # 워크플로우 이름
 
 on:
   pull_request_target:
-    types: [opened]  # PR 생성 시 작동 (주의: PR 대상 브랜치 기준에서 실행됨)
+    types: [opened] # PR 생성 시 작동 (주의: PR 대상 브랜치 기준에서 실행됨)
 
 jobs:
   labeler:
-    runs-on: ubuntu-latest  # Ubuntu 환경
+    runs-on: ubuntu-latest # Ubuntu 환경
     steps:
       - name: Check Labels
-        uses: jimschubert/labeler-action@v2  # PR의 파일 경로나 이름에 따라 라벨 자동 추가
+        uses: jimschubert/labeler-action@v2 # PR의 파일 경로나 이름에 따라 라벨 자동 추가
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 인증
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub 인증

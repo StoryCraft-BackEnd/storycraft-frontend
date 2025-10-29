@@ -2,213 +2,698 @@
  * StoryCraft 메인 화면 컴포넌트
  * 로그인 후 사용자가 보게 되는 메인 화면입니다.
  */
-import React from 'react';
-import { TouchableOpacity, Alert, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
-import { ThemedText } from '@/components/ui/ThemedText';
+import React, { useEffect, useState } from 'react';
+import {
+  ImageBackground,
+  TouchableOpacity,
+  View,
+  Image,
+  Text,
+  ScrollView,
+  BackHandler,
+  ActivityIndicator,
+} from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // 토큰 삭제 위해 사용 추후 삭제!!
+import { LoadingPopup } from '@/components/ui/LoadingPopup';
+import { setStatusBarHidden } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import { router, useFocusEffect } from 'expo-router';
+
+import nightBg from '@/assets/images/background/night-bg.png';
+import boxplus from '@/assets/images/icons/boxplus.png';
+import bookmark from '@/assets/images/icons/bookmark.png';
+import heart from '@/assets/images/icons/heart.png';
+import dictionary from '@/assets/images/icons/dictionary.png';
+import quiz from '@/assets/images/icons/quiz.png';
+import donate from '@/assets/images/icons/donate.png';
+import mypage from '@/assets/images/icons/mypage.png';
+import setting from '@/assets/images/icons/setting.png';
+import board from '@/assets/images/icons/board.png';
+import story1 from '@/assets/images/illustrations/storycraft_cover_1.png';
+import story2 from '@/assets/images/illustrations/storycraft_cover_2.png';
+import story3 from '@/assets/images/illustrations/storycraft_cover_3.png';
+import story4 from '@/assets/images/illustrations/storycraft_cover_4.png';
+import story5 from '@/assets/images/illustrations/storycraft_cover_5.png';
+import story6 from '@/assets/images/illustrations/storycraft_cover_6.png';
+import story7 from '@/assets/images/illustrations/storycraft_cover_7.png';
+import story8 from '@/assets/images/illustrations/storycraft_cover_8.png';
+import storyCraftLogo from '@/assets/images/StoryCraft.png';
+import pointImage from '@/assets/images/rewards/point_icon.png';
+import achieveIcon from '@/assets/images/rewards/acheive_icon2.png';
+// defaultProfile import 제거 - 사용되지 않음
+import { MainScreenStyles } from '@/styles/MainScreen';
+import { widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { loadSelectedProfile, loadProfileImage } from '@/features/profile/profileStorage';
+import { ChildProfile } from '@/features/profile/types';
+import { addStoryToStorage } from '@/features/storyCreate/storyStorage';
+import { startLearningTimeTracking, stopLearningTimeTracking } from '@/shared/api';
+import { Story, LocalIllustration } from '@/features/storyCreate/types';
+import { getStoryIllustrationPathFromStory } from '@/features/storyCreate/storyUtils';
+import {
+  fetchStoryList,
+  fetchIllustrationList,
+  downloadStoryIllustrations,
+} from '@/features/storyCreate/storyApi';
+import { getMyInfo } from '@/features/user/userApi';
+import { getProfileImageById } from '@/types/ProfileImageTypes';
+import * as FileSystem from 'expo-file-system';
+import {
+  isStoriesCacheValid,
+  saveStoriesLastUpdateTime,
+} from '@/features/storyCreate/storyStorage';
+import { rewardsApi } from '@/shared/api/rewardsApi';
+
+// 기본 삽화 이미지들 (삽화가 없을 때 사용)
+const defaultStoryImages = [story1, story2, story3, story4, story5, story6, story7, story8];
 
 export default function MainScreen() {
-  const backgroundColor = useThemeColor('background');
-  const textColor = useThemeColor('text');
-  const cardColor = useThemeColor('card');
+  // ===== 상태 변수 정의 =====
+  const [backgroundImage] = useState(nightBg);
+  const [selectedProfile, setSelectedProfile] = useState<ChildProfile | null>(null);
+  const [userStories, setUserStories] = useState<Story[]>([]);
+  const [storyImages, setStoryImages] = useState<(string | number)[]>([]);
+  const [isLoadingIllustrations, setIsLoadingIllustrations] = useState(false);
+  const [illustrationLoadingProgress, setIllustrationLoadingProgress] = useState<string>('');
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('불러오는중...');
+  const [illustrationsReady, setIllustrationsReady] = useState(false);
 
-  // StoryCraft Dev로 돌아가는 함수 추후 삭제!!
-  const handleBackToDev = async () => {
+  // 배지 개수와 포인트를 위한 state 추가
+  const [badgeCount, setBadgeCount] = useState<number>(0);
+  const [userPoints, setUserPoints] = useState<number>(0);
+
+  // 프로필 이미지를 위한 state 추가
+  const [profileImageId, setProfileImageId] = useState<string>('default_profile');
+
+  // ===== 함수 정의 부분 =====
+  /**
+   * 프로필 이미지를 로컬 스토리지에서 로드하는 함수
+   */
+  const loadProfileImageFromStorage = async () => {
     try {
-      // 토큰 삭제
-      await AsyncStorage.removeItem('token');
-      // (auth) 스택으로 이동
-      router.replace('/(auth)');
+      const imageId = await loadProfileImage();
+      if (imageId) {
+        setProfileImageId(imageId);
+        console.log('✅ 메인 화면 프로필 이미지 로드 완료:', imageId);
+      }
     } catch (error) {
-      console.error('로그아웃 처리 중 오류:', error);
+      console.error('❌ 프로필 이미지 로드 실패:', error);
     }
   };
 
+  /**
+   * 보상 현황을 조회하는 함수
+   * @param childId 자녀 ID
+   */
+  const fetchRewardProfile = async (childId: number) => {
+    try {
+      console.log('💰 보상 현황 조회 시작 - childId:', childId);
+      const profile = await rewardsApi.getProfile(childId);
+      console.log('✅ 보상 현황 조회 완료:', profile);
+
+      // 배지 개수와 포인트 업데이트
+      setBadgeCount(profile.badges?.length || 0);
+      setUserPoints(profile.points || 0);
+
+      console.log(
+        `💰 사용자 보상 현황 업데이트: 배지 ${profile.badges?.length || 0}개, 포인트 ${profile.points}점`
+      );
+    } catch (error) {
+      console.error('❌ 보상 현황 조회 실패:', error);
+      // 에러 시 기본값 유지
+    }
+  };
+
+  /**
+   * 동화 목록 및 삽화를 로드하는 함수
+   * @param childId 자녀 ID
+   * @param isInitialLoad 초기 로딩 여부
+   */
+  const loadStories = async (childId: number, isInitialLoad: boolean = false) => {
+    try {
+      console.log(`프로필 ${childId}의 동화 목록 로드 시작...`);
+
+      if (isInitialLoad) {
+        setIsInitialLoading(true);
+        setLoadingMessage('동화 목록을 불러오는 중...');
+      }
+
+      let stories: Story[] = [];
+
+      // 캐시 유효성 검사
+      const isCacheValid = await isStoriesCacheValid(childId);
+
+      if (isCacheValid && !isInitialLoad) {
+        console.log('📋 캐시된 동화 목록 사용 - 서버 요청 건너뛰기');
+        // 캐시가 유효하면 기존 데이터 사용
+        stories = userStories;
+      } else {
+        // 캐시가 유효하지 않거나 초기 로딩인 경우 서버에서 데이터 조회
+        try {
+          setLoadingMessage('서버에서 동화 목록을 조회하는 중...');
+
+          const storyDataList = await fetchStoryList(childId);
+          console.log(`서버에서 ${storyDataList.length}개의 동화 조회 완료`);
+
+          // StoryData를 Story 타입으로 변환
+          stories = storyDataList.map((storyData) => ({
+            ...storyData,
+            childId: childId,
+            isBookmarked: false,
+            isLiked: false,
+          }));
+
+          // 동화 목록을 로컬에 저장 (서버 데이터로 덮어쓰기)
+          await Promise.all(stories.map((story) => addStoryToStorage(story)));
+          console.log('동화 목록 로컬 저장 완료');
+
+          // 동화 목록 업데이트 시간 저장
+          await saveStoriesLastUpdateTime(childId);
+        } catch (serverError) {
+          console.error('서버 데이터 조회 실패:', serverError);
+
+          // 서버 실패 시 기존 데이터가 있으면 사용, 없으면 빈 배열
+          if (userStories.length > 0) {
+            console.log('🔄 서버 요청 실패 - 기존 동화 목록 사용');
+            stories = userStories;
+          } else {
+            stories = [];
+            console.log('서버 요청 실패 - 빈 동화 목록 반환');
+          }
+        }
+      }
+
+      // 삽화 목록 조회 및 다운로드
+      if (stories.length > 0 && selectedProfile?.childId) {
+        try {
+          console.log('✅ 서버에서 삽화 목록 조회 시작... - childId:', selectedProfile.childId);
+          setIsLoadingIllustrations(true);
+          setIllustrationLoadingProgress('삽화 목록을 조회하는 중...');
+          setLoadingMessage('삽화 목록을 조회하는 중...');
+
+          const illustrations = await fetchIllustrationList(selectedProfile.childId);
+          console.log(`서버에서 ${illustrations.length}개의 삽화 조회 완료`);
+
+          // 동화에 해당하는 삽화 정보를 동화 객체에 추가
+          const storiesWithIllustrations = stories.map((story) => {
+            const storyIllustrations = illustrations.filter(
+              (illustration) => illustration.storyId === story.storyId
+            );
+
+            // Illustration을 LocalIllustration으로 변환
+            const localIllustrations: LocalIllustration[] = storyIllustrations.map(
+              (illustration) => ({
+                illustrationId: illustration.illustrationId,
+                storyId: illustration.storyId,
+                orderIndex: illustration.orderIndex,
+                localPath: '',
+                imageUrl: illustration.imageUrl,
+                description: illustration.description,
+                createdAt: illustration.createdAt,
+              })
+            );
+
+            return {
+              ...story,
+              illustrations: localIllustrations,
+            };
+          });
+
+          console.log(
+            '동화별 삽화 정보 매핑 완료:',
+            storiesWithIllustrations.map((s) => ({
+              storyId: s.storyId,
+              title: s.title,
+              illustrationsCount: s.illustrations?.length || 0,
+            }))
+          );
+
+          // 동화에 해당하는 삽화만 다운로드
+          setIllustrationLoadingProgress('삽화를 다운로드하는 중...');
+          setLoadingMessage('삽화를 다운로드하는 중...');
+
+          await downloadStoryIllustrations(stories, illustrations, (message) => {
+            setIllustrationLoadingProgress(message);
+            setLoadingMessage(message);
+          });
+
+          console.log('동화 삽화 다운로드 완료');
+
+          // 다운로드된 삽화의 localPath 업데이트
+          const updatedStories = storiesWithIllustrations.map((story) => {
+            if (story.illustrations && story.illustrations.length > 0) {
+              const updatedIllustrations = story.illustrations.map((illustration) => ({
+                ...illustration,
+                localPath: `${FileSystem.documentDirectory}illustrations/illustration_${illustration.illustrationId}.jpg`,
+              }));
+              return {
+                ...story,
+                illustrations: updatedIllustrations,
+              };
+            }
+            return story;
+          });
+
+          console.log('삽화 localPath 업데이트 완료');
+          stories = updatedStories;
+
+          // 삽화 로딩 완료 상태 설정
+          setIllustrationsReady(true);
+        } catch (illustrationError) {
+          console.error('삽화 처리 실패:', illustrationError);
+          // 삽화 로딩 실패 시에도 준비 완료로 설정
+          setIllustrationsReady(true);
+        } finally {
+          setIsLoadingIllustrations(false);
+          setIllustrationLoadingProgress('');
+        }
+      }
+
+      // 동화 목록 설정
+      setUserStories(stories);
+
+      // 삽화 이미지 경로 설정
+      console.log('동화 삽화 이미지 경로 설정 시작...');
+      const images = await Promise.all(
+        stories.map(async (story, index) => {
+          try {
+            // 삽화 경로 확인
+            const illustrationPath = await getStoryIllustrationPathFromStory(story);
+
+            if (illustrationPath) {
+              // 파일 실제 존재 여부 확인
+              const fileInfo = await FileSystem.getInfoAsync(illustrationPath);
+              if (fileInfo.exists) {
+                console.log(`동화 ${story.storyId} 삽화 발견:`, illustrationPath);
+                return illustrationPath;
+              } else {
+                console.log(
+                  `동화 ${story.storyId} 삽화 경로는 있지만 파일이 없음:`,
+                  illustrationPath
+                );
+              }
+            }
+
+            // 삽화가 없으면 기본 이미지 사용
+            const defaultImageIndex = index % defaultStoryImages.length;
+            console.log(
+              `동화 ${story.storyId} 삽화 없음, 기본 이미지 사용 (인덱스: ${defaultImageIndex})`
+            );
+            return defaultStoryImages[defaultImageIndex];
+          } catch (error) {
+            console.error(`동화 ${story.storyId} 삽화 로드 실패:`, error);
+            const defaultImageIndex = index % defaultStoryImages.length;
+            return defaultStoryImages[defaultImageIndex];
+          }
+        })
+      );
+      console.log(`총 ${images.length}개의 이미지 설정 완료`);
+      setStoryImages(images);
+
+      if (isInitialLoad) {
+        setIsInitialLoading(false);
+        setLoadingMessage('불러오는중...');
+      }
+    } catch (error) {
+      console.error('동화 목록 로드 실패:', error);
+      if (isInitialLoad) {
+        setIsInitialLoading(false);
+        setLoadingMessage('불러오는중...');
+      }
+    }
+  };
+
+  /**
+   * 사용자 정보 및 프로필을 불러오는 함수
+   */
+  const loadUserData = async () => {
+    try {
+      // 현재 로그인한 사용자 정보 가져오기
+      const userInfo = await getMyInfo();
+      console.log('✅ 사용자 정보 로드 완료:', {
+        userId: userInfo.id,
+        nickname: userInfo.nickname,
+      });
+
+      // 선택된 프로필 불러오기
+      const profile = await loadSelectedProfile();
+      setSelectedProfile(profile);
+
+      // 프로필 이미지 로드
+      await loadProfileImageFromStorage();
+
+      // 프로필이 있으면 초기 로딩 시작
+      if (profile) {
+        // 학습시간 측정 시작
+        await startLearningTimeTracking(profile.childId);
+        console.log('⏰ 학습시간 측정 시작:', profile.childId);
+
+        // 보상 현황 조회 (배지 개수, 포인트)
+        console.log('💰 보상 현황 조회 시작');
+        await fetchRewardProfile(profile.childId);
+
+        // 레벨업 조건 판단 API 호출 (앱 시작 시 최초 1회)
+        try {
+          console.log('🎯 레벨업 조건 판단 API 호출 시작');
+          const levelUpResponse = await rewardsApi.checkLevelUp(profile.childId);
+          console.log('✅ 레벨업 조건 판단 API 성공:', levelUpResponse);
+
+          if (levelUpResponse.levelUp) {
+            console.log('🎉 레벨업 발생:', {
+              newLevel: levelUpResponse.newLevel,
+            });
+          }
+        } catch (error) {
+          console.error('❌ 레벨업 조건 판단 API 실패:', error);
+        }
+
+        await loadStories(profile.childId, true);
+      } else {
+        // 프로필이 없으면 프로필 선택 화면으로 이동
+        console.log('선택된 프로필이 없음 - 프로필 선택 화면으로 이동');
+        router.replace('/(profile)');
+      }
+    } catch (error) {
+      console.error('사용자 데이터 로드 실패:', error);
+
+      // 에러 타입별로 다른 처리
+      if (error instanceof Error) {
+        if (
+          error.message.includes('로그인이 필요합니다') ||
+          error.message.includes('인증이 만료')
+        ) {
+          console.log('🔐 인증 문제 - 로그인 화면으로 이동');
+          router.replace('/(auth)');
+          return;
+        } else if (error.message.includes('서버 오류')) {
+          console.log('🌐 서버 오류 - 프로필 선택 화면으로 이동');
+          // 서버 오류 시에도 프로필 선택 화면으로 이동 시도
+        }
+      }
+
+      // 기본적으로 프로필 선택 화면으로 이동
+      console.log('🔄 프로필 선택 화면으로 이동');
+      router.replace('/(profile)');
+    }
+  };
+
+  // ===== 실행 부분 =====
+  useEffect(() => {
+    // 화면을 가로 모드로 고정
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+    // 시스템 UI 숨기기
+    setStatusBarHidden(true);
+    NavigationBar.setVisibilityAsync('hidden');
+
+    // 뒤로가기 버튼 비활성화
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // 뒤로가기 버튼을 눌렀을 때 아무것도 하지 않음 (true 반환으로 기본 동작 방지)
+      return true;
+    });
+
+    // 사용자 정보 및 프로필 불러오기
+    loadUserData();
+
+    // 시간대별 배경 이미지 설정 (추후 개발 예정)
+    // const updateBackgroundImage = () => {
+    //   const now = new Date();
+    //   const hour = now.getHours();
+
+    //   if (hour >= 5 && hour < 17) {
+    //     setBackgroundImage(morningBg);
+    //   } else if (hour >= 17 && hour < 19) {
+    //     setBackgroundImage(sunsetBg);
+    //   } else {
+    //     setBackgroundImage(nightBg);
+    //   }
+    // };
+
+    // updateBackgroundImage();
+
+    return () => {
+      // 화면을 세로 모드로 복원
+      ScreenOrientation.unlockAsync();
+      // 🚨 핵심: 상태바는 숨김 상태 유지 (가로 모드에서 상태바 숨김)
+      // setStatusBarHidden(false); // 제거 - 상태바 숨김 유지
+      NavigationBar.setVisibilityAsync('visible');
+      // 뒤로가기 핸들러 제거
+      backHandler.remove();
+      // 학습시간 측정 중단
+      stopLearningTimeTracking();
+    };
+  }, []);
+
+  /**
+   * 화면 포커스 시 데이터를 새로고침하는 함수
+   * @param isMounted 컴포넌트 마운트 상태
+   */
+  const refreshData = async (isMounted: boolean) => {
+    try {
+      // 프로필 정보 새로고침 (마이페이지에서 프로필 변경 시 대응)
+      console.log('🔄 메인 화면 포커스 - 프로필 정보 새로고침 시작');
+      const updatedProfile = await loadSelectedProfile();
+
+      if (updatedProfile && isMounted) {
+        // 프로필이 변경되었는지 확인 (childId 또는 프로필 이미지 변경)
+        const currentProfileImage = await loadProfileImage();
+        const isProfileChanged =
+          !selectedProfile ||
+          selectedProfile.childId !== updatedProfile.childId ||
+          profileImageId !== currentProfileImage;
+
+        if (isProfileChanged) {
+          console.log('🔄 프로필 변경 감지 - 새로운 프로필로 업데이트');
+          console.log('🔍 변경 사항:', {
+            childIdChanged: !selectedProfile || selectedProfile.childId !== updatedProfile.childId,
+            imageChanged: profileImageId !== currentProfileImage,
+            oldImage: profileImageId,
+            newImage: currentProfileImage,
+          });
+
+          setSelectedProfile(updatedProfile);
+
+          // 새로운 프로필로 학습시간 측정 재시작
+          await startLearningTimeTracking(updatedProfile.childId);
+          console.log('⏰ 새로운 프로필로 학습시간 측정 재시작:', updatedProfile.childId);
+
+          // 새로운 프로필의 보상 현황 조회
+          await fetchRewardProfile(updatedProfile.childId);
+
+          // 새로운 프로필의 동화 목록 로드
+          await loadStories(updatedProfile.childId, false);
+
+          // 새로운 프로필의 이미지 로드
+          await loadProfileImageFromStorage();
+
+          return; // 프로필이 변경되었으면 여기서 종료
+        }
+      }
+
+      // 기존 프로필이 유지되는 경우 기존 로직 실행
+      if (selectedProfile && isMounted && !isInitialLoading) {
+        // 캐시 유효성 검사
+        const isCacheValid = await isStoriesCacheValid(selectedProfile.childId);
+
+        if (isCacheValid && illustrationsReady && userStories.length > 0) {
+          console.log('메인 화면 포커스 - 캐시 유효, 새로고침 건너뛰기');
+          return;
+        }
+
+        console.log('메인 화면 포커스 - 캐시 무효 또는 데이터 부족, 새로고침 필요');
+
+        // 보상 현황 새로고침
+        await fetchRewardProfile(selectedProfile.childId);
+
+        // 동화 목록 새로고침
+        await loadStories(selectedProfile.childId, false);
+
+        // 프로필 이미지 새로고침
+        await loadProfileImageFromStorage();
+      }
+    } catch (error) {
+      console.error('❌ 메인 화면 포커스 시 데이터 새로고침 실패:', error);
+    }
+  };
+
+  // 화면이 포커스될 때마다 프로필 및 동화 목록 새로고침 및 시스템 UI 숨기기 (캐싱 로직 적용)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
+
+      // 🔒 포커스 시 상태바 계속 숨김 유지
+      setStatusBarHidden(true);
+
+      refreshData(isMounted);
+
+      return () => {
+        isMounted = false;
+        // 🚨 핵심: 포커스 해제 시에도 상태바 숨김 유지
+        setStatusBarHidden(true);
+      };
+    }, [selectedProfile, isInitialLoading, illustrationsReady, userStories.length])
+  );
+
   return (
-    <ThemedView style={{ flex: 1, backgroundColor }}>
-      <ScrollView style={{ flex: 1, padding: 16 }}>
-        {/* 사용자 정보 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
+    <ImageBackground
+      source={backgroundImage}
+      style={MainScreenStyles.backgroundImage}
+      resizeMode="cover"
+    >
+      <ThemedView style={MainScreenStyles.container}>
+        {/* 초기 로딩 팝업 */}
+        <LoadingPopup visible={isInitialLoading} title="불러오는중" message={loadingMessage} />
+
+        <Image source={storyCraftLogo} style={MainScreenStyles.logoImage} resizeMode="stretch" />
+        <View style={MainScreenStyles.userProfileContainer}>
+          <Image
+            source={getProfileImageById(profileImageId)}
+            style={MainScreenStyles.userProfileImage}
+          />
+          <Text style={MainScreenStyles.userNameText}>
+            {selectedProfile?.name || '프로필을 선택해주세요'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={MainScreenStyles.pointContainer}
+          onPress={() => router.push('./daily-mission')}
         >
-          <ThemedText
-            style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 8,
+          <View style={MainScreenStyles.achieveContainer}>
+            <Image source={achieveIcon} style={MainScreenStyles.pointImage} />
+            <Text style={MainScreenStyles.pointText}>{badgeCount}</Text>
+          </View>
+          <Image source={pointImage} style={MainScreenStyles.pointImage} />
+          <Text style={MainScreenStyles.pointText}>{userPoints}</Text>
+        </TouchableOpacity>
+        <View style={MainScreenStyles.storyContainer}>
+          <TouchableOpacity
+            style={MainScreenStyles.viewAllButton}
+            onPress={() => {
+              router.push('/(main)/storylist');
             }}
           >
-            환영합니다!
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: 16,
-              color: textColor,
-              opacity: 0.8,
-            }}
+            <Text style={MainScreenStyles.viewAllText}>전체 목록 보기 {'>>'}</Text>
+          </TouchableOpacity>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={MainScreenStyles.storyScrollView}
+            pagingEnabled={false}
+            snapToInterval={wp('22%')}
+            decelerationRate="normal"
+            bounces={true}
           >
-            오늘도 좋은 이야기를 만들어보세요
-          </ThemedText>
+            {userStories.length === 0 ? (
+              <View style={MainScreenStyles.storyItem}>
+                <Text style={MainScreenStyles.storyTitle}>
+                  현재 생성된 동화가 없습니다.{'\n'}동화를 생성해주세요!
+                </Text>
+              </View>
+            ) : isLoadingIllustrations ? (
+              <View style={MainScreenStyles.storyItem}>
+                <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                  <ActivityIndicator size="large" color="#FFD700" />
+                  <Text
+                    style={[MainScreenStyles.storyTitle, { marginTop: 10, textAlign: 'center' }]}
+                  >
+                    {illustrationLoadingProgress}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              userStories.map((story, index) => (
+                <View key={story.storyId} style={MainScreenStyles.storyItem}>
+                  <Image
+                    source={
+                      typeof storyImages[index] === 'string'
+                        ? { uri: storyImages[index] as string }
+                        : storyImages[index]
+                    }
+                    style={MainScreenStyles.storyImage}
+                  />
+                  <Text style={MainScreenStyles.storyTitle}>{story.title}</Text>
+                </View>
+              ))
+            )}
+          </ScrollView>
         </View>
 
-        {/* 빠른 시작 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            빠른 시작
-          </ThemedText>
+        <View style={MainScreenStyles.buttonContainer}>
           <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('새 이야기 작성')}
+            style={[MainScreenStyles.button, MainScreenStyles.button1]}
+            onPress={() => router.push('./storylist')}
           >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>새 이야기 작성하기</ThemedText>
+            <Image source={bookmark} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>동화 목록</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={() => Alert.alert('이야기 탐색')}
+            style={[MainScreenStyles.button, MainScreenStyles.button2]}
+            onPress={() => router.push('/(main)/storylist/favorites')}
           >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>이야기 탐색하기</ThemedText>
+            <Image source={heart} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>즐겨찾기</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button3]}
+            onPress={() => router.push('/(main)/english-dictionary')}
+          >
+            <Image source={dictionary} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>영어 사전</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button4]}
+            onPress={() => router.push('/(main)/quiz')}
+          >
+            <Image source={quiz} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>영어 퀴즈</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button5]}
+            onPress={() => router.push('/(main)/subscription')}
+          >
+            <Image source={donate} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>결제/구독</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button6]}
+            onPress={() => router.push('/(main)/mypage')}
+          >
+            <Image source={mypage} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>마이페이지</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button7]}
+            onPress={() => router.push('./settings')}
+          >
+            <Image source={setting} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>설정</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[MainScreenStyles.button, MainScreenStyles.button8]}
+            onPress={() => router.push('./notice-event-faq')}
+          >
+            <Image source={board} style={MainScreenStyles.buttonImage} />
+            <Text style={MainScreenStyles.buttonText}>공지/이벤트</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 최근 활동 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
+        <TouchableOpacity
+          style={MainScreenStyles.createStoryButton}
+          onPress={() => {
+            router.push('/(main)/storycreate');
           }}
         >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            최근 활동
-          </ThemedText>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('최근 작성한 이야기')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>최근 작성한 이야기</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={() => Alert.alert('저장된 이야기')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>저장된 이야기</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* 설정 섹션 */}
-        <View
-          style={{
-            backgroundColor: cardColor,
-            padding: 16,
-            borderRadius: 12,
-            marginBottom: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
-          }}
-        >
-          <ThemedText
-            style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 12,
-            }}
-          >
-            설정
-          </ThemedText>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#f5f5f5',
-              padding: 16,
-              borderRadius: 8,
-              marginBottom: 8,
-            }}
-            onPress={() => Alert.alert('프로필 설정')}
-          >
-            <ThemedText style={{ fontSize: 16, color: textColor }}>프로필 설정</ThemedText>
-          </TouchableOpacity>
-          {/* StoryCraft Dev로 돌아가는 버튼 추후 삭제!!*/}
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#FF6B6B',
-              padding: 16,
-              borderRadius: 8,
-            }}
-            onPress={handleBackToDev}
-          >
-            <ThemedText style={{ fontSize: 16, color: 'white', textAlign: 'center' }}>
-              StoryCraft Dev로 돌아가기
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </ThemedView>
+          <Image source={boxplus} style={MainScreenStyles.createStoryButtonImage} />
+        </TouchableOpacity>
+      </ThemedView>
+    </ImageBackground>
   );
 }

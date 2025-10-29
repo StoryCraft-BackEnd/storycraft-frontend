@@ -4,30 +4,33 @@
     "slug": "StoryCraft",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/character/sleep.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/appicon.png",
+    "scheme": "storycraft",
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/appicon.png",
+        "backgroundColor": "#ffffff",
+        "monochromeImage": "./assets/images/appicon.png"
+      },
+      "package": "com.storycraft.android2"
+    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/character/sleep.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/character/sleep.png"
+      "favicon": "./assets/images/appicon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/character/sleep.png",
+          "image": "./assets/images/appicon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -42,12 +45,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "your-project-id"
       }
     },
-    "metro": {
-      "maxWorkers": 2,
-      "resetCache": true
-    }
   }
 }

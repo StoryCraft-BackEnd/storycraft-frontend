@@ -1,0 +1,112 @@
+import { StyleSheet } from 'react-native';
+
+export const SettingsScreenStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'transparent', // ImageBackground 사용 예정
+    padding: 0,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    zIndex: 10,
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 28,
+    color: '#fff',
+  },
+  landscapeWrapper: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingVertical: 48,
+  },
+  scrollContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingLeft: 80,
+    gap: 16,
+  },
+  settingsBox: {
+    width: 280,
+    height: 260,
+    backgroundColor: 'rgba(24,31,58,0.95)',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 8,
+    marginVertical: 0,
+    marginHorizontal: 0,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 24,
+    letterSpacing: 1,
+    color: '#fff',
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 12,
+    color: '#b3b3ff',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    marginBottom: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#23284a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  icon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
+  },
+  infoBox: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 15,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  value: {
+    fontSize: 15,
+    color: '#b3b3ff',
+    marginTop: 2,
+  },
+  dangerButton: {
+    marginTop: 8,
+    marginBottom: 8,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,77,79,0.08)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#ff4d4f',
+  },
+  dangerButtonText: {
+    color: '#ff4d4f',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+});

@@ -43,13 +43,6 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
-.env
-.env.development
-.env.test
-.env.production
-
 # typescript
 *.tsbuildinfo
 
@@ -103,3 +96,10 @@ android/keystore.properties
 
 expo-env.d.ts
 # @end expo-cli
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
