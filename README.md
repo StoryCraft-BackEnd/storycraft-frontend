@@ -24,9 +24,9 @@ React Native와 Expo로 제작된 모바일 영어 학습 앱입니다. AI가 �
 
 ## 📚 프로젝트 자료
 
-- 설계서: [docs/25년*SW개발\_HW제작설계서*일반(개인정보 기재x).pptx](<docs/25년_SW개발_HW제작설계서_일반(개인정보 기재x).pptx>)
-- 수행계획서: [docs/2025년 ICT 한이음 드림업 프로젝트 수행계획서\_StoryCraft.pdf](<docs/2025년 ICT 한이음 드림업 프로젝트 수행계획서_StoryCraft.pdf>)
-- 결과보고서: [docs/2025년 한이음 드림업 프로젝트 결과보고서\_StoryCraft.pdf](<docs/2025년 한이음 드림업 프로젝트 결과보고서_StoryCraft.pdf>)
+- 설계서: [25년*SW개발\_제작설계서*공모전.pptx](docs/25년_SW개발_제작설계서_공모전.pptx)
+- 수행계획서: [2025년 ICT 한이음 드림업 프로젝트 수행계획서\_StoryCraft.pdf](<docs/2025년 ICT 한이음 드림업 프로젝트 수행계획서_StoryCraft.pdf>)
+- 결과보고서: [2025년 한이음 드림업 프로젝트 결과보고서\_StoryCraft.pdf](<docs/2025년 한이음 드림업 프로젝트 결과보고서_StoryCraft.pdf>)
 
 ## 🔗 백엔드 저장소
 
